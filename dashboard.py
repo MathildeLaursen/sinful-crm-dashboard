@@ -12,6 +12,7 @@ st.set_page_config(
     layout="wide", 
     initial_sidebar_state="collapsed"
 )
+
 # --- CSS HACK: DESIGN TILPASNINGER ---
 st.markdown("""
     <style>
@@ -21,10 +22,22 @@ st.markdown("""
             padding-bottom: 5rem;
         }
         
-        /* 2. Gør sidebaren smallere */
+        /* 2. Gør sidebaren smallere (og håndter min-width) */
         section[data-testid="stSidebar"] {
-            width: 100px !important; /* Din ønskede bredde */
-            min-width: 100px !important; /* VIGTIGT: Tillad den at blive mindre end standard */
+            width: 100px !important;
+            min-width: 100px !important;
+        }
+
+        /* 3. Kompakt knap i sidebar (Fjern luft inde i og omkring) */
+        section[data-testid="stSidebar"] .stButton {
+            margin-top: 0px; /* Fjerner luft over knappen */
+        }
+        
+        section[data-testid="stSidebar"] .stButton button {
+            height: auto !important;         /* Lad højden tilpasse sig teksten */
+            min-height: 0px !important;      /* Fjern Streamlits standard minimumshøjde */
+            padding-top: 4px !important;     /* Mindre luft i toppen inde i knappen */
+            padding-bottom: 4px !important;  /* Mindre luft i bunden inde i knappen */
         }
     </style>
 """, unsafe_allow_html=True)
@@ -330,6 +343,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
