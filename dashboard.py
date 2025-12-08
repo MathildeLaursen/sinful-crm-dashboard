@@ -156,6 +156,10 @@ def load_google_sheet_data():
     df['Open Rate %'] = df.apply(lambda x: (x['Unique_Opens'] / x['Total_Received'] * 100) if x['Total_Received'] > 0 else 0, axis=1)
     df['Click Rate %'] = df.apply(lambda x: (x['Unique_Clicks'] / x['Total_Received'] * 100) if x['Total_Received'] > 0 else 0, axis=1)
     
+    # Kombinerede kolonner til filtrering
+    df['ID_Campaign'] = df['Number'].astype(str) + ' - ' + df['Campaign Name'].astype(str)
+    df['Email_Message'] = df['Email'].astype(str) + ' - ' + df['Message'].astype(str)
+    
     return df
 
 try:
@@ -241,21 +245,17 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
     # Række 2: Filtre (Vandret layout)
     st.subheader("🔍 Detaljerede Filtre")
     
-    # Klargør lister
-    all_numbers = sorted(df['Number'].astype(str).unique())
-    all_emails = sorted(df['Email'].astype(str).unique())
-    all_messages = sorted(df['Message'].astype(str).unique())
+    # Klargør lister (kombinerede kolonner)
+    all_id_campaigns = sorted(df['ID_Campaign'].astype(str).unique())
+    all_email_messages = sorted(df['Email_Message'].astype(str).unique())
     all_variants = sorted(df['Variant'].astype(str).unique())
-    all_campaigns = sorted(df['Campaign Name'].astype(str).unique())
 
-    # 5 kolonner til filtrene
-    f1, f2, f3, f4, f5 = st.columns(5)
+    # 3 kolonner til filtrene (kombinerede)
+    f1, f2, f3 = st.columns(3)
     
-    sel_campaigns = f1.multiselect("Kampagne", all_campaigns, default=[])
-    sel_numbers = f2.multiselect("ID (Number)", all_numbers, default=[])
-    sel_emails = f3.multiselect("Email", all_emails, default=[])
-    sel_messages = f4.multiselect("Message", all_messages, default=[])
-    sel_variants = f5.multiselect("Variant", all_variants, default=[])
+    sel_id_campaigns = f1.multiselect("Kampagne (ID - Navn)", all_id_campaigns, default=[])
+    sel_email_messages = f2.multiselect("Email - Message", all_email_messages, default=[])
+    sel_variants = f3.multiselect("Variant", all_variants, default=[])
 
 
 # --- DATA FILTRERING ---
@@ -263,14 +263,10 @@ def filter_data(dataset, start, end):
     mask = (dataset['Date'] >= pd.to_datetime(start)) & (dataset['Date'] <= pd.to_datetime(end))
     temp_df = dataset.loc[mask]
     
-    if sel_campaigns:
-        temp_df = temp_df[temp_df['Campaign Name'].astype(str).isin(sel_campaigns)]
-    if sel_numbers:
-        temp_df = temp_df[temp_df['Number'].astype(str).isin(sel_numbers)]
-    if sel_emails:
-        temp_df = temp_df[temp_df['Email'].astype(str).isin(sel_emails)]
-    if sel_messages:
-        temp_df = temp_df[temp_df['Message'].astype(str).isin(sel_messages)]
+    if sel_id_campaigns:
+        temp_df = temp_df[temp_df['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
+    if sel_email_messages:
+        temp_df = temp_df[temp_df['Email_Message'].astype(str).isin(sel_email_messages)]
     if sel_variants:
         temp_df = temp_df[temp_df['Variant'].astype(str).isin(sel_variants)]
         
@@ -322,7 +318,7 @@ with col_graph1:
     st.subheader("📈 Udvikling over tid")
     if not current_df.empty:
         graph_df = current_df.sort_values('Date')
-        fig_line = px.line(graph_df, x='Date', y='Open Rate %', hover_data=['Message', 'Campaign Name'], markers=True)
+        fig_line = px.line(graph_df, x='Date', y='Open Rate %', hover_data=['ID_Campaign', 'Email_Message'], markers=True)
         fig_line.update_traces(line_color='#E74C3C')
         st.plotly_chart(fig_line, use_container_width=True)
     else:
@@ -331,19 +327,21 @@ with col_graph1:
 with col_graph2:
     st.subheader("🎯 Klik vs. Opens (Matrix)")
     if not current_df.empty:
-        fig_scatter = px.scatter(current_df, x='Open Rate %', y='Click Rate %', size='Total_Received', color='Campaign Name', hover_name='Message')
+        fig_scatter = px.scatter(current_df, x='Open Rate %', y='Click Rate %', size='Total_Received', color='ID_Campaign', hover_name='Email_Message')
         st.plotly_chart(fig_scatter, use_container_width=True)
 
 st.subheader("📋 Detaljeret Data")
 if not current_df.empty:
     display_df = current_df.copy()
     display_df['Date'] = display_df['Date'].dt.date
-    cols_to_show = ['Date', 'Number', 'Campaign Name', 'Email', 'Message', 'Variant', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %']
+    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Variant', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %']
     st.dataframe(
         display_df[cols_to_show].sort_values(by='Date', ascending=False),
         use_container_width=True,
         hide_index=True,
         column_config={
+            "ID_Campaign": st.column_config.TextColumn("Kampagne (ID - Navn)"),
+            "Email_Message": st.column_config.TextColumn("Email - Message"),
             "Open Rate %": st.column_config.NumberColumn(format="%.1f%%"),
             "Click Rate %": st.column_config.NumberColumn(format="%.2f%%"),
             "Total_Received": st.column_config.NumberColumn(format="%d"),
@@ -357,29 +355,3 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
