@@ -20,7 +20,7 @@ st.markdown("""
         
         /* 2. Gør sidebaren smallere */
         section[data-testid="stSidebar"] {
-            width: 100px !important; # Standard er ca 336px
+            width: 10px !important; # Standard er ca 336px
         }
     </style>
 """, unsafe_allow_html=True)
@@ -327,6 +327,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
