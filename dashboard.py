@@ -44,7 +44,7 @@ st.markdown("""
             padding-bottom: 2px !important;  /* Lille luft i bund */
             line-height: 1 !important;     /* Saml linjerne lidt hvis den wrapper */
             white-space: nowrap !important;  /* TVING teksten til at blive på én linje */
-            font-size: 10px !important;      /* Gør skriften lidt mindre, så den kan være der */
+            font-size: 8px !important;      /* Gør skriften lidt mindre, så den kan være der */
         }
     </style>
 """, unsafe_allow_html=True)
@@ -350,6 +350,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
