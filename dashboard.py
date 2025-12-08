@@ -31,8 +31,8 @@ def check_password():
         st.session_state["authenticated"] = True
         return True
 
-    st.title("📧 Live Dashboard: Email Marketing")
-    st.markdown("### 🔒 Adgang påkrævet")
+    st.title("Newsletter Dashboard 📧")
+    st.markdown("🔒 Log ind")
     
     with st.form("login_form"):
         password_input = st.text_input("Indtast kodeord:", type="password")
@@ -59,7 +59,7 @@ if not check_password():
 
 # --- HERUNDER STARTER DASHBOARDET ---
 
-st.title("📧 Dashboard: Nyhedsbreve")
+st.title("Newsletter Dashboard 📧")
 
 # Log ud knap i menuen (sidebar er nu kun til log ud)
 with st.sidebar:
@@ -321,5 +321,6 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
