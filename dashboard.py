@@ -9,6 +9,16 @@ import time
 # --- SIDE OPSÆTNING ---
 st.set_page_config(page_title="Sinful KPI Dashboard", layout="wide")
 
+# --- CSS HACK: MINDRE AFSTAND I TOPPEN ---
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 1rem;
+            padding-bottom: 5rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- LOGIN LOGIK ---
 def check_password():
     cookie_manager = stx.CookieManager(key="main_cookie_manager")
@@ -311,3 +321,4 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
