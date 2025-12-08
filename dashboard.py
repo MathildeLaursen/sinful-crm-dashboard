@@ -28,23 +28,30 @@ st.markdown("""
             min-width: 100px !important;
         }
 
-        /* 3. KOMPAKT KNAP I SIDEBAR (Aggressiv styling) */
-        
-        /* Fjern luft rundt om knap-containeren */
+        /* 3. KOMPAKT OG CENTRERET KNAP */
         [data-testid="stSidebar"] .stButton {
             margin-bottom: 0px !important;
             padding-bottom: 0px !important;
         }
 
-        /* Styling af selve knappen */
         [data-testid="stSidebar"] button {
-            min-height: 0px !important;      /* Tillad at den er lav */
-            height: auto !important;         /* Tilpas højde til tekst */
-            padding-top: 2px !important;     /* Lille luft i top */
-            padding-bottom: 2px !important;  /* Lille luft i bund */
-            line-height: 1 !important;     /* Saml linjerne lidt hvis den wrapper */
-            white-space: nowrap !important;  /* TVING teksten til at blive på én linje */
-            font-size: 20px !important;      /* Gør skriften lidt mindre, så den kan være der */
+            /* Størrelse og luft */
+            min-height: 0px !important;
+            height: auto !important;
+            padding-top: 6px !important;    /* Lidt mere luft foroven/forneden ser pænere ud */
+            padding-bottom: 6px !important;
+            
+            /* CENTRERING AF TEKST (Magien sker her) */
+            display: flex !important;
+            justify-content: center !important; /* Centrer vandret */
+            align-items: center !important;     /* Centrer lodret */
+            text-align: center !important;
+            width: 100% !important;             /* Fyld hele bredden ud, så ser det pænest ud */
+            
+            /* Tekst styling */
+            line-height: 1.2 !important;
+            white-space: nowrap !important;
+            font-size: 14px !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -350,6 +357,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
