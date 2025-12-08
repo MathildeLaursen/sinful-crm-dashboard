@@ -125,7 +125,7 @@ def load_google_sheet_data():
             df.columns[3]: 'Send Time',
             df.columns[4]: 'Number',
             df.columns[5]: 'Campaign Name',
-            df.columns[6]: 'Email Type',
+            df.columns[6]: 'Email',
             df.columns[7]: 'Message',
             df.columns[8]: 'Variant',
             df.columns[9]: 'Total_Received',
@@ -243,7 +243,7 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
     
     # Klargør lister
     all_numbers = sorted(df['Number'].astype(str).unique())
-    all_emails = sorted(df['Email Type'].astype(str).unique())
+    all_emails = sorted(df['Email'].astype(str).unique())
     all_messages = sorted(df['Message'].astype(str).unique())
     all_variants = sorted(df['Variant'].astype(str).unique())
     all_campaigns = sorted(df['Campaign Name'].astype(str).unique())
@@ -253,7 +253,7 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
     
     sel_campaigns = f1.multiselect("Kampagne", all_campaigns, default=[])
     sel_numbers = f2.multiselect("ID (Number)", all_numbers, default=[])
-    sel_emails = f3.multiselect("Email Type", all_emails, default=[])
+    sel_emails = f3.multiselect("Email", all_emails, default=[])
     sel_messages = f4.multiselect("Message", all_messages, default=[])
     sel_variants = f5.multiselect("Variant", all_variants, default=[])
 
@@ -268,7 +268,7 @@ def filter_data(dataset, start, end):
     if sel_numbers:
         temp_df = temp_df[temp_df['Number'].astype(str).isin(sel_numbers)]
     if sel_emails:
-        temp_df = temp_df[temp_df['Email Type'].astype(str).isin(sel_emails)]
+        temp_df = temp_df[temp_df['Email'].astype(str).isin(sel_emails)]
     if sel_messages:
         temp_df = temp_df[temp_df['Message'].astype(str).isin(sel_messages)]
     if sel_variants:
@@ -338,7 +338,7 @@ st.subheader("📋 Detaljeret Data")
 if not current_df.empty:
     display_df = current_df.copy()
     display_df['Date'] = display_df['Date'].dt.date
-    cols_to_show = ['Date', 'Number', 'Campaign Name', 'Email Type', 'Message', 'Variant', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %']
+    cols_to_show = ['Date', 'Number', 'Campaign Name', 'Email', 'Message', 'Variant', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %']
     st.dataframe(
         display_df[cols_to_show].sort_values(by='Date', ascending=False),
         use_container_width=True,
@@ -357,6 +357,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
