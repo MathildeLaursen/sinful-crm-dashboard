@@ -1,4 +1,8 @@
 import streamlit as st
+st.write("DEBUG MODE: Her er de nøgler, jeg kan se i Secrets:")
+st.write(st.secrets.keys())
+
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 from streamlit_gsheets import GSheetsConnection
@@ -144,3 +148,4 @@ try:
 
 except Exception as e:
     st.error(f"Der opstod en fejl: {e}")
+
