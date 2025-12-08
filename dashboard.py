@@ -177,14 +177,14 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
     # Række 1: Datovælger
     st.subheader("📅 Vælg Periode")
     date_options = [
-        "Uge til dato",
-        "Kvartal til dato",
-        "Måned til dato",
         "Seneste 7 dage",
         "Seneste 30 dage",
+        "Uge til dato",
+        "Måned til dato",
+        "Kvartal til dato",
         "Sidste måned",
         "Sidste kvartal",
-        "Hele året (YTD)",
+        "I år (YTD)",
         "Vælg Datoer"
     ]
     
@@ -197,23 +197,23 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
     end_date = today
 
     # Dato Logik
-    if selected_range == "Denne måned til dato":
+    if selected_range == "Måned til dato":
         start_date = today.replace(day=1)
         end_date = today
-    elif selected_range == "Denne uge til dato":
+    elif selected_range == "Uge til dato":
         start_date = today - datetime.timedelta(days=today.weekday())
         end_date = today
-    elif selected_range == "Sidste 7 dage":
+    elif selected_range == "Seneste 7 dage":
         start_date = today - datetime.timedelta(days=7)
         end_date = today
-    elif selected_range == "Sidste 30 dage":
+    elif selected_range == "Seneste 30 dage":
         start_date = today - datetime.timedelta(days=30)
         end_date = today
     elif selected_range == "Sidste måned":
         first_of_this_month = today.replace(day=1)
         end_date = first_of_this_month - datetime.timedelta(days=1)
         start_date = end_date.replace(day=1)
-    elif selected_range == "Dette kvartal til dato":
+    elif selected_range == "Kvartal til dato":
         current_q_start_month = 3 * ((today.month - 1) // 3) + 1
         start_date = today.replace(month=current_q_start_month, day=1)
         end_date = today
@@ -223,7 +223,7 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
         end_date = curr_q_start - datetime.timedelta(days=1)
         prev_q_start_month = 3 * ((end_date.month - 1) // 3) + 1
         start_date = end_date.replace(month=prev_q_start_month, day=1)
-    elif selected_range == "Hele året (YTD)":
+    elif selected_range == "I år (YTD)":
         start_date = today.replace(month=1, day=1)
         end_date = today
     else: # Brugerdefineret
@@ -357,6 +357,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
