@@ -9,12 +9,18 @@ import time
 # --- SIDE OPSÆTNING ---
 st.set_page_config(page_title="Sinful KPI Dashboard", layout="wide")
 
-# --- CSS: MINDRE AFSTAND I TOPPEN ---
+# --- CSS HACK: DESIGN TILPASNINGER ---
 st.markdown("""
     <style>
+        /* 1. Fjern luft i toppen af hovedvinduet */
         .block-container {
             padding-top: 1rem;
             padding-bottom: 5rem;
+        }
+        
+        /* 2. Gør sidebaren smallere */
+        section[data-testid="stSidebar"] {
+            width: 200px !important; # Standard er ca 336px
         }
     </style>
 """, unsafe_allow_html=True)
@@ -321,6 +327,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
