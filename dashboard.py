@@ -190,7 +190,7 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
     
     col_date1, col_date2 = st.columns([1, 3])
     with col_date1:
-
+        selected_range = st.selectbox("Vælg Datoer", date_options)
 
     today = datetime.date.today()
     start_date = today
@@ -357,6 +357,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
