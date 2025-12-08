@@ -36,8 +36,8 @@ st.markdown("""
         section[data-testid="stSidebar"] .stButton button {
             height: auto !important;         /* Lad højden tilpasse sig teksten */
             min-height: 0px !important;      /* Fjern Streamlits standard minimumshøjde */
-            padding-top: 4px !important;     /* Mindre luft i toppen inde i knappen */
-            padding-bottom: 4px !important;  /* Mindre luft i bunden inde i knappen */
+            padding-top: 1px !important;     /* Mindre luft i toppen inde i knappen */
+            padding-bottom: 1px !important;  /* Mindre luft i bunden inde i knappen */
         }
     </style>
 """, unsafe_allow_html=True)
@@ -343,6 +343,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
