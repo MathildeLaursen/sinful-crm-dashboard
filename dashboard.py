@@ -137,17 +137,15 @@ def check_password():
             if submit_button:
                 if password_input == st.secrets["PASSWORD"]:
                     st.session_state["authenticated"] = True
-                try:
-                    expires = datetime.datetime.now() + datetime.timedelta(days=7)
-                    cookie_manager.set("sinful_auth", "true", expires_at=expires)
-                except Exception:
-                    pass
-                
-                st.success("Login godkendt! Vent venligst...")
-                time.sleep(2)
-                st.rerun()
-            else:
-                st.error("😕 Forkert kodeord")
+                    try:
+                        expires = datetime.datetime.now() + datetime.timedelta(days=7)
+                        cookie_manager.set("sinful_auth", "true", expires_at=expires)
+                    except Exception:
+                        pass
+                    
+                    st.success("Login godkendt! Vent venligst...")
+                    time.sleep(2)
+                    st.rerun()
     return False
 
 if not check_password():
@@ -176,20 +174,12 @@ def load_google_sheet_data():
     except Exception:
         return pd.DataFrame()
     
-    # Landekonfiguration: (land, startkolonne-index)
-    # DK starter i kolonne P (index 15 i 0-indexed)
+    # Landekonfiguration: (land, startkolonne-index) - Kun Norden
     country_configs = [
         ('DK', 15),   # Kolonne P (15 i 0-indexed)
         ('SE', 21),   # Kolonne V (21 i 0-indexed) 
         ('NO', 27),   # Kolonne AB (27 i 0-indexed)
         ('FI', 33),   # Kolonne AH (33 i 0-indexed)
-        ('FR', 39),   # Kolonne AN (39 i 0-indexed)
-        ('UK', 45),   # Kolonne AT (45 i 0-indexed)
-        ('DE', 51),   # Kolonne AZ (51 i 0-indexed)
-        ('AT', 57),   # Kolonne BF (57 i 0-indexed)
-        ('NL', 63),   # Kolonne BL (63 i 0-indexed)
-        ('BE', 69),   # Kolonne BR (69 i 0-indexed)
-        ('CH', 75),   # Kolonne BX (75 i 0-indexed)
     ]
     
     all_country_data = []
@@ -469,9 +459,25 @@ def filter_data(dataset, start, end):
     if sel_email_messages:
         temp_df = temp_df[temp_df['Email_Message'].astype(str).isin(sel_email_messages)]
     
-    # Aggreger data på tværs af lande
-    # Gruppér på Date, Campaign, Email og summer metrics
     if not temp_df.empty:
+        # Pivot data så vi får en kolonne per land
+        pivot_df = temp_df.pivot_table(
+            index=['Date', 'ID_Campaign', 'Email_Message'],
+            columns='Country',
+            values='Total_Received',
+            aggfunc='sum',
+            fill_value=0
+        ).reset_index()
+        
+        # Sørg for at alle lande-kolonner eksisterer
+        for country in ['DK', 'SE', 'NO', 'FI']:
+            if country not in pivot_df.columns:
+                pivot_df[country] = 0
+        
+        # Beregn total
+        pivot_df['Total'] = pivot_df['DK'] + pivot_df['SE'] + pivot_df['NO'] + pivot_df['FI']
+        
+        # Aggreger også for metrics (til KPI cards)
         agg_df = temp_df.groupby(['Date', 'ID_Campaign', 'Email_Message'], as_index=False).agg({
             'Total_Received': 'sum',
             'Unique_Opens': 'sum',
@@ -490,11 +496,16 @@ def filter_data(dataset, start, end):
             lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1
         )
         
-        return agg_df
+        return agg_df, pivot_df
         
-    return temp_df
+    return temp_df, pd.DataFrame()
 
-current_df = filter_data(df, start_date, end_date)
+result = filter_data(df, start_date, end_date)
+if isinstance(result, tuple):
+    current_df, display_pivot_df = result
+else:
+    current_df = result
+    display_pivot_df = pd.DataFrame()
 
 
 # --- VISUALISERING ---
@@ -529,10 +540,10 @@ show_metric(col4, "Open Rate", cur_or, is_percent=True)
 show_metric(col5, "Click Rate", cur_cr, is_percent=True)
 show_metric(col6, "Click Through Rate", cur_ctr, is_percent=True)
 
-if not current_df.empty:
-    display_df = current_df.copy()
-    display_df['Date'] = display_df['Date'].dt.date
-    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Total_Received']
+if not display_pivot_df.empty:
+    display_df = display_pivot_df.copy()
+    display_df['Date'] = pd.to_datetime(display_df['Date']).dt.date
+    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Total', 'DK', 'SE', 'NO', 'FI']
     st.dataframe(
         display_df[cols_to_show].sort_values(by='Date', ascending=False),
         use_container_width=True,
@@ -541,7 +552,11 @@ if not current_df.empty:
             "Date": st.column_config.DateColumn("Date", width="small"),
             "ID_Campaign": st.column_config.TextColumn("Kampagne", width="medium"),
             "Email_Message": st.column_config.TextColumn("Email", width="large"),
-            "Total_Received": st.column_config.NumberColumn("Emails Sendt", format="%d", width="small"),
+            "Total": st.column_config.NumberColumn("Total", format="%d", width="small"),
+            "DK": st.column_config.NumberColumn("DK", format="%d", width="small"),
+            "SE": st.column_config.NumberColumn("SE", format="%d", width="small"),
+            "NO": st.column_config.NumberColumn("NO", format="%d", width="small"),
+            "FI": st.column_config.NumberColumn("FI", format="%d", width="small"),
         }
     )
 else:
