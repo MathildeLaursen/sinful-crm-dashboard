@@ -408,7 +408,8 @@ prev_df = filter_data(df, prev_start_date, prev_end_date)
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 def show_metric(col, label, current_val, prev_val, format_str, is_percent=False):
-    # Beregn procentuel ændring
+    # Beregn absolut og procentuel ændring
+    absolute_delta = current_val - prev_val
     if prev_val > 0:
         pct_change = ((current_val - prev_val) / prev_val) * 100
     else:
@@ -426,11 +427,30 @@ def show_metric(col, label, current_val, prev_val, format_str, is_percent=False)
         else:
             val_fmt = f"{current_val:.0f}"
     
-    # Delta med procent i parentes
-    if pct_change >= 0:
-        delta_fmt = f"+{pct_change:.1f}%"
+    # Delta: kompakt absolut tal + procent i parentes
+    if is_percent:
+        # For procent-metrics: kun procent-ændring
+        if pct_change >= 0:
+            delta_fmt = f"+{pct_change:.1f}%"
+        else:
+            delta_fmt = f"{pct_change:.1f}%"
     else:
-        delta_fmt = f"{pct_change:.1f}%"
+        # For tal-metrics: absolut (kompakt) + procent i parentes
+        if absolute_delta >= 1_000_000:
+            abs_fmt = f"{absolute_delta / 1_000_000:.1f}M"
+        elif absolute_delta >= 1_000:
+            abs_fmt = f"{absolute_delta / 1_000:.0f}K"
+        elif absolute_delta <= -1_000_000:
+            abs_fmt = f"{absolute_delta / 1_000_000:.1f}M"
+        elif absolute_delta <= -1_000:
+            abs_fmt = f"{absolute_delta / 1_000:.0f}K"
+        else:
+            abs_fmt = f"{absolute_delta:.0f}"
+        
+        if absolute_delta >= 0:
+            delta_fmt = f"+{abs_fmt} (+{pct_change:.1f}%)"
+        else:
+            delta_fmt = f"{abs_fmt} ({pct_change:.1f}%)"
 
     col.metric(label, val_fmt, delta=delta_fmt)
 
@@ -482,8 +502,8 @@ if not current_df.empty:
     fig.add_trace(
         go.Scatter(
             x=graph_df['Date'], 
-            y=graph_df['Click Rate %'],
-            name='Click Rate %',
+            y=graph_df['Click Rate'],
+            name='Click Rate',
             line=dict(color='#28A745', width=2),
             mode='lines+markers'
         ),
@@ -491,8 +511,8 @@ if not current_df.empty:
     )
     
     # Akse-titler
-    fig.update_yaxes(title_text="Open Rate %", secondary_y=False)
-    fig.update_yaxes(title_text="Click Rate %", secondary_y=True)
+    fig.update_yaxes(title_text="Open Rate", secondary_y=False)
+    fig.update_yaxes(title_text="Click Rate", secondary_y=True)
     fig.update_xaxes(title_text="")
     
     fig.update_layout(
