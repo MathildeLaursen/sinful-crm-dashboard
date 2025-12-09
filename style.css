@@ -104,6 +104,13 @@ input:focus, input:active,
     outline: none !important;
 }
 
+/* Skjul søgefelt i selectbox dropdown */
+.stSelectbox [data-baseweb="popover"] input,
+[data-baseweb="popover"] [data-baseweb="input"],
+[data-baseweb="popover"] input[aria-autocomplete="list"] {
+    display: none !important;
+}
+
 div[data-baseweb="select"] > div {
     border-color: #D4BFFF !important;
 }
