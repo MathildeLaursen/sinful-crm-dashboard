@@ -19,7 +19,7 @@ css_path = os.path.join(os.path.dirname(__file__), 'style.css')
 with open(css_path) as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-# JavaScript til dynamisk checkbox fix
+# JavaScript til dynamisk checkbox og tabel fix
 st.markdown("""
     <script>
         function fixCheckboxColors() {
@@ -38,9 +38,26 @@ st.markdown("""
             });
         }
         
-        setTimeout(fixCheckboxColors, 100);
+        function fixTableColors() {
+            document.querySelectorAll('.stDataFrameGlideDataEditor').forEach(table => {
+                table.style.setProperty('--gdg-bg-header', 'linear-gradient(135deg, #E8D5FF 0%, #FFD5E8 100%)');
+                table.style.setProperty('--gdg-bg-header-hovered', 'rgba(212, 191, 255, 0.3)');
+                table.style.setProperty('--gdg-bg-header-has-focus', 'rgba(212, 191, 255, 0.2)');
+                table.style.setProperty('--gdg-text-header', '#4A3F55');
+                table.style.setProperty('--gdg-accent-color', '#9B7EBD');
+                table.style.setProperty('--gdg-accent-light', 'rgba(155, 126, 189, 0.15)');
+                table.style.setProperty('--gdg-border-color', 'rgba(212, 191, 255, 0.3)');
+                table.style.setProperty('--gdg-horizontal-border-color', 'rgba(212, 191, 255, 0.3)');
+            });
+        }
         
-        const observer = new MutationObserver(fixCheckboxColors);
+        setTimeout(fixCheckboxColors, 100);
+        setTimeout(fixTableColors, 200);
+        
+        const observer = new MutationObserver(() => {
+            fixCheckboxColors();
+            fixTableColors();
+        });
         observer.observe(document.body, { childList: true, subtree: true, attributes: true });
     </script>
 """, unsafe_allow_html=True)
