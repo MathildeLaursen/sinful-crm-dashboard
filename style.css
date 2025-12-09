@@ -394,11 +394,20 @@ div[data-testid="stCheckbox"] label span:first-child {
     box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
 }
 
-/* Skjul "Choose a date range" dropdown i kalender */
+/* Skjul "Choose a date range" dropdown i kalender - AGGRESSIV */
 [data-baseweb="datepicker"] [data-baseweb="select"],
 [data-baseweb="datepicker"] > div > div:last-child,
 [data-baseweb="calendar"] + div,
-div[data-baseweb="popover"] [data-baseweb="select"] {
+div[data-baseweb="popover"] [data-baseweb="select"],
+/* Skjul alt under kalenderen */
+[data-baseweb="datepicker"] > div:nth-child(2),
+[data-baseweb="calendar"] ~ *,
+/* Target specifikt "Choose a date range" teksten */
+[data-baseweb="datepicker"] div:has(> [data-baseweb="select"]),
+[data-baseweb="datepicker"] [role="listbox"],
+[data-baseweb="datepicker"] label,
+/* Skjul select container under calendar */
+[data-baseweb="popover"] > div > div > div:last-child:not([data-baseweb="calendar"]) {
     display: none !important;
 }
 
