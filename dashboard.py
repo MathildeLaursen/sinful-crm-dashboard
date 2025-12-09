@@ -408,16 +408,29 @@ prev_df = filter_data(df, prev_start_date, prev_end_date)
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 def show_metric(col, label, current_val, prev_val, format_str, is_percent=False):
-    delta = 0
+    # Beregn procentuel ændring
     if prev_val > 0:
-        delta = current_val - prev_val
+        pct_change = ((current_val - prev_val) / prev_val) * 100
+    else:
+        pct_change = 0
     
+    # Formater hovedværdi
     if is_percent:
         val_fmt = f"{current_val:.1f}%"
-        delta_fmt = f"{delta:.1f}%"
     else:
-        val_fmt = f"{current_val:,.0f}"
-        delta_fmt = f"{delta:,.0f}"
+        # Kompakt format: K for tusind, M for million
+        if current_val >= 1_000_000:
+            val_fmt = f"{current_val / 1_000_000:.1f}M"
+        elif current_val >= 1_000:
+            val_fmt = f"{current_val / 1_000:.0f}K"
+        else:
+            val_fmt = f"{current_val:.0f}"
+    
+    # Delta med procent i parentes
+    if pct_change >= 0:
+        delta_fmt = f"+{pct_change:.1f}%"
+    else:
+        delta_fmt = f"{pct_change:.1f}%"
 
     col.metric(label, val_fmt, delta=delta_fmt)
 
@@ -438,8 +451,8 @@ prev_ctr = (prev_clicks / prev_opens * 100) if prev_opens > 0 else 0
 show_metric(col1, "Emails Sendt", cur_sent, prev_sent, "{:,.0f}")
 show_metric(col2, "Unikke Opens", cur_opens, prev_opens, "{:,.0f}")
 show_metric(col3, "Unikke Clicks", cur_clicks, prev_clicks, "{:,.0f}")
-show_metric(col4, "Gns. Open Rate", cur_or, prev_or, "{:.1f}%", is_percent=True)
-show_metric(col5, "Gns. Click Rate", cur_cr, prev_cr, "{:.2f}%", is_percent=True)
+show_metric(col4, "Open Rate", cur_or, prev_or, "{:.1f}%", is_percent=True)
+show_metric(col5, "Click Rate", cur_cr, prev_cr, "{:.2f}%", is_percent=True)
 show_metric(col6, "Click Through Rate", cur_ctr, prev_ctr, "{:.1f}%", is_percent=True)
 
 st.divider()
