@@ -637,25 +637,21 @@ def filter_data(dataset, start, end):
     mask = (dataset['Date'] >= pd.to_datetime(start)) & (dataset['Date'] <= pd.to_datetime(end))
     temp_df = dataset.loc[mask].copy()
     
-    # Kun filtr hvis IKKE alle er valgt (dvs. hvis listen er mindre end total mulige)
+    # Anvend filtre baseret på brugerens valg
     # Land
-    all_countries_in_data = dataset['Country'].unique()
-    if sel_countries and len(sel_countries) < len(all_countries_in_data):
+    if sel_countries:
         temp_df = temp_df[temp_df['Country'].isin(sel_countries)]
     
-    # Kampagner (efter land-filtrering)
-    all_campaigns_in_data = temp_df['ID_Campaign'].astype(str).unique()
-    if sel_id_campaigns and len(sel_id_campaigns) < len(all_campaigns_in_data):
+    # Kampagner
+    if sel_id_campaigns:
         temp_df = temp_df[temp_df['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
     
-    # Emails (efter kampagne-filtrering)
-    all_emails_in_data = temp_df['Email_Message'].astype(str).unique()
-    if sel_email_messages and len(sel_email_messages) < len(all_emails_in_data):
+    # Emails
+    if sel_email_messages:
         temp_df = temp_df[temp_df['Email_Message'].astype(str).isin(sel_email_messages)]
     
-    # Variants (efter email-filtrering)
-    all_variants_in_data = temp_df['Variant'].astype(str).unique()
-    if sel_variants and len(sel_variants) < len(all_variants_in_data):
+    # Variants
+    if sel_variants:
         temp_df = temp_df[temp_df['Variant'].astype(str).isin(sel_variants)]
     
     # Aggreger data på tværs af lande
