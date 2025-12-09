@@ -704,7 +704,8 @@ if not current_df.empty:
     )
     fig.update_xaxes(
         gridcolor='rgba(212,191,255,0.2)',
-        tickangle=-45
+        tickangle=-45,
+        type='category'  # Kategorisk x-akse uden dato-mellemrum
     )
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
