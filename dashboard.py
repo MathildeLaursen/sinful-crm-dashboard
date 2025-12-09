@@ -673,9 +673,10 @@ if not current_df.empty:
     
     # Layout styling (unicorn theme)
     fig.update_layout(
-        title=None,
+        title="",
+        showlegend=True,
         height=300,
-        margin=dict(l=20, r=20, t=40, b=20),
+        margin=dict(l=60, r=60, t=40, b=40),
         legend=dict(
             orientation="h",
             yanchor="bottom",
