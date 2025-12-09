@@ -65,35 +65,6 @@ button[data-testid="stExpandSidebarButton"],
     visibility: hidden !important;
 }
 
-/* ===========================================
-   LOG UD KNAP - Øverste højre hjørne
-   =========================================== */
-
-/* Placer Log Ud knappen i øverste højre hjørne via key */
-.stElementContainer.st-key-logout_btn_top_right {
-    position: fixed !important;
-    top: 10px !important;
-    right: 80px !important;
-    z-index: 9999 !important;
-}
-
-/* Style Log Ud knappen */
-.st-key-logout_btn_top_right button {
-    background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 6px 16px !important;
-    font-size: 13px !important;
-    min-height: 0 !important;
-    height: auto !important;
-    box-shadow: 0 2px 8px rgba(155, 126, 189, 0.3) !important;
-}
-
-.st-key-logout_btn_top_right button:hover {
-    background: linear-gradient(135deg, #8A6DAC 0%, #D7A3BA 100%) !important;
-    transform: translateY(-1px) !important;
-}
 
 /* ===========================================
    INPUT FELTER
