@@ -388,7 +388,12 @@ div[data-testid="stCheckbox"] label span:first-child {
 [data-baseweb="form-control-label"],
 .stDateInput [data-baseweb="select"],
 .stDateInput label[data-baseweb="form-control-label"],
-div:has(> [data-baseweb="calendar"]) ~ div {
+div:has(> [data-baseweb="calendar"]) ~ div,
+/* Skjul hele form-control containeren med dropdown */
+[data-baseweb="form-control-container"],
+div:has(> [data-baseweb="form-control-container"]),
+.st-hq,
+.st-hr {
     display: none !important;
 }
 
