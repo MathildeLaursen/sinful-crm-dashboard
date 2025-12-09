@@ -38,52 +38,9 @@ st.markdown("""
             });
         }
         
-        function fixCalendarPopover() {
-            // Find den hvide boks: div.st-er.st-au.st-av.st-aw.st-ax.st-bx.st-d0
-            document.querySelectorAll('.st-er.st-au.st-av.st-aw.st-ax.st-bx.st-d0').forEach(el => {
-                el.style.cssText = 'background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;';
-            });
-            
-            // Også style parent til calendar direkte
-            document.querySelectorAll('[data-baseweb="calendar"]').forEach(calendar => {
-                const parent = calendar.parentElement;
-                if (parent) {
-                    parent.style.cssText = 'background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;';
-                    const grandparent = parent.parentElement;
-                    if (grandparent) {
-                        grandparent.style.cssText = 'background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;';
-                    }
-                }
-            });
-        }
-        
-        // Inject CSS dynamically for calendar med HØJESTE specificitet
-        function injectCalendarCSS() {
-            if (!document.getElementById('calendar-unicorn-fix')) {
-                const style = document.createElement('style');
-                style.id = 'calendar-unicorn-fix';
-                style.textContent = `
-                    div.st-er.st-au.st-av.st-aw.st-ax.st-bx.st-d0,
-                    [data-baseweb="popover"] > div,
-                    [data-baseweb="popover"] > div > div,
-                    div:has(> [data-baseweb="calendar"]),
-                    div:has(> div > [data-baseweb="calendar"]) {
-                        background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
-                        background-color: transparent !important;
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-        }
-        
         setTimeout(fixCheckboxColors, 100);
-        setTimeout(fixCalendarPopover, 300);
-        setTimeout(injectCalendarCSS, 50);
         
-        const observer = new MutationObserver(() => {
-            fixCheckboxColors();
-            fixCalendarPopover();
-        });
+        const observer = new MutationObserver(fixCheckboxColors);
         observer.observe(document.body, { childList: true, subtree: true, attributes: true });
     </script>
 """, unsafe_allow_html=True)
