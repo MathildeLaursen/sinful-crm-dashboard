@@ -244,9 +244,26 @@ def load_google_sheet_data():
     def extract_country(campaign_name):
         campaign_str = str(campaign_name).upper()
         countries = ['DK', 'SE', 'NO', 'FI', 'DE', 'UK', 'US', 'FR', 'ES', 'IT', 'NL', 'BE', 'AT', 'CH', 'PL']
+        
+        # Tjek med forskellige separatorer og positioner
         for country in countries:
-            if f'_{country}_' in campaign_str or f'-{country}-' in campaign_str or f' {country} ' in campaign_str:
+            # Med separatorer
+            if (f'_{country}_' in campaign_str or 
+                f'-{country}-' in campaign_str or 
+                f' {country} ' in campaign_str or
+                f'_{country}' in campaign_str or
+                f'{country}_' in campaign_str or
+                f'-{country}' in campaign_str or
+                f'{country}-' in campaign_str or
+                # I starten/slutningen
+                campaign_str.startswith(f'{country}_') or
+                campaign_str.startswith(f'{country}-') or
+                campaign_str.startswith(f'{country} ') or
+                campaign_str.endswith(f'_{country}') or
+                campaign_str.endswith(f'-{country}') or
+                campaign_str.endswith(f' {country}')):
                 return country
+        
         return 'DK'  # Standard
     
     df['Country'] = df['Campaign Name'].apply(extract_country)
