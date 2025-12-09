@@ -248,7 +248,7 @@ except Exception as e:
 # --- TOP-BAR: FILTRE & DATO (COLLAPSIBLE) ---
 
 # Vi bruger st.expander til at lave en boks der kan foldes ud/ind
-with st.expander("Filtrér)", expanded=True):
+with st.expander("Filtrér", expanded=True):
     
     # Række 1: Datovælger
     date_options = [
@@ -292,25 +292,30 @@ with st.expander("Filtrér)", expanded=True):
         else:
             return today - datetime.timedelta(days=30), today
     
-    col_date1, col_start_label, col_date2, col_end_label, col_date3 = st.columns([2, 0.3, 1, 0.3, 1])
+    # Samme kolonnebredder som filter-rækken (3 lige store kolonner)
+    col_periode, col_start_group, col_end_group = st.columns(3)
     
-    with col_date1:
+    with col_periode:
         selected_range = st.selectbox("Periode", date_options, index=1, label_visibility="collapsed")
     
     # Beregn default datoer
     default_start, default_end = get_date_range(selected_range)
     
-    with col_start_label:
-        st.markdown("<p style='margin-top: 8px; font-size: 14px;'>Start</p>", unsafe_allow_html=True)
+    with col_start_group:
+        # Start label + dato i samme gruppe med minimal afstand
+        sub1, sub2 = st.columns([0.15, 0.85])
+        with sub1:
+            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Start</p>", unsafe_allow_html=True)
+        with sub2:
+            start_date = st.date_input("Start dato", default_start, label_visibility="collapsed")
     
-    with col_date2:
-        start_date = st.date_input("Start dato", default_start, label_visibility="collapsed")
-    
-    with col_end_label:
-        st.markdown("<p style='margin-top: 8px; font-size: 14px;'>Slut</p>", unsafe_allow_html=True)
-    
-    with col_date3:
-        end_date = st.date_input("Slut dato", default_end, label_visibility="collapsed")
+    with col_end_group:
+        # Slut label + dato i samme gruppe med minimal afstand
+        sub3, sub4 = st.columns([0.15, 0.85])
+        with sub3:
+            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Slut</p>", unsafe_allow_html=True)
+        with sub4:
+            end_date = st.date_input("Slut dato", default_end, label_visibility="collapsed")
 
     delta = end_date - start_date
     prev_end_date = start_date - datetime.timedelta(days=1)
