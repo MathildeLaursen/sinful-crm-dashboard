@@ -96,37 +96,18 @@ st.markdown("""
             border-color: #0068c9 !important;
             box-shadow: none !important;
         }
-
-        /* 5. Kompakt spacing i filter boksen (expander) */
-        [data-testid="stExpander"] .stVerticalBlock {
-            gap: 0.5rem !important;
+        
+        /* Popover knap styling: venstrestil tekst, højrestil pil */
+        button[data-testid="stPopoverButton"] {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
         }
         
-        /* Afstand mellem hovedkolonner (Periode-gruppe → Start-gruppe) */
-        [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock {
-            gap: 2rem !important;
-        }
-        
-        /* JUSTÉR DENNE: Afstand mellem label-tekst og dropdown INDEN i hver gruppe */
-        [data-testid="stExpander"] .stHorizontalBlock .stHorizontalBlock {
-            gap: 0.2rem !important;
-        }
-        
-        
-        [data-testid="stExpander"] .stSelectbox,
-        [data-testid="stExpander"] .stMultiSelect,
-        [data-testid="stExpander"] .stDateInput {
-            margin-bottom: 0 !important;
-        }
-        
-        /* Reducer luft omkring labels i expander */
-        [data-testid="stExpander"] label {
-            margin-bottom: 0.25rem !important;
-        }
-        
-        /* Kompakt divider */
-        [data-testid="stExpander"] hr {
-            margin: 0.5rem 0 !important;
+        button[data-testid="stPopoverButton"] p {
+            text-align: left !important;
+            margin: 0 !important;
         }
 
     </style>
@@ -288,292 +269,188 @@ except Exception as e:
     st.stop()
 
 
-# --- TOP-BAR: FILTRE & DATO (COLLAPSIBLE) ---
+# --- FILTRE & DATO ---
 
-# Vi bruger st.expander til at lave en boks der kan foldes ud/ind
-with st.expander("Filtrér", expanded=True):
-    
-    # Række 1: Datovælger
-    date_options = [
-        "Seneste 7 dage",
-        "Seneste 30 dage",
-        "Uge til dato",
-        "Måned til dato",
-        "Kvartal til dato",
-        "Sidste måned",
-        "Sidste kvartal",
-        "I år (YTD)"
-    ]
+today = datetime.date.today()
+default_start = today - datetime.timedelta(days=30)
+default_end = today
 
-    today = datetime.date.today()
-    
-    # Beregn default datoer baseret på dropdown valg
-    def get_date_range(selection):
-        if selection == "Måned til dato":
-            return today.replace(day=1), today
-        elif selection == "Uge til dato":
-            return today - datetime.timedelta(days=today.weekday()), today
-        elif selection == "Seneste 7 dage":
-            return today - datetime.timedelta(days=7), today
-        elif selection == "Seneste 30 dage":
-            return today - datetime.timedelta(days=30), today
-        elif selection == "Sidste måned":
-            first_of_this_month = today.replace(day=1)
-            end = first_of_this_month - datetime.timedelta(days=1)
-            return end.replace(day=1), end
-        elif selection == "Kvartal til dato":
-            current_q_start_month = 3 * ((today.month - 1) // 3) + 1
-            return today.replace(month=current_q_start_month, day=1), today
-        elif selection == "Sidste kvartal":
-            current_q_start_month = 3 * ((today.month - 1) // 3) + 1
-            curr_q_start = today.replace(month=current_q_start_month, day=1)
-            end = curr_q_start - datetime.timedelta(days=1)
-            prev_q_start_month = 3 * ((end.month - 1) // 3) + 1
-            return end.replace(month=prev_q_start_month, day=1), end
-        elif selection == "I år (YTD)":
-            return today.replace(month=1, day=1), today
+# Alle filtre på én linje: Periode, Land, Kampagne, Email
+col_dato, col_land, col_kamp, col_email = st.columns(4)
+
+with col_dato:
+    date_range = st.date_input(
+        "Periode",
+        value=(default_start, default_end),
+        label_visibility="collapsed"
+    )
+    # Håndter at brugeren kun har valgt én dato
+    if isinstance(date_range, tuple) and len(date_range) == 2:
+        start_date, end_date = date_range
+    else:
+        start_date = date_range[0] if isinstance(date_range, tuple) else date_range
+        end_date = start_date
+
+# Filtrer først efter dato - så dropdowns kun viser data fra valgt periode
+date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
+df_date_filtered = df[date_mask]
+
+# Track perioden - nulstil filtre når perioden ændres
+current_period_key = f"{start_date}_{end_date}"
+if 'last_period_key' not in st.session_state:
+    st.session_state.last_period_key = current_period_key
+
+period_changed = st.session_state.last_period_key != current_period_key
+if period_changed:
+    st.session_state.last_period_key = current_period_key
+    # Nulstil alle filtre når perioden ændres
+    st.session_state.selected_campaigns = []
+    st.session_state.selected_emails = []
+    st.session_state.selected_countries = []
+
+# Initialize session states
+if 'selected_campaigns' not in st.session_state:
+    st.session_state.selected_campaigns = []
+if 'selected_emails' not in st.session_state:
+    st.session_state.selected_emails = []
+if 'selected_countries' not in st.session_state:
+    st.session_state.selected_countries = []
+if 'search_campaign' not in st.session_state:
+    st.session_state.search_campaign = ""
+if 'search_email' not in st.session_state:
+    st.session_state.search_email = ""
+if 'search_country' not in st.session_state:
+    st.session_state.search_country = ""
+
+# Land filter først (for at påvirke tilgængelige kampagner)
+all_countries = sorted(df_date_filtered['Country'].unique())
+
+# Pre-select alle lande hvis tom (efter periode-ændring eller første gang)
+if not st.session_state.selected_countries:
+    st.session_state.selected_countries = list(all_countries)
+
+# Synkroniser: fjern lande der ikke findes i perioden
+st.session_state.selected_countries = [c for c in st.session_state.selected_countries if c in all_countries]
+
+# Hvis alle lande blev fjernet, vælg alle igen
+if not st.session_state.selected_countries:
+    st.session_state.selected_countries = list(all_countries)
+
+# Filtrer på land hvis ikke alle er valgt
+if len(st.session_state.selected_countries) < len(all_countries):
+    df_land_filtered = df_date_filtered[df_date_filtered['Country'].isin(st.session_state.selected_countries)]
+else:
+    df_land_filtered = df_date_filtered
+
+# Kampagne filter (baseret på dato + land)
+all_id_campaigns = sorted(df_land_filtered['ID_Campaign'].astype(str).unique())
+
+# Pre-select alle kampagner hvis tom
+if not st.session_state.selected_campaigns:
+    st.session_state.selected_campaigns = list(all_id_campaigns)
+
+# Synkroniser: fjern kampagner der ikke findes i filtreret data
+st.session_state.selected_campaigns = [c for c in st.session_state.selected_campaigns if c in all_id_campaigns]
+
+# Hvis alle kampagner blev fjernet, vælg alle igen
+if not st.session_state.selected_campaigns:
+    st.session_state.selected_campaigns = list(all_id_campaigns)
+
+# Land filter
+with col_land:
+    with st.popover("Land ▾", use_container_width=True):
+        all_selected = len(st.session_state.selected_countries) == len(all_countries)
+        if st.checkbox("Vælg alle", value=all_selected, key="select_all_countries_cb"):
+            if not all_selected:
+                st.session_state.selected_countries = list(all_countries)
+                st.rerun()
         else:
-            return today - datetime.timedelta(days=30), today
-    
-    # Forskellige label-bredder for hver kolonne
-    ratio_col1 = [0.18, 0.82]  # Periode/Kampagne (bredere labels)
-    ratio_col2 = [0.10, 0.90]  # Start/Email (smallere labels)
-    ratio_col3 = [0.08, 0.92]  # Slut/A/B (smallest labels)
-    ratio_col4 = [0.10, 0.90]  # Land
-    
-    # Række 1: Periode, Start, Slut, (tom plads for land på række 2)
-    col_periode, col_start_group, col_end_group, col_spacer = st.columns(4)
-    
-    with col_periode:
-        p1, p2 = st.columns(ratio_col1)
-        with p1:
-            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Periode</p>", unsafe_allow_html=True)
-        with p2:
-            selected_range = st.selectbox("Periode", date_options, index=1, label_visibility="collapsed")
-    
-    # Beregn default datoer
-    default_start, default_end = get_date_range(selected_range)
-    
-    with col_start_group:
-        s1, s2 = st.columns(ratio_col2)
-        with s1:
-            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Start</p>", unsafe_allow_html=True)
-        with s2:
-            start_date = st.date_input("Start dato", default_start, label_visibility="collapsed")
-    
-    with col_end_group:
-        e1, e2 = st.columns(ratio_col3)
-        with e1:
-            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Slut</p>", unsafe_allow_html=True)
-        with e2:
-            end_date = st.date_input("Slut dato", default_end, label_visibility="collapsed")
+            if all_selected:
+                st.session_state.selected_countries = []
+                st.rerun()
+        
+        search_term = st.text_input("🔍 Søg", key="search_country", label_visibility="collapsed", placeholder="Søg...")
+        filtered_countries = [c for c in all_countries if search_term.lower() in c.lower()] if search_term else all_countries
+        
+        for country in filtered_countries:
+            is_selected = country in st.session_state.selected_countries
+            if st.checkbox(country, value=is_selected, key=f"country_{country}"):
+                if country not in st.session_state.selected_countries:
+                    st.session_state.selected_countries.append(country)
+            else:
+                if country in st.session_state.selected_countries:
+                    st.session_state.selected_countries.remove(country)
 
-    # Række 2: Filtre (Vandret layout) - KASKADERENDE
-    
-    # Filtrer først efter dato - så dropdowns kun viser data fra valgt periode
-    date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
-    df_date_filtered = df[date_mask]
-    
-    # Track perioden - nulstil filtre når perioden ændres
-    current_period_key = f"{start_date}_{end_date}"
-    if 'last_period_key' not in st.session_state:
-        st.session_state.last_period_key = current_period_key
-    
-    period_changed = st.session_state.last_period_key != current_period_key
-    if period_changed:
-        st.session_state.last_period_key = current_period_key
-        # Nulstil alle filtre når perioden ændres
-        st.session_state.selected_campaigns = []
-        st.session_state.selected_emails = []
-        st.session_state.selected_countries = []
-    
-    # Initialize session states
-    if 'selected_campaigns' not in st.session_state:
-        st.session_state.selected_campaigns = []
-    if 'selected_emails' not in st.session_state:
-        st.session_state.selected_emails = []
-    if 'selected_countries' not in st.session_state:
-        st.session_state.selected_countries = []
-    if 'search_campaign' not in st.session_state:
-        st.session_state.search_campaign = ""
-    if 'search_email' not in st.session_state:
-        st.session_state.search_email = ""
-    if 'search_country' not in st.session_state:
-        st.session_state.search_country = ""
-    
-    # Land filter først (for at påvirke tilgængelige kampagner)
-    all_countries = sorted(df_date_filtered['Country'].unique())
-    
-    # Pre-select alle lande hvis tom (efter periode-ændring eller første gang)
-    if not st.session_state.selected_countries:
-        st.session_state.selected_countries = list(all_countries)
-    
-    # Synkroniser: fjern lande der ikke findes i perioden
-    st.session_state.selected_countries = [c for c in st.session_state.selected_countries if c in all_countries]
-    
-    # Hvis alle lande blev fjernet, vælg alle igen
-    if not st.session_state.selected_countries:
-        st.session_state.selected_countries = list(all_countries)
-    
-    # Filtrer på land hvis ikke alle er valgt
-    if len(st.session_state.selected_countries) < len(all_countries):
-        df_land_filtered = df_date_filtered[df_date_filtered['Country'].isin(st.session_state.selected_countries)]
-    else:
-        df_land_filtered = df_date_filtered
-    
-    # Kampagne filter (baseret på dato + land)
-    all_id_campaigns = sorted(df_land_filtered['ID_Campaign'].astype(str).unique())
-    
-    # Pre-select alle kampagner hvis tom
-    if not st.session_state.selected_campaigns:
-        st.session_state.selected_campaigns = list(all_id_campaigns)
-    
-    # Synkroniser: fjern kampagner der ikke findes i filtreret data
-    st.session_state.selected_campaigns = [c for c in st.session_state.selected_campaigns if c in all_id_campaigns]
-    
-    # Hvis alle kampagner blev fjernet, vælg alle igen
-    if not st.session_state.selected_campaigns:
-        st.session_state.selected_campaigns = list(all_id_campaigns)
-    
-    # Række 2: Land, Kampagne, Email (land først for at påvirke kampagner)
-    col_land, col_kamp, col_email = st.columns(3)
-    
-    # Land filter først
-    with col_land:
-        l1, l2 = st.columns(ratio_col4)
-        with l1:
-            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Land</p>", unsafe_allow_html=True)
-        with l2:
-            count_text = f"{len(st.session_state.selected_countries)} valgt"
-            with st.popover(count_text, use_container_width=True):
-                # Select All checkbox
-                all_selected = len(st.session_state.selected_countries) == len(all_countries)
-                if st.checkbox("Select All", value=all_selected, key="select_all_countries_cb"):
-                    if not all_selected:
-                        st.session_state.selected_countries = list(all_countries)
-                        st.rerun()
-                else:
-                    if all_selected:
-                        st.session_state.selected_countries = []
-                        st.rerun()
-                
-                # Search box
-                search_term = st.text_input("🔍 Type to search", key="search_country", label_visibility="collapsed", placeholder="Type to search")
-                
-                # Reduceret spacing (30% af normal)
-                st.markdown("<div style='margin-top: -0.7rem;'></div>", unsafe_allow_html=True)
-                
-                # Filter countries by search
-                filtered_countries = [c for c in all_countries if search_term.lower() in c.lower()] if search_term else all_countries
-                
-                # Checkboxes for countries
-                for country in filtered_countries:
-                    is_selected = country in st.session_state.selected_countries
-                    if st.checkbox(country, value=is_selected, key=f"country_{country}"):
-                        if country not in st.session_state.selected_countries:
-                            st.session_state.selected_countries.append(country)
-                    else:
-                        if country in st.session_state.selected_countries:
-                            st.session_state.selected_countries.remove(country)
-    
-    with col_kamp:
-        k1, k2 = st.columns(ratio_col1)
-        with k1:
-            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Kampagne</p>", unsafe_allow_html=True)
-        with k2:
-            count_text = f"{len(st.session_state.selected_campaigns)} valgt" if st.session_state.selected_campaigns else "Alle"
-            with st.popover(count_text, use_container_width=True):
-                # Select All checkbox
-                all_selected = len(st.session_state.selected_campaigns) == len(all_id_campaigns)
-                if st.checkbox("Select All", value=all_selected, key="select_all_campaigns_cb"):
-                    if not all_selected:
-                        st.session_state.selected_campaigns = list(all_id_campaigns)
-                        st.rerun()
-                else:
-                    if all_selected:
-                        st.session_state.selected_campaigns = []
-                        st.rerun()
-                
-                # Search box
-                search_term = st.text_input("🔍 Type to search", key="search_campaign", label_visibility="collapsed", placeholder="Type to search")
-                
-                # Reduceret spacing (30% af normal)
-                st.markdown("<div style='margin-top: -0.7rem;'></div>", unsafe_allow_html=True)
-                
-                # Filter campaigns by search
-                filtered_campaigns = [c for c in all_id_campaigns if search_term.lower() in c.lower()] if search_term else all_id_campaigns
-                
-                # Checkboxes for campaigns
-                for campaign in filtered_campaigns:
-                    is_selected = campaign in st.session_state.selected_campaigns
-                    if st.checkbox(campaign, value=is_selected, key=f"campaign_{campaign}"):
-                        if campaign not in st.session_state.selected_campaigns:
-                            st.session_state.selected_campaigns.append(campaign)
-                    else:
-                        if campaign in st.session_state.selected_campaigns:
-                            st.session_state.selected_campaigns.remove(campaign)
-    
-    sel_id_campaigns = st.session_state.selected_campaigns
-    
-    # Email filter (afhængig af valgt kampagne, land OG dato)
-    # Filtrer på kampagner hvis ikke alle er valgt
-    if len(st.session_state.selected_campaigns) < len(all_id_campaigns):
-        filtered_for_email = df_land_filtered[df_land_filtered['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
-    else:
-        filtered_for_email = df_land_filtered
-    
-    all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique())
-    
-    # Pre-select alle emails hvis tom
-    if not st.session_state.selected_emails:
-        st.session_state.selected_emails = list(all_email_messages)
-    
-    # Synkroniser: fjern emails der ikke findes i filtreret data
-    st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
-    
-    # Hvis alle emails blev fjernet, vælg alle igen
-    if not st.session_state.selected_emails:
-        st.session_state.selected_emails = list(all_email_messages)
-    
-    with col_email:
-        em1, em2 = st.columns(ratio_col2)
-        with em1:
-            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Email</p>", unsafe_allow_html=True)
-        with em2:
-            count_text = f"{len(st.session_state.selected_emails)} valgt" if st.session_state.selected_emails else "Alle"
-            with st.popover(count_text, use_container_width=True):
-                # Select All checkbox
-                all_selected = len(st.session_state.selected_emails) == len(all_email_messages)
-                if st.checkbox("Select All", value=all_selected, key="select_all_emails_cb"):
-                    if not all_selected:
-                        st.session_state.selected_emails = list(all_email_messages)
-                        st.rerun()
-                else:
-                    if all_selected:
-                        st.session_state.selected_emails = []
-                        st.rerun()
-                
-                # Search box
-                search_term = st.text_input("🔍 Type to search", key="search_email", label_visibility="collapsed", placeholder="Type to search")
-                
-                # Reduceret spacing (30% af normal)
-                st.markdown("<div style='margin-top: -0.7rem;'></div>", unsafe_allow_html=True)
-                
-                # Filter emails by search
-                filtered_emails = [e for e in all_email_messages if search_term.lower() in e.lower()] if search_term else all_email_messages
-                
-                # Checkboxes for emails
-                for email in filtered_emails:
-                    is_selected = email in st.session_state.selected_emails
-                    if st.checkbox(email, value=is_selected, key=f"email_{email}"):
-                        if email not in st.session_state.selected_emails:
-                            st.session_state.selected_emails.append(email)
-                    else:
-                        if email in st.session_state.selected_emails:
-                            st.session_state.selected_emails.remove(email)
-    
-    sel_email_messages = st.session_state.selected_emails
-    sel_countries = st.session_state.selected_countries
+# Kampagne filter
+with col_kamp:
+    with st.popover("Kampagne ▾", use_container_width=True):
+        all_selected = len(st.session_state.selected_campaigns) == len(all_id_campaigns)
+        if st.checkbox("Vælg alle", value=all_selected, key="select_all_campaigns_cb"):
+            if not all_selected:
+                st.session_state.selected_campaigns = list(all_id_campaigns)
+                st.rerun()
+        else:
+            if all_selected:
+                st.session_state.selected_campaigns = []
+                st.rerun()
+        
+        search_term = st.text_input("🔍 Søg", key="search_campaign", label_visibility="collapsed", placeholder="Søg...")
+        filtered_campaigns = [c for c in all_id_campaigns if search_term.lower() in c.lower()] if search_term else all_id_campaigns
+        
+        for campaign in filtered_campaigns:
+            is_selected = campaign in st.session_state.selected_campaigns
+            if st.checkbox(campaign, value=is_selected, key=f"campaign_{campaign}"):
+                if campaign not in st.session_state.selected_campaigns:
+                    st.session_state.selected_campaigns.append(campaign)
+            else:
+                if campaign in st.session_state.selected_campaigns:
+                    st.session_state.selected_campaigns.remove(campaign)
+
+sel_id_campaigns = st.session_state.selected_campaigns
+
+# Email filter (afhængig af valgt kampagne, land OG dato)
+if len(st.session_state.selected_campaigns) < len(all_id_campaigns):
+    filtered_for_email = df_land_filtered[df_land_filtered['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
+else:
+    filtered_for_email = df_land_filtered
+
+all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique())
+
+if not st.session_state.selected_emails:
+    st.session_state.selected_emails = list(all_email_messages)
+
+st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
+
+if not st.session_state.selected_emails:
+    st.session_state.selected_emails = list(all_email_messages)
+
+# Email filter
+with col_email:
+    with st.popover("Email ▾", use_container_width=True):
+        all_selected = len(st.session_state.selected_emails) == len(all_email_messages)
+        if st.checkbox("Vælg alle", value=all_selected, key="select_all_emails_cb"):
+            if not all_selected:
+                st.session_state.selected_emails = list(all_email_messages)
+                st.rerun()
+        else:
+            if all_selected:
+                st.session_state.selected_emails = []
+                st.rerun()
+        
+        search_term = st.text_input("🔍 Søg", key="search_email", label_visibility="collapsed", placeholder="Søg...")
+        filtered_emails = [e for e in all_email_messages if search_term.lower() in e.lower()] if search_term else all_email_messages
+        
+        for email in filtered_emails:
+            is_selected = email in st.session_state.selected_emails
+            if st.checkbox(email, value=is_selected, key=f"email_{email}"):
+                if email not in st.session_state.selected_emails:
+                    st.session_state.selected_emails.append(email)
+            else:
+                if email in st.session_state.selected_emails:
+                    st.session_state.selected_emails.remove(email)
+
+sel_email_messages = st.session_state.selected_emails
+sel_countries = st.session_state.selected_countries
 
 
 # --- DATA FILTRERING OG AGGREGERING ---
@@ -651,8 +528,6 @@ show_metric(col3, "Unikke Clicks", cur_clicks)
 show_metric(col4, "Open Rate", cur_or, is_percent=True)
 show_metric(col5, "Click Rate", cur_cr, is_percent=True)
 show_metric(col6, "Click Through Rate", cur_ctr, is_percent=True)
-
-st.divider()
 
 if not current_df.empty:
     display_df = current_df.copy()
