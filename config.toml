@@ -1,6 +1,12 @@
 [theme]
+# Unicorn tema - lilla som primær farve
 primaryColor = "#9B7EBD"
 backgroundColor = "#FAF5FF"
 secondaryBackgroundColor = "#F0E6FF"
 textColor = "#4A3F55"
 font = "sans serif"
+
+[server]
+# Tving reload af theme
+runOnSave = true
+
