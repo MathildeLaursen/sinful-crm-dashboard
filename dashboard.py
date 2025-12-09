@@ -379,6 +379,20 @@ with st.expander("Filtrér", expanded=True):
     date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
     df_date_filtered = df[date_mask]
     
+    # Track perioden - nulstil filtre når perioden ændres
+    current_period_key = f"{start_date}_{end_date}"
+    if 'last_period_key' not in st.session_state:
+        st.session_state.last_period_key = current_period_key
+    
+    period_changed = st.session_state.last_period_key != current_period_key
+    if period_changed:
+        st.session_state.last_period_key = current_period_key
+        # Nulstil alle filtre når perioden ændres
+        st.session_state.selected_campaigns = []
+        st.session_state.selected_emails = []
+        st.session_state.selected_variants = []
+        st.session_state.selected_countries = []
+    
     # Initialize session states
     if 'selected_campaigns' not in st.session_state:
         st.session_state.selected_campaigns = []
@@ -400,12 +414,16 @@ with st.expander("Filtrér", expanded=True):
     # Land filter først (for at påvirke tilgængelige kampagner)
     all_countries = sorted(df_date_filtered['Country'].unique())
     
-    # Pre-select alle lande hvis ikke initialiseret
+    # Pre-select alle lande hvis tom (efter periode-ændring eller første gang)
     if not st.session_state.selected_countries:
         st.session_state.selected_countries = list(all_countries)
     
     # Synkroniser: fjern lande der ikke findes i perioden
     st.session_state.selected_countries = [c for c in st.session_state.selected_countries if c in all_countries]
+    
+    # Hvis alle lande blev fjernet, vælg alle igen
+    if not st.session_state.selected_countries:
+        st.session_state.selected_countries = list(all_countries)
     
     # Filtrer på land hvis ikke alle er valgt
     if len(st.session_state.selected_countries) < len(all_countries):
@@ -416,12 +434,16 @@ with st.expander("Filtrér", expanded=True):
     # Kampagne filter (baseret på dato + land)
     all_id_campaigns = sorted(df_land_filtered['ID_Campaign'].astype(str).unique())
     
-    # Pre-select alle kampagner hvis ikke initialiseret
+    # Pre-select alle kampagner hvis tom
     if not st.session_state.selected_campaigns:
         st.session_state.selected_campaigns = list(all_id_campaigns)
     
     # Synkroniser: fjern kampagner der ikke findes i filtreret data
     st.session_state.selected_campaigns = [c for c in st.session_state.selected_campaigns if c in all_id_campaigns]
+    
+    # Hvis alle kampagner blev fjernet, vælg alle igen
+    if not st.session_state.selected_campaigns:
+        st.session_state.selected_campaigns = list(all_id_campaigns)
     
     # Række 2: Land, Kampagne, Email, A/B (land først for at påvirke kampagner)
     col_land, col_kamp, col_email, col_ab = st.columns(4)
@@ -512,12 +534,16 @@ with st.expander("Filtrér", expanded=True):
     
     all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique())
     
-    # Pre-select alle emails hvis ikke initialiseret
+    # Pre-select alle emails hvis tom
     if not st.session_state.selected_emails:
         st.session_state.selected_emails = list(all_email_messages)
     
     # Synkroniser: fjern emails der ikke findes i filtreret data
     st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
+    
+    # Hvis alle emails blev fjernet, vælg alle igen
+    if not st.session_state.selected_emails:
+        st.session_state.selected_emails = list(all_email_messages)
     
     with col_email:
         em1, em2 = st.columns(ratio_col2)
@@ -575,12 +601,16 @@ with st.expander("Filtrér", expanded=True):
             return "(Ingen)"
         return v
     
-    # Pre-select alle variants hvis ikke initialiseret
+    # Pre-select alle variants hvis tom
     if not st.session_state.selected_variants:
         st.session_state.selected_variants = list(all_variants_with_nan)
     
     # Synkroniser: fjern variants der ikke findes i filtreret data
     st.session_state.selected_variants = [v for v in st.session_state.selected_variants if v in all_variants_with_nan]
+    
+    # Hvis alle variants blev fjernet, vælg alle igen
+    if not st.session_state.selected_variants:
+        st.session_state.selected_variants = list(all_variants_with_nan)
     
     with col_ab:
         ab1, ab2 = st.columns(ratio_col3)
