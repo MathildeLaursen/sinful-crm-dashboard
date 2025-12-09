@@ -155,13 +155,27 @@ st.markdown("""
         
         /* Checkboxes i unicorn stil */
         .stCheckbox label {
-            padding: 0.3rem 0.5rem !important;
+            padding: 0.2rem 0.3rem !important;
             border-radius: 6px !important;
             background: transparent !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
         }
         
         .stCheckbox label:hover {
             background: rgba(232, 180, 203, 0.1) !important;
+        }
+        
+        /* Ensartet spacing mellem checkboxes */
+        .stCheckbox {
+            margin-bottom: 0.1rem !important;
+        }
+        
+        /* Tekst ved siden af checkbox */
+        .stCheckbox label > div:last-child {
+            display: flex !important;
+            align-items: center !important;
         }
         
         /* FJERN TEKST HIGHLIGHT - meget aggressiv */
@@ -670,7 +684,7 @@ with col_land:
             st.session_state.cb_reset_land += 1
             st.rerun()
         
-        st.markdown("<div style='margin: 0.3rem 0;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin: 0;'></div>", unsafe_allow_html=True)
         reset_land = st.session_state.cb_reset_land
         for country in all_countries:
             checked = country in st.session_state.selected_countries
@@ -698,7 +712,7 @@ with col_kamp:
             st.session_state.cb_reset_kamp += 1
             st.rerun()
         
-        st.markdown("<div style='margin: 0.3rem 0;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin: 0;'></div>", unsafe_allow_html=True)
         search_kamp = st.text_input("Søg", key="search_kamp", placeholder="Søg...", label_visibility="collapsed")
         filtered_campaigns = [c for c in all_id_campaigns if search_kamp.lower() in c.lower()] if search_kamp else all_id_campaigns
         
@@ -729,7 +743,7 @@ with col_email:
             st.session_state.cb_reset_email += 1
             st.rerun()
         
-        st.markdown("<div style='margin: 0.3rem 0;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin: 0;'></div>", unsafe_allow_html=True)
         search_email = st.text_input("Søg", key="search_email_input", placeholder="Søg...", label_visibility="collapsed")
         filtered_emails = [e for e in all_email_messages if search_email.lower() in e.lower()] if search_email else all_email_messages
         
