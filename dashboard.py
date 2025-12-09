@@ -445,35 +445,49 @@ show_metric(col6, "Click Through Rate", cur_ctr, prev_ctr, "{:.1f}%", is_percent
 st.divider()
 
 if not current_df.empty:
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    
     graph_df = current_df.sort_values('Date')
     
-    # Omform data til langt format for begge metrics
-    graph_df_melted = graph_df.melt(
-        id_vars=['Date', 'ID_Campaign', 'Email_Message'], 
-        value_vars=['Open Rate %', 'Click Rate %'],
-        var_name='Metric', 
-        value_name='Rate'
+    # Dual y-axis plot
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    
+    # Open Rate (venstre y-akse) - Blå
+    fig.add_trace(
+        go.Scatter(
+            x=graph_df['Date'], 
+            y=graph_df['Open Rate %'],
+            name='Open Rate %',
+            line=dict(color='#2E86AB', width=2),
+            mode='lines+markers'
+        ),
+        secondary_y=False
     )
     
-    fig_line = px.line(
-        graph_df_melted, 
-        x='Date', 
-        y='Rate', 
-        color='Metric',
-        hover_data=['ID_Campaign', 'Email_Message'],
-        markers=True,
-        color_discrete_map={
-            'Open Rate %': '#2E86AB',    # Blå
-            'Click Rate %': '#28A745'     # Grøn
-        }
+    # Click Rate (højre y-akse) - Grøn
+    fig.add_trace(
+        go.Scatter(
+            x=graph_df['Date'], 
+            y=graph_df['Click Rate %'],
+            name='Click Rate %',
+            line=dict(color='#28A745', width=2),
+            mode='lines+markers'
+        ),
+        secondary_y=True
     )
     
-    # Log skala på y-aksen
-    fig_line.update_yaxes(type='log', title='Rate % (log skala)')
-    fig_line.update_xaxes(title='Dato')
-    fig_line.update_layout(legend_title_text='')
+    # Akse-titler
+    fig.update_yaxes(title_text="Open Rate %", secondary_y=False)
+    fig.update_yaxes(title_text="Click Rate %", secondary_y=True)
+    fig.update_xaxes(title_text="")
     
-    st.plotly_chart(fig_line, use_container_width=True)
+    fig.update_layout(
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hovermode='x unified'
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Ingen data i valgte periode.")
 if not current_df.empty:
