@@ -174,8 +174,10 @@ def load_google_sheet_data():
     
     # Kombinerede kolonner til filtrering
     df['ID_Campaign'] = df['Number'].astype(str) + ' - ' + df['Campaign Name'].astype(str)
-    # Email_Message med A/B variant hvis den findes
-    df['Email_Message'] = df.apply(
+    # Email_Message UDEN variant (til aggregering)
+    df['Email_Message_Base'] = df['Email'].astype(str) + ' - ' + df['Message'].astype(str)
+    # Email_Message MED A/B variant hvis den findes
+    df['Email_Message_Full'] = df.apply(
         lambda x: f"{x['Email']} - {x['Message']} - {x['Variant']}" 
         if pd.notna(x['Variant']) and str(x['Variant']).strip() not in ['', 'nan', 'None'] 
         else f"{x['Email']} - {x['Message']}", 
@@ -244,8 +246,8 @@ preset_options = [
     "Sidste kvartal",
 ]
 
-# Layout: Preset, Kalender, Land, Kampagne, Email
-col_preset, col_dato, col_land, col_kamp, col_email = st.columns([1.2, 1.3, 0.8, 0.8, 0.8])
+# Layout: Preset, Kalender, Land, Kampagne, Email, Ignorer A/B
+col_preset, col_dato, col_land, col_kamp, col_email, col_ab = st.columns([1.2, 1.3, 0.8, 0.8, 0.8, 0.7])
 
 with col_preset:
     preset_index = preset_options.index(st.session_state.date_preset) if st.session_state.date_preset in preset_options else 1
@@ -315,6 +317,8 @@ if 'cb_reset_kamp' not in st.session_state:
     st.session_state.cb_reset_kamp = 0
 if 'cb_reset_email' not in st.session_state:
     st.session_state.cb_reset_email = 0
+if 'ignore_ab' not in st.session_state:
+    st.session_state.ignore_ab = True
 
 if period_changed:
     st.session_state.last_period_key = current_period_key
@@ -326,7 +330,9 @@ if period_changed:
 # ALLE filter-options baseret på perioden (uafhængige af hinanden)
 all_countries = sorted(df_date_filtered['Country'].unique())
 all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
-all_email_messages = sorted(df_date_filtered['Email_Message'].astype(str).unique())
+# Brug Email_Message_Base hvis ignore_ab, ellers Email_Message_Full
+email_col = 'Email_Message_Base' if st.session_state.ignore_ab else 'Email_Message_Full'
+all_email_messages = sorted(df_date_filtered[email_col].astype(str).unique())
 
 # Pre-select alle ved første load eller periode-ændring
 if st.session_state.selected_countries is None:
@@ -452,6 +458,16 @@ with col_email:
             st.session_state.cb_reset_email += 1
             st.rerun()
 
+# Ignorer A/B checkbox
+with col_ab:
+    st.markdown("<div style='height: 2px;'></div>", unsafe_allow_html=True)
+    ignore_ab = st.checkbox("Ignorer A/B", value=st.session_state.ignore_ab, key="ignore_ab_cb")
+    if ignore_ab != st.session_state.ignore_ab:
+        st.session_state.ignore_ab = ignore_ab
+        st.session_state.selected_emails = None  # Reset email filter
+        st.session_state.cb_reset_email += 1
+        st.rerun()
+
 # Gem valgte værdier til filter_data
 sel_id_campaigns = st.session_state.selected_campaigns
 
@@ -472,12 +488,12 @@ def filter_data(dataset, start, end):
     # Anvend filtre
     temp_df = temp_df[temp_df['Country'].isin(sel_countries)]
     temp_df = temp_df[temp_df['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
-    temp_df = temp_df[temp_df['Email_Message'].astype(str).isin(sel_email_messages)]
+    temp_df = temp_df[temp_df[email_col].astype(str).isin(sel_email_messages)]
     
     if not temp_df.empty:
         # Pivot data så vi får en kolonne per land
         pivot_df = temp_df.pivot_table(
-            index=['Date', 'ID_Campaign', 'Email_Message'],
+            index=['Date', 'ID_Campaign', email_col],
             columns='Country',
             values='Total_Received',
             aggfunc='sum',
@@ -494,12 +510,15 @@ def filter_data(dataset, start, end):
         pivot_df['Total'] = sum(pivot_df[c] for c in all_countries)
         
         # Aggreger også for metrics (til KPI cards)
-        agg_df = temp_df.groupby(['Date', 'ID_Campaign', 'Email_Message'], as_index=False).agg({
+        agg_df = temp_df.groupby(['Date', 'ID_Campaign', email_col], as_index=False).agg({
             'Total_Received': 'sum',
             'Unique_Opens': 'sum',
             'Unique_Clicks': 'sum',
             'Unsubscribed': 'sum'
         })
+        
+        # Omdøb email kolonne til standard navn for visning
+        agg_df = agg_df.rename(columns={email_col: 'Email_Message'})
         
         # Genberegn rates baseret på aggregerede tal
         agg_df['Open Rate %'] = agg_df.apply(
@@ -539,7 +558,7 @@ if show_delta and len(sel_countries) > 0:
     prev_temp = prev_temp[prev_temp['Country'].isin(sel_countries)]
     
     if not prev_temp.empty:
-        prev_df = prev_temp.groupby(['Date', 'ID_Campaign', 'Email_Message'], as_index=False).agg({
+        prev_df = prev_temp.groupby(['Date', 'ID_Campaign', email_col], as_index=False).agg({
             'Total_Received': 'sum',
             'Unique_Opens': 'sum',
             'Unique_Clicks': 'sum',
