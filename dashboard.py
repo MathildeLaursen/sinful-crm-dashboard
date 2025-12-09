@@ -192,22 +192,89 @@ except Exception as e:
 # --- FILTRE & DATO ---
 
 today = datetime.date.today()
-default_start = today - datetime.timedelta(days=30)
-default_end = today - datetime.timedelta(days=1)  # Ikke inkl. dags dato
+yesterday = today - datetime.timedelta(days=1)
 
-# Alle filtre på én linje
-col_dato, col_land, col_kamp, col_email = st.columns([1.5, 1, 1, 1])
+# Helper til at beregne kvartal
+def get_quarter_start(date):
+    quarter = (date.month - 1) // 3
+    return datetime.date(date.year, quarter * 3 + 1, 1)
+
+# Session state for dato
+if 'date_preset' not in st.session_state:
+    st.session_state.date_preset = "Sidste 30 dage"
+if 'date_range_value' not in st.session_state:
+    st.session_state.date_range_value = (today - datetime.timedelta(days=30), yesterday)
+
+# Beregn datoer baseret på preset (alle ekskl. dags dato)
+def calculate_date_range(preset):
+    if preset == "Sidste 7 dage":
+        return (today - datetime.timedelta(days=7), yesterday)
+    elif preset == "Sidste 30 dage":
+        return (today - datetime.timedelta(days=30), yesterday)
+    elif preset == "Denne måned":
+        return (today.replace(day=1), yesterday)
+    elif preset == "Dette kvartal":
+        return (get_quarter_start(today), yesterday)
+    elif preset == "I år":
+        return (today.replace(month=1, day=1), yesterday)
+    elif preset == "Sidste måned":
+        first_this_month = today.replace(day=1)
+        last_day_last_month = first_this_month - datetime.timedelta(days=1)
+        return (last_day_last_month.replace(day=1), last_day_last_month)
+    elif preset == "Sidste kvartal":
+        current_q_start = get_quarter_start(today)
+        last_q_end = current_q_start - datetime.timedelta(days=1)
+        return (get_quarter_start(last_q_end), last_q_end)
+    return None
+
+# Preset muligheder
+preset_options = [
+    "Sidste 7 dage",
+    "Sidste 30 dage", 
+    "Denne måned",
+    "Dette kvartal",
+    "I år",
+    "─────────────",  # Divider
+    "Sidste måned",
+    "Sidste kvartal",
+]
+
+# Layout: Preset, Kalender, Land, Kampagne, Email
+col_preset, col_dato, col_land, col_kamp, col_email = st.columns([1.2, 1.3, 0.8, 0.8, 0.8])
+
+with col_preset:
+    preset_index = preset_options.index(st.session_state.date_preset) if st.session_state.date_preset in preset_options else 1
+    
+    selected_preset = st.selectbox(
+        "Periode",
+        options=preset_options,
+        index=preset_index,
+        label_visibility="collapsed"
+    )
+    
+    # Opdater hvis preset ændres (og ikke divider)
+    if selected_preset != "─────────────" and selected_preset != st.session_state.date_preset:
+        st.session_state.date_preset = selected_preset
+        new_range = calculate_date_range(selected_preset)
+        if new_range:
+            st.session_state.date_range_value = new_range
+        st.rerun()
 
 with col_dato:
-    # Én simpel date_input - Streamlit's indbyggede "Choose a date range" klarer presets
+    # Beregn aktuel range
+    current_range = calculate_date_range(st.session_state.date_preset) or st.session_state.date_range_value
+    
     date_range = st.date_input(
-        "Periode",
-        value=(default_start, default_end),
+        "Datoer",
+        value=current_range,
         label_visibility="collapsed"
     )
     
     if isinstance(date_range, tuple) and len(date_range) == 2:
         start_date, end_date = date_range
+        # Gem hvis manuelt ændret
+        if date_range != current_range:
+            st.session_state.date_range_value = date_range
     else:
         start_date = date_range[0] if isinstance(date_range, tuple) else date_range
         end_date = start_date
