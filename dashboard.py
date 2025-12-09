@@ -164,45 +164,49 @@ st.markdown("""
             background: rgba(232, 180, 203, 0.1) !important;
         }
         
-        /* Checkbox label text - ingen highlight */
+        /* FJERN TEKST HIGHLIGHT - meget aggressiv */
         .stCheckbox label span,
-        .stCheckbox label p {
-            background: none !important;
+        .stCheckbox label p,
+        .stCheckbox span,
+        .stCheckbox p,
+        .stCheckbox [data-testid="stMarkdownContainer"],
+        .stCheckbox [data-testid="stMarkdownContainer"] p,
+        .stCheckbox [data-testid="stMarkdownContainer"] span,
+        [data-testid="stPopover"] .stCheckbox span,
+        [data-testid="stPopover"] .stCheckbox p,
+        [data-testid="stPopover"] span,
+        [data-testid="stPopover"] p {
+            background: transparent !important;
             background-color: transparent !important;
+            -webkit-box-decoration-break: clone !important;
+            box-decoration-break: clone !important;
         }
         
-        /* AGGRESSIV override af checkbox farver */
-        .stCheckbox label div[data-testid="stMarkdownContainer"],
-        .stCheckbox div[role="checkbox"],
-        .stCheckbox label > div:first-child,
-        [data-baseweb="checkbox"] div[role="checkbox"],
-        div[data-baseweb="checkbox"] > div:first-child {
-            background-color: #E8B4CB !important;
-            border-color: #D4A5BC !important;
-            background: #E8B4CB !important;
-        }
-        
-        /* Unchecked state */
-        .stCheckbox div[aria-checked="false"],
-        [data-baseweb="checkbox"] div[aria-checked="false"] {
+        /* Checkbox boks - unchecked: hvid med lilla border */
+        .stCheckbox > label > div:first-child,
+        [data-testid="stCheckbox"] > label > div:first-child {
             background-color: white !important;
-            border-color: #D4BFFF !important;
             background: white !important;
+            border: 2px solid #D4BFFF !important;
+            border-radius: 4px !important;
         }
         
-        /* Checked state - pastel pink */
-        .stCheckbox div[aria-checked="true"],
-        [data-baseweb="checkbox"] div[aria-checked="true"] {
+        /* Checkbox boks - checked: pastel pink */
+        .stCheckbox > label > div:first-child:has(svg),
+        [data-testid="stCheckbox"] > label > div:first-child:has(svg) {
             background-color: #E8B4CB !important;
-            border-color: #D4A5BC !important;
             background: #E8B4CB !important;
+            border-color: #D4A5BC !important;
         }
         
-        /* Checkmark hvid */
+        /* Checkmark SYNLIG - mørk lilla */
         .stCheckbox svg,
-        [data-baseweb="checkbox"] svg {
-            fill: white !important;
-            color: white !important;
+        .stCheckbox svg path,
+        [data-testid="stCheckbox"] svg,
+        [data-testid="stCheckbox"] svg path {
+            stroke: #4A3F55 !important;
+            fill: #4A3F55 !important;
+            stroke-width: 2px !important;
         }
         
         /* Små knapper i popover */
@@ -289,12 +293,10 @@ st.markdown("""
             background: rgba(212, 191, 255, 0.3) !important;
         }
         
-        /* Valgt dato i kalender - AGGRESSIV override */
+        /* Valgt dato i kalender */
         [data-baseweb="calendar"] [aria-selected="true"],
-        [data-baseweb="calendar"] [data-highlighted="true"],
         [data-baseweb="calendar"] button[aria-selected="true"],
-        [data-baseweb="datepicker"] [aria-selected="true"],
-        [data-baseweb="datepicker"] button[aria-selected="true"] {
+        [data-baseweb="datepicker"] [aria-selected="true"] {
             background: #9B7EBD !important;
             background-color: #9B7EBD !important;
             color: white !important;
@@ -318,59 +320,34 @@ st.markdown("""
             font-weight: 600 !important;
         }
         
-        /* FJERN AL RØD FRA KALENDER */
-        [data-baseweb="calendar"] [style*="rgb(255"],
-        [data-baseweb="calendar"] [style*="#ff"],
-        [data-baseweb="datepicker"] [style*="rgb(255"],
-        [data-baseweb="datepicker"] [style*="#ff"],
-        [data-baseweb="calendar"] div[style*="background"],
-        [data-baseweb="datepicker"] div[style*="background"] {
-            background: #9B7EBD !important;
-            background-color: #9B7EBD !important;
-        }
-        
-        /* Today marker - pastel lilla i stedet for rød */
-        [data-baseweb="calendar"] [data-today="true"],
-        [data-baseweb="datepicker"] [data-today="true"],
-        [data-baseweb="calendar"] button[data-today="true"],
-        [data-baseweb="datepicker"] button[data-today="true"] {
-            background: #D4BFFF !important;
-            background-color: #D4BFFF !important;
-            color: #4A3F55 !important;
-        }
-        
-        /* Override inline styles på valgte datoer */
-        .stDateInput [style*="background-color: rgb(255"],
-        .stDateInput [style*="background: rgb(255"],
-        [class*="Calendar"] [style*="rgb(255"] {
-            background: #9B7EBD !important;
-            background-color: #9B7EBD !important;
-        }
-        
-        /* GLOBAL OVERRIDE - Streamlit primary color (rød -> lilla) */
+        /* GLOBAL PRIMARY COLOR OVERRIDE */
         :root {
             --primary-color: #9B7EBD !important;
         }
+    </style>
+    
+    <script>
+        // Fjern røde farver fra kalenderen dynamisk
+        const observer = new MutationObserver(function(mutations) {
+            // Find alle elementer med rød baggrund
+            document.querySelectorAll('[style*="rgb(255"]').forEach(el => {
+                if (el.style.backgroundColor && el.style.backgroundColor.includes('255')) {
+                    el.style.backgroundColor = '#9B7EBD';
+                }
+                if (el.style.background && el.style.background.includes('255')) {
+                    el.style.background = '#9B7EBD';
+                }
+            });
+        });
         
-        /* Override alle steder hvor Streamlit bruger rød */
-        [style*="background-color: rgb(255, 75, 75)"],
-        [style*="background: rgb(255, 75, 75)"],
-        [style*="rgb(255, 75, 75)"],
-        [style*="#ff4b4b"],
-        [style*="background-color: rgb(255, 43, 43)"],
-        [style*="rgb(255, 43, 43)"] {
-            background: #9B7EBD !important;
-            background-color: #9B7EBD !important;
-            border-color: #9B7EBD !important;
-        }
-        
-        /* Streamlit emotion cache klasser med rød baggrund */
-        [class*="st-emotion-cache"] div[style*="255, 75"],
-        [class*="st-emotion-cache"] div[style*="255, 43"],
-        [class*="st-emotion-cache"] span[style*="255, 75"] {
-            background: #9B7EBD !important;
-            background-color: #9B7EBD !important;
-        }
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style']
+        });
+    </script>
+    <style>
         
         /* Metric cards styling */
         [data-testid="stMetric"] {
