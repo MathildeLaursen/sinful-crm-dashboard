@@ -182,31 +182,67 @@ st.markdown("""
             box-decoration-break: clone !important;
         }
         
-        /* Checkbox boks - unchecked: hvid med lilla border */
+        /* Checkbox boks styling - ALLE varianter */
         .stCheckbox > label > div:first-child,
-        [data-testid="stCheckbox"] > label > div:first-child {
+        [data-testid="stCheckbox"] > label > div:first-child,
+        .stCheckbox [data-baseweb="checkbox"] > div:first-child,
+        [data-baseweb="checkbox"] > div:first-child,
+        .stCheckbox label > span:first-child,
+        [class*="st-emotion-cache"] > label > div:first-child {
             background-color: white !important;
             background: white !important;
             border: 2px solid #D4BFFF !important;
             border-radius: 4px !important;
+            border-color: #D4BFFF !important;
         }
         
-        /* Checkbox boks - checked: pastel pink */
-        .stCheckbox > label > div:first-child:has(svg),
-        [data-testid="stCheckbox"] > label > div:first-child:has(svg) {
-            background-color: #E8B4CB !important;
-            background: #E8B4CB !important;
-            border-color: #D4A5BC !important;
+        /* Override RØD border specifikt */
+        .stCheckbox [style*="border-color"],
+        [data-baseweb="checkbox"] [style*="border-color"],
+        .stCheckbox div[style*="rgb(255"],
+        .stCheckbox span[style*="rgb(255"] {
+            border-color: #D4BFFF !important;
         }
         
-        /* Checkmark SYNLIG - mørk lilla */
+        /* Checkmark/flueben styling - GØR DET SYNLIGT */
         .stCheckbox svg,
         .stCheckbox svg path,
+        .stCheckbox svg polyline,
         [data-testid="stCheckbox"] svg,
-        [data-testid="stCheckbox"] svg path {
+        [data-baseweb="checkbox"] svg,
+        [data-baseweb="checkbox"] svg path,
+        [data-baseweb="checkbox"] svg polyline {
             stroke: #4A3F55 !important;
-            fill: #4A3F55 !important;
-            stroke-width: 2px !important;
+            fill: none !important;
+            stroke-width: 3px !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        /* MEGA AGGRESSIV - Override ALLE Streamlit rød-relaterede farver */
+        [class*="st-emotion-cache"][style*="border-color: rgb(255"],
+        [class*="st-emotion-cache"][style*="border-color: #ff"],
+        div[style*="border-color: rgb(255, 75, 75)"],
+        div[style*="border-color: rgb(255, 43, 43)"],
+        span[style*="border-color: rgb(255"],
+        label[style*="border-color: rgb(255"] {
+            border-color: #D4BFFF !important;
+        }
+        
+        /* Override specifik Streamlit st- klasser */
+        .st-ae, .st-af, .st-ag, .st-ah, .st-ai,
+        .st-b8, .st-b9, .st-ba, .st-bb, .st-bc {
+            border-color: #D4BFFF !important;
+        }
+        
+        /* Streamlit checkbox specifik - st-emotion klasser */
+        [class*="st-emotion-cache"] [role="checkbox"] {
+            border-color: #D4BFFF !important;
+        }
+        
+        [class*="st-emotion-cache"] [role="checkbox"][aria-checked="true"] {
+            background-color: #E8B4CB !important;
+            border-color: #D4A5BC !important;
         }
         
         /* Små knapper i popover */
@@ -327,17 +363,33 @@ st.markdown("""
     </style>
     
     <script>
-        // Fjern røde farver fra kalenderen dynamisk
-        const observer = new MutationObserver(function(mutations) {
-            // Find alle elementer med rød baggrund
-            document.querySelectorAll('[style*="rgb(255"]').forEach(el => {
-                if (el.style.backgroundColor && el.style.backgroundColor.includes('255')) {
-                    el.style.backgroundColor = '#9B7EBD';
-                }
-                if (el.style.background && el.style.background.includes('255')) {
-                    el.style.background = '#9B7EBD';
+        // Fjern røde farver dynamisk fra checkboxes og kalender
+        function fixColors() {
+            // Fix checkbox borders
+            document.querySelectorAll('.stCheckbox div, [data-baseweb="checkbox"] div').forEach(el => {
+                if (el.style.borderColor && (el.style.borderColor.includes('255') || el.style.borderColor.includes('ff4b4b'))) {
+                    el.style.borderColor = '#D4BFFF';
                 }
             });
+            
+            // Fix alle røde baggrundsfarver
+            document.querySelectorAll('[style*="rgb(255"]').forEach(el => {
+                const style = el.getAttribute('style');
+                if (style && style.includes('background')) {
+                    el.style.backgroundColor = '#9B7EBD';
+                    el.style.background = '#9B7EBD';
+                }
+                if (style && style.includes('border')) {
+                    el.style.borderColor = '#D4BFFF';
+                }
+            });
+        }
+        
+        // Kør med det samme og observer for ændringer
+        fixColors();
+        
+        const observer = new MutationObserver(function(mutations) {
+            fixColors();
         });
         
         observer.observe(document.body, {
