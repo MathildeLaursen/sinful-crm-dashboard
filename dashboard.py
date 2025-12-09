@@ -189,109 +189,115 @@ except Exception as e:
     st.stop()
 
 
-# --- FILTRE & DATO LOGIK (Looker Style) ---
+# --- FILTRE & DATO ---
 
-# Helper funktioner til dato-beregning
-def get_date_range_from_preset(preset):
-    today = datetime.date.today()
-    
-    if preset == "I dag":
-        return today, today
-    elif preset == "I går":
-        return today - datetime.timedelta(days=1), today - datetime.timedelta(days=1)
-    elif preset == "Denne uge (man-søn)":
-        start = today - datetime.timedelta(days=today.weekday())
-        return start, today
-    elif preset == "Sidste 7 dage":
-        return today - datetime.timedelta(days=7), today
-    elif preset == "Sidste 14 dage":
-        return today - datetime.timedelta(days=14), today
-    elif preset == "Sidste 30 dage":
-        return today - datetime.timedelta(days=30), today
-    elif preset == "Denne måned":
-        start = today.replace(day=1)
-        return start, today
-    elif preset == "Sidste måned":
-        first_day_this_month = today.replace(day=1)
-        last_day_last_month = first_day_this_month - datetime.timedelta(days=1)
-        start = last_day_last_month.replace(day=1)
-        return start, last_day_last_month
-    elif preset == "I år":
-        start = today.replace(month=1, day=1)
-        return start, today
-    elif preset == "Sidste år":
-        start = datetime.date(today.year - 1, 1, 1)
-        end = datetime.date(today.year - 1, 12, 31)
-        return start, end
-    return None # Custom
+today = datetime.date.today()
+default_start = today - datetime.timedelta(days=30)
+default_end = today
 
-# Session state init
-if 'date_range' not in st.session_state:
-    st.session_state.date_range = (today - datetime.timedelta(days=30), today)
-if 'date_preset' not in st.session_state:
-    st.session_state.date_preset = "Sidste 30 dage"
+# Alle filtre på én linje: Periode, Land, Kampagne, Email
+col_dato, col_land, col_kamp, col_email = st.columns(4)
 
-# Callback: Når preset ændres (dropdown)
-def on_preset_change():
-    preset = st.session_state.date_preset
-    new_range = get_date_range_from_preset(preset)
-    if new_range:
-        st.session_state.date_range = new_range
-
-# Callback: Når dato ændres manuelt (kalender)
-def on_date_change():
-    # Hvis brugeren piller ved kalenderen, sæt preset til "Tilpasset"
-    st.session_state.date_preset = "Tilpasset"
-
-# --- VISUALISERING AF DATO VÆLGER ---
-col_preset, col_picker, col_land, col_kamp, col_email = st.columns([1.5, 2, 1.5, 1.5, 1.5])
-
-# 1. Preset Dropdown (Looker Logic)
-with col_preset:
-    presets = [
-        "Tilpasset",
-        "I dag", "I går", 
-        "Denne uge (man-søn)", 
-        "Sidste 7 dage", "Sidste 14 dage", "Sidste 30 dage", 
-        "Denne måned", "Sidste måned", 
-        "I år", "Sidste år"
-    ]
-    st.selectbox(
-        "Dato interval", 
-        options=presets,
-        key="date_preset",
-        on_change=on_preset_change,
-        label_visibility="collapsed" # Skjuler label for clean look
-    )
-
-# 2. Den faktiske Dato Vælger
-with col_picker:
+with col_dato:
     date_range = st.date_input(
-        "Vælg datoer",
-        value=st.session_state.date_range,
-        key="date_input_widget",
-        on_change=on_date_change,
+        "Periode",
+        value=(default_start, default_end),
         label_visibility="collapsed"
     )
-
-    # Opdater den rigtige session state variabler baseret på widget
-    if len(date_range) == 2:
+    # Håndter at brugeren kun har valgt én dato
+    if isinstance(date_range, tuple) and len(date_range) == 2:
         start_date, end_date = date_range
-        st.session_state.date_range = date_range
-    elif len(date_range) == 1:
-        start_date = date_range[0]
-        end_date = start_date
     else:
-        # Fallback
-        start_date = today
-        end_date = today
+        start_date = date_range[0] if isinstance(date_range, tuple) else date_range
+        end_date = start_date
 
-# Filtrer data
+# Filtrer først efter dato - så dropdowns kun viser data fra valgt periode
 date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
 df_date_filtered = df[date_mask]
 
-# --- RESTEN AF FILTRENE (Land, Kampagne, Email) ---
-# ... (resten af din filter kode kommer her, husk at fjerne "with col_dato" og bruge de nye kolonner)
+# Track perioden - nulstil filtre når perioden ændres
+current_period_key = f"{start_date}_{end_date}"
+if 'last_period_key' not in st.session_state:
+    st.session_state.last_period_key = current_period_key
+
+period_changed = st.session_state.last_period_key != current_period_key
+
+# Initialize session states
+if 'selected_campaigns' not in st.session_state:
+    st.session_state.selected_campaigns = None  # None = ikke initialiseret
+if 'selected_emails' not in st.session_state:
+    st.session_state.selected_emails = None
+if 'selected_countries' not in st.session_state:
+    st.session_state.selected_countries = None
+if 'search_campaign' not in st.session_state:
+    st.session_state.search_campaign = ""
+if 'search_email' not in st.session_state:
+    st.session_state.search_email = ""
+if 'search_country' not in st.session_state:
+    st.session_state.search_country = ""
+# Counter til at resette checkbox keys
+if 'cb_reset_land' not in st.session_state:
+    st.session_state.cb_reset_land = 0
+if 'cb_reset_kamp' not in st.session_state:
+    st.session_state.cb_reset_kamp = 0
+if 'cb_reset_email' not in st.session_state:
+    st.session_state.cb_reset_email = 0
+
+if period_changed:
+    st.session_state.last_period_key = current_period_key
+    # Nulstil alle filtre når perioden ændres (None = vælg alle)
+    st.session_state.selected_campaigns = None
+    st.session_state.selected_emails = None
+    st.session_state.selected_countries = None
+
+# ALLE filter-options baseret på perioden (uafhængige af hinanden)
+all_countries = sorted(df_date_filtered['Country'].unique())
+all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
+all_email_messages = sorted(df_date_filtered['Email_Message'].astype(str).unique())
+
+# Pre-select alle ved første load eller periode-ændring
+if st.session_state.selected_countries is None:
+    st.session_state.selected_countries = list(all_countries)
+else:
+    st.session_state.selected_countries = [c for c in st.session_state.selected_countries if c in all_countries]
+
+if st.session_state.selected_campaigns is None:
+    st.session_state.selected_campaigns = list(all_id_campaigns)
+else:
+    st.session_state.selected_campaigns = [c for c in st.session_state.selected_campaigns if c in all_id_campaigns]
+
+if st.session_state.selected_emails is None:
+    st.session_state.selected_emails = list(all_email_messages)
+else:
+    st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
+
+# Land filter med checkboxes
+with col_land:
+    land_count = len(st.session_state.selected_countries)
+    land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
+    with st.popover(land_label, use_container_width=True):
+        # Vælg alle checkbox
+        all_land_selected = len(st.session_state.selected_countries) == len(all_countries)
+        select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"sel_all_land_{st.session_state.cb_reset_land}")
+        if select_all_land and not all_land_selected:
+            st.session_state.selected_countries = list(all_countries)
+            st.session_state.cb_reset_land += 1
+            st.rerun()
+        elif not select_all_land and all_land_selected:
+            st.session_state.selected_countries = []
+            st.session_state.cb_reset_land += 1
+            st.rerun()
+        
+        st.markdown("<div style='margin: 0;'></div>", unsafe_allow_html=True)
+        reset_land = st.session_state.cb_reset_land
+        for country in all_countries:
+            checked = country in st.session_state.selected_countries
+            if st.checkbox(country, value=checked, key=f"cb_land_{country}_{reset_land}"):
+                if country not in st.session_state.selected_countries:
+                    st.session_state.selected_countries.append(country)
+            else:
+                if country in st.session_state.selected_countries:
+                    st.session_state.selected_countries.remove(country)
 
 # Kampagne filter med checkboxes
 with col_kamp:
@@ -489,7 +495,6 @@ else:
 if st.button('Opdater Data'):
     st.cache_data.clear()
     st.rerun()
-
 
 
 
