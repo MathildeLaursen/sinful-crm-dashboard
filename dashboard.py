@@ -502,8 +502,8 @@ if not current_df.empty:
     fig.add_trace(
         go.Scatter(
             x=graph_df['Date'], 
-            y=graph_df['Click Rate'],
-            name='Click Rate',
+            y=graph_df['Click Rate %'],
+            name='Click Rate %',
             line=dict(color='#28A745', width=2),
             mode='lines+markers'
         ),
@@ -511,8 +511,8 @@ if not current_df.empty:
     )
     
     # Akse-titler
-    fig.update_yaxes(title_text="Open Rate", secondary_y=False)
-    fig.update_yaxes(title_text="Click Rate", secondary_y=True)
+    fig.update_yaxes(title_text="Open Rate %", secondary_y=False)
+    fig.update_yaxes(title_text="Click Rate %", secondary_y=True)
     fig.update_xaxes(title_text="")
     
     fig.update_layout(
