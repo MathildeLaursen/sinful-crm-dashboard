@@ -437,24 +437,13 @@ show_metric(col4, "Gns. Click Rate", cur_cr, prev_cr, "{:.2f}%", is_percent=True
 
 st.divider()
 
-col_graph1, col_graph2 = st.columns(2)
-with col_graph1:
-    st.subheader("📈 Udvikling over tid")
-    if not current_df.empty:
-        graph_df = current_df.sort_values('Date')
-        fig_line = px.line(graph_df, x='Date', y='Open Rate %', hover_data=['ID_Campaign', 'Email_Message'], markers=True)
-        fig_line.update_traces(line_color='#E74C3C')
-        st.plotly_chart(fig_line, use_container_width=True)
-    else:
-        st.info("Ingen data i valgte periode.")
-
-with col_graph2:
-    st.subheader("🎯 Klik vs. Opens (Matrix)")
-    if not current_df.empty:
-        fig_scatter = px.scatter(current_df, x='Open Rate %', y='Click Rate %', size='Total_Received', color='ID_Campaign', hover_name='Email_Message')
-        st.plotly_chart(fig_scatter, use_container_width=True)
-
-st.subheader("📋 Detaljeret Data")
+if not current_df.empty:
+    graph_df = current_df.sort_values('Date')
+    fig_line = px.line(graph_df, x='Date', y='Open Rate %', hover_data=['ID_Campaign', 'Email_Message'], markers=True)
+    fig_line.update_traces(line_color='#E74C3C')
+    st.plotly_chart(fig_line, use_container_width=True)
+else:
+    st.info("Ingen data i valgte periode.")
 if not current_df.empty:
     display_df = current_df.copy()
     display_df['Date'] = display_df['Date'].dt.date
