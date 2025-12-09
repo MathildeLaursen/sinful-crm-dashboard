@@ -78,18 +78,34 @@ st.markdown("""
         }
 
         /* 5. Venstrestil "Press Enter to submit" tekst */
-        .stTextInput > div > div > div:last-child,
-        [data-testid="stForm"] .stTextInput > div > div > div,
-        .stTextInput div[data-testid="InputInstructions"],
-        div[data-testid="InputInstructions"] {
+        .stTextInput small,
+        .stTextInput span,
+        .stTextInput p,
+        .stTextInput [class*="instruction"],
+        .stTextInput [class*="Instruction"],
+        .stTextInput > div small,
+        .stTextInput > div span,
+        [data-testid="stForm"] small,
+        [data-testid="stForm"] span[class*="caption"],
+        form small,
+        form span {
             text-align: left !important;
-            justify-content: flex-start !important;
-            float: left !important;
+            display: block !important;
+            width: 100% !important;
         }
         
-        .stTextInput > div > div {
-            flex-direction: column !important;
+        /* Target flex container der holder teksten til højre */
+        .stTextInput > div > div,
+        .stTextInput > div > div > div {
+            justify-content: flex-start !important;
             align-items: flex-start !important;
+        }
+        
+        /* Fjern flex på parent der kan påvirke alignment */
+        [data-testid="stForm"] .stTextInput > div > div:last-child {
+            justify-content: flex-start !important;
+            margin-left: 0 !important;
+            margin-right: auto !important;
         }
     </style>
 """, unsafe_allow_html=True)
