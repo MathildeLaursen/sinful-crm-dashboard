@@ -113,31 +113,6 @@ st.markdown("""
             gap: 0.2rem !important;
         }
         
-        /* Kolonne 1: Periode/Kampagne - bredere labels */
-        [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock > .stColumn:nth-child(1) .stHorizontalBlock .stColumn:first-child {
-            flex: 0 0 75px !important;
-            width: 75px !important;
-            min-width: 75px !important;
-        }
-        
-        /* Kolonne 2: Start/Email - smallere labels */
-        [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock > .stColumn:nth-child(2) .stHorizontalBlock .stColumn:first-child {
-            flex: 0 0 40px !important;
-            width: 20px !important;
-            min-width: 20px !important;
-        }
-        
-        /* Kolonne 3: Slut/A/B - smallest labels */
-        [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock > .stColumn:nth-child(3) .stHorizontalBlock .stColumn:first-child {
-            flex: 0 0 30px !important;
-            width: 30px !important;
-            min-width: 30px !important;
-        }
-        
-        /* Lad dropdown-kolonnerne fylde resten */
-        [data-testid="stExpander"] .stHorizontalBlock .stHorizontalBlock .stColumn:last-child {
-            flex: 1 1 auto !important;
-        }
         
         [data-testid="stExpander"] .stSelectbox,
         [data-testid="stExpander"] .stMultiSelect,
@@ -324,14 +299,16 @@ with st.expander("Filtrér", expanded=True):
         else:
             return today - datetime.timedelta(days=30), today
     
-    # Label bredde - hold denne lav, spacing styres nu via CSS
-    label_ratio = [0.15, 0.85]
+    # Forskellige label-bredder for hver kolonne
+    ratio_col1 = [0.18, 0.82]  # Periode/Kampagne (bredere labels)
+    ratio_col2 = [0.10, 0.90]  # Start/Email (smallere labels)
+    ratio_col3 = [0.08, 0.92]  # Slut/A/B (smallest labels)
     
     # Række 1: Periode, Start, Slut
     col_periode, col_start_group, col_end_group = st.columns(3)
     
     with col_periode:
-        p1, p2 = st.columns(label_ratio)
+        p1, p2 = st.columns(ratio_col1)
         with p1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Periode</p>", unsafe_allow_html=True)
         with p2:
@@ -341,14 +318,14 @@ with st.expander("Filtrér", expanded=True):
     default_start, default_end = get_date_range(selected_range)
     
     with col_start_group:
-        s1, s2 = st.columns(label_ratio)
+        s1, s2 = st.columns(ratio_col2)
         with s1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Start</p>", unsafe_allow_html=True)
         with s2:
             start_date = st.date_input("Start dato", default_start, label_visibility="collapsed")
     
     with col_end_group:
-        e1, e2 = st.columns(label_ratio)
+        e1, e2 = st.columns(ratio_col3)
         with e1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Slut</p>", unsafe_allow_html=True)
         with e2:
@@ -371,7 +348,7 @@ with st.expander("Filtrér", expanded=True):
     col_kamp, col_email, col_ab = st.columns(3)
     
     with col_kamp:
-        k1, k2 = st.columns(label_ratio)
+        k1, k2 = st.columns(ratio_col1)
         with k1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Kampagne</p>", unsafe_allow_html=True)
         with k2:
@@ -385,7 +362,7 @@ with st.expander("Filtrér", expanded=True):
     all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique())
     
     with col_email:
-        em1, em2 = st.columns(label_ratio)
+        em1, em2 = st.columns(ratio_col2)
         with em1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Email</p>", unsafe_allow_html=True)
         with em2:
@@ -399,7 +376,7 @@ with st.expander("Filtrér", expanded=True):
     all_variants = sorted(filtered_for_variant['Variant'].astype(str).unique())
     
     with col_ab:
-        ab1, ab2 = st.columns(label_ratio)
+        ab1, ab2 = st.columns(ratio_col3)
         with ab1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>A/B</p>", unsafe_allow_html=True)
         with ab2:
@@ -502,7 +479,6 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
-
 
 
 
