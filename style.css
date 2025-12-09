@@ -396,18 +396,18 @@ div[data-testid="stCheckbox"] label span:first-child {
 
 /* KALENDER POPOVER STYLING */
 
-/* Alle lag i kalender-popoveren */
-div.st-b3.st-dw,
-div.st-dw,
-.st-b3.st-dw,
-div.st-er,
-.st-er,
-div.st-dh,
-.st-dh,
-div.st-er.st-au,
-div.st-bx.st-dh {
+/* Den HVIDE BOKS - ultra specifik selector med alle klasser */
+div.st-er.st-au.st-av.st-aw.st-ax.st-bx.st-d0 {
     background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
-    background-color: transparent !important;
+    background-color: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
+}
+
+/* Fallback med færre klasser */
+div.st-er.st-au.st-av.st-aw.st-ax,
+div.st-er.st-bx.st-d0,
+.st-er.st-au,
+.st-bx.st-d0 {
+    background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
 }
 
 /* Popover og dens children */
