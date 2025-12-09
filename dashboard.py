@@ -434,14 +434,18 @@ else:
 # Land filter
 with col_land:
     with st.popover("Land", use_container_width=True):
-        all_selected = len(st.session_state.selected_countries) == len(all_countries) and len(all_countries) > 0
-        select_all_countries = st.checkbox("Vælg alle", value=all_selected, key="select_all_countries_cb")
-        if select_all_countries and not all_selected:
-            st.session_state.selected_countries = list(all_countries)
-            st.rerun()
-        elif not select_all_countries and all_selected:
-            st.session_state.selected_countries = []
-            st.rerun()
+        all_countries_selected = len(st.session_state.selected_countries) == len(all_countries) and len(all_countries) > 0
+        
+        # Vælg alle knap
+        col_sel, col_desel = st.columns(2)
+        with col_sel:
+            if st.button("✓ Alle", key="select_all_countries_btn", use_container_width=True):
+                st.session_state.selected_countries = list(all_countries)
+                st.rerun()
+        with col_desel:
+            if st.button("✗ Ingen", key="deselect_all_countries_btn", use_container_width=True):
+                st.session_state.selected_countries = []
+                st.rerun()
         
         search_term = st.text_input("🔍 Søg", key="search_country", label_visibility="collapsed", placeholder="Søg...")
         filtered_countries = [c for c in all_countries if search_term.lower() in c.lower()] if search_term else all_countries
@@ -458,14 +462,16 @@ with col_land:
 # Kampagne filter
 with col_kamp:
     with st.popover("Kampagne", use_container_width=True):
-        all_selected = len(st.session_state.selected_campaigns) == len(all_id_campaigns) and len(all_id_campaigns) > 0
-        select_all_campaigns = st.checkbox("Vælg alle", value=all_selected, key="select_all_campaigns_cb")
-        if select_all_campaigns and not all_selected:
-            st.session_state.selected_campaigns = list(all_id_campaigns)
-            st.rerun()
-        elif not select_all_campaigns and all_selected:
-            st.session_state.selected_campaigns = []
-            st.rerun()
+        # Vælg alle knapper
+        col_sel, col_desel = st.columns(2)
+        with col_sel:
+            if st.button("✓ Alle", key="select_all_campaigns_btn", use_container_width=True):
+                st.session_state.selected_campaigns = list(all_id_campaigns)
+                st.rerun()
+        with col_desel:
+            if st.button("✗ Ingen", key="deselect_all_campaigns_btn", use_container_width=True):
+                st.session_state.selected_campaigns = []
+                st.rerun()
         
         search_term = st.text_input("🔍 Søg", key="search_campaign", label_visibility="collapsed", placeholder="Søg...")
         filtered_campaigns = [c for c in all_id_campaigns if search_term.lower() in c.lower()] if search_term else all_id_campaigns
@@ -499,14 +505,16 @@ else:
 # Email filter
 with col_email:
     with st.popover("Email", use_container_width=True):
-        all_selected = len(st.session_state.selected_emails) == len(all_email_messages) and len(all_email_messages) > 0
-        select_all_emails = st.checkbox("Vælg alle", value=all_selected, key="select_all_emails_cb")
-        if select_all_emails and not all_selected:
-            st.session_state.selected_emails = list(all_email_messages)
-            st.rerun()
-        elif not select_all_emails and all_selected:
-            st.session_state.selected_emails = []
-            st.rerun()
+        # Vælg alle knapper
+        col_sel, col_desel = st.columns(2)
+        with col_sel:
+            if st.button("✓ Alle", key="select_all_emails_btn", use_container_width=True):
+                st.session_state.selected_emails = list(all_email_messages)
+                st.rerun()
+        with col_desel:
+            if st.button("✗ Ingen", key="deselect_all_emails_btn", use_container_width=True):
+                st.session_state.selected_emails = []
+                st.rerun()
         
         search_term = st.text_input("🔍 Søg", key="search_email", label_visibility="collapsed", placeholder="Søg...")
         filtered_emails = [e for e in all_email_messages if search_term.lower() in e.lower()] if search_term else all_email_messages
