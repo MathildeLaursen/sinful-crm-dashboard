@@ -190,52 +190,57 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
         "Sidste måned",
         "Sidste kvartal",
         "I år (YTD)",
-        "Vælg Datoer"
+        "Brugerdefineret"
     ]
     
-    col_date1, col_date2 = st.columns([1, 3])
-    with col_date1:
-        selected_range = st.selectbox("Vælg Datoer", date_options)
-
     today = datetime.date.today()
-    start_date = today
-    end_date = today
-
-    # Dato Logik
-    if selected_range == "Måned til dato":
-        start_date = today.replace(day=1)
-        end_date = today
-    elif selected_range == "Uge til dato":
-        start_date = today - datetime.timedelta(days=today.weekday())
-        end_date = today
-    elif selected_range == "Seneste 7 dage":
-        start_date = today - datetime.timedelta(days=7)
-        end_date = today
-    elif selected_range == "Seneste 30 dage":
-        start_date = today - datetime.timedelta(days=30)
-        end_date = today
-    elif selected_range == "Sidste måned":
-        first_of_this_month = today.replace(day=1)
-        end_date = first_of_this_month - datetime.timedelta(days=1)
-        start_date = end_date.replace(day=1)
-    elif selected_range == "Kvartal til dato":
-        current_q_start_month = 3 * ((today.month - 1) // 3) + 1
-        start_date = today.replace(month=current_q_start_month, day=1)
-        end_date = today
-    elif selected_range == "Sidste kvartal":
-        current_q_start_month = 3 * ((today.month - 1) // 3) + 1
-        curr_q_start = today.replace(month=current_q_start_month, day=1)
-        end_date = curr_q_start - datetime.timedelta(days=1)
-        prev_q_start_month = 3 * ((end_date.month - 1) // 3) + 1
-        start_date = end_date.replace(month=prev_q_start_month, day=1)
-    elif selected_range == "I år (YTD)":
-        start_date = today.replace(month=1, day=1)
-        end_date = today
-    else: # Brugerdefineret
-        with col_date2:
-            c1, c2 = st.columns(2)
-            start_date = c1.date_input("Start dato", df['Date'].min())
-            end_date = c2.date_input("Slut dato", df['Date'].max())
+    
+    # Beregn default datoer baseret på dropdown valg
+    def get_date_range(selection):
+        if selection == "Måned til dato":
+            return today.replace(day=1), today
+        elif selection == "Uge til dato":
+            return today - datetime.timedelta(days=today.weekday()), today
+        elif selection == "Seneste 7 dage":
+            return today - datetime.timedelta(days=7), today
+        elif selection == "Seneste 30 dage":
+            return today - datetime.timedelta(days=30), today
+        elif selection == "Sidste måned":
+            first_of_this_month = today.replace(day=1)
+            end = first_of_this_month - datetime.timedelta(days=1)
+            return end.replace(day=1), end
+        elif selection == "Kvartal til dato":
+            current_q_start_month = 3 * ((today.month - 1) // 3) + 1
+            return today.replace(month=current_q_start_month, day=1), today
+        elif selection == "Sidste kvartal":
+            current_q_start_month = 3 * ((today.month - 1) // 3) + 1
+            curr_q_start = today.replace(month=current_q_start_month, day=1)
+            end = curr_q_start - datetime.timedelta(days=1)
+            prev_q_start_month = 3 * ((end.month - 1) // 3) + 1
+            return end.replace(month=prev_q_start_month, day=1), end
+        elif selection == "I år (YTD)":
+            return today.replace(month=1, day=1), today
+        else:  # Brugerdefineret
+            return None, None
+    
+    col_date1, col_date2, col_date3 = st.columns([1, 1, 1])
+    
+    with col_date1:
+        selected_range = st.selectbox("Vælg Periode", date_options, index=1)
+    
+    # Beregn default datoer
+    default_start, default_end = get_date_range(selected_range)
+    
+    # Hvis brugerdefineret, brug fuldt datasæt som default
+    if default_start is None:
+        default_start = df['Date'].min().date() if hasattr(df['Date'].min(), 'date') else df['Date'].min()
+        default_end = df['Date'].max().date() if hasattr(df['Date'].max(), 'date') else df['Date'].max()
+    
+    with col_date2:
+        start_date = st.date_input("Start dato", default_start)
+    
+    with col_date3:
+        end_date = st.date_input("Slut dato", default_end)
 
     delta = end_date - start_date
     prev_end_date = start_date - datetime.timedelta(days=1)
