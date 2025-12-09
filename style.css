@@ -394,36 +394,24 @@ div[data-testid="stCheckbox"] label span:first-child {
     box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
 }
 
-/* Kalender popover container (den hvide boks) - alle lag */
-[data-baseweb="popover"],
-[data-baseweb="popover"] > div,
-[data-baseweb="popover"] > div > div,
-div[data-baseweb="popover"],
-.st-er,
-.st-eq {
+/* Kalender popover - KUN popovers der indeholder kalender */
+[data-baseweb="popover"]:has([data-baseweb="calendar"]),
+[data-baseweb="popover"]:has([data-baseweb="calendar"]) > div,
+[data-baseweb="popover"]:has([data-baseweb="calendar"]) > div > div {
     background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
-    background-color: transparent !important;
+    border-radius: 12px !important;
 }
 
-/* Datepicker og alle children */
-[data-baseweb="datepicker"],
-[data-baseweb="datepicker"] > div,
-[data-baseweb="datepicker"] > div > div {
-    background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
-    background-color: transparent !important;
-}
-
-/* Kalender wrapper - den faktiske hvide boks */
-div.st-dj.st-dk.st-dl,
-div[class*="st-eq"],
-div[class*="st-er"] {
+/* Datepicker container */
+[data-baseweb="datepicker"] {
     background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
     border: 1px solid #D4BFFF !important;
     border-radius: 12px !important;
     box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
+    padding: 8px !important;
 }
 
-/* Fjern hvid baggrund fra alle elementer inde i kalenderen */
+/* Fjern hvid baggrund fra elementer inde i kalenderen */
 [data-baseweb="calendar"] *,
 [data-baseweb="datepicker"] * {
     background-color: transparent !important;
