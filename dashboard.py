@@ -155,7 +155,7 @@ st.markdown("""
         
         /* Checkboxes i unicorn stil */
         .stCheckbox > label {
-            padding: 0.4rem 0.6rem !important;
+            padding: 0.3rem 0.5rem !important;
             border-radius: 6px !important;
             transition: background 0.2s ease !important;
         }
@@ -164,13 +164,50 @@ st.markdown("""
             background: rgba(212, 191, 255, 0.15) !important;
         }
         
-        .stCheckbox > label > span:first-child {
+        /* Checkbox box styling */
+        .stCheckbox > label > span:first-child,
+        .stCheckbox [data-testid="stCheckbox"] > span:first-child,
+        [data-testid="stCheckbox"] svg {
             border-color: #D4BFFF !important;
         }
         
-        .stCheckbox > label > span:first-child[data-checked="true"] {
+        /* Checked state - unicorn gradient */
+        .stCheckbox > label > span:first-child[data-checked="true"],
+        [data-testid="stCheckbox"] input:checked + div {
             background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
             border-color: #9B7EBD !important;
+        }
+        
+        /* Fjern rød farve fra alle checkboxes */
+        .stCheckbox svg,
+        [data-testid="stCheckbox"] svg {
+            fill: #9B7EBD !important;
+            stroke: #9B7EBD !important;
+        }
+        
+        /* Override alle røde farver til unicorn lilla */
+        .stCheckbox [style*="rgb(255, 75, 75)"],
+        .stCheckbox [style*="#ff4b4b"],
+        [data-testid="stCheckbox"] [style*="rgb(255, 75, 75)"],
+        [data-testid="stCheckbox"] [style*="#ff4b4b"] {
+            background-color: #9B7EBD !important;
+            border-color: #9B7EBD !important;
+        }
+        
+        /* Checkbox checked background override */
+        .st-emotion-cache-1inwz65,
+        .st-emotion-cache-16idsys,
+        [data-baseweb="checkbox"] [data-testid="stMarkdownContainer"],
+        .stCheckbox > div > label > div:first-child {
+            background-color: #9B7EBD !important;
+        }
+        
+        /* Force lilla på alle checked checkboxes */
+        input[type="checkbox"]:checked + div,
+        input[type="checkbox"]:checked ~ div,
+        .stCheckbox input:checked + div {
+            background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
+            background-color: #9B7EBD !important;
         }
         
         /* Små knapper i popover */
@@ -494,7 +531,7 @@ else:
 # Land filter med checkboxes
 with col_land:
     land_count = len(st.session_state.selected_countries)
-    land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land (alle)"
+    land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
     with st.popover(land_label, use_container_width=True):
         # Vælg alle checkbox
         all_land_selected = len(st.session_state.selected_countries) == len(all_countries)
@@ -508,7 +545,7 @@ with col_land:
             st.session_state.cb_reset_land += 1
             st.rerun()
         
-        st.markdown("---")
+        st.markdown("<div style='margin: 0.3rem 0;'></div>", unsafe_allow_html=True)
         reset_land = st.session_state.cb_reset_land
         for country in all_countries:
             checked = country in st.session_state.selected_countries
@@ -522,7 +559,7 @@ with col_land:
 # Kampagne filter med checkboxes
 with col_kamp:
     kamp_count = len(st.session_state.selected_campaigns)
-    kamp_label = f"Kampagne ({kamp_count})" if kamp_count < len(all_id_campaigns) else "Kampagne (alle)"
+    kamp_label = f"Kampagne ({kamp_count})" if kamp_count < len(all_id_campaigns) else "Kampagne"
     with st.popover(kamp_label, use_container_width=True):
         # Vælg alle checkbox
         all_kamp_selected = len(st.session_state.selected_campaigns) == len(all_id_campaigns)
@@ -536,8 +573,8 @@ with col_kamp:
             st.session_state.cb_reset_kamp += 1
             st.rerun()
         
-        st.markdown("---")
-        search_kamp = st.text_input("🔍 Søg", key="search_kamp", placeholder="Søg kampagne...")
+        st.markdown("<div style='margin: 0.3rem 0;'></div>", unsafe_allow_html=True)
+        search_kamp = st.text_input("Søg", key="search_kamp", placeholder="Søg...", label_visibility="collapsed")
         filtered_campaigns = [c for c in all_id_campaigns if search_kamp.lower() in c.lower()] if search_kamp else all_id_campaigns
         
         reset_kamp = st.session_state.cb_reset_kamp
@@ -553,7 +590,7 @@ with col_kamp:
 # Email filter med checkboxes
 with col_email:
     email_count = len(st.session_state.selected_emails)
-    email_label = f"Email ({email_count})" if email_count < len(all_email_messages) else "Email (alle)"
+    email_label = f"Email ({email_count})" if email_count < len(all_email_messages) else "Email"
     with st.popover(email_label, use_container_width=True):
         # Vælg alle checkbox
         all_email_selected = len(st.session_state.selected_emails) == len(all_email_messages)
@@ -567,8 +604,8 @@ with col_email:
             st.session_state.cb_reset_email += 1
             st.rerun()
         
-        st.markdown("---")
-        search_email = st.text_input("🔍 Søg", key="search_email_input", placeholder="Søg email...")
+        st.markdown("<div style='margin: 0.3rem 0;'></div>", unsafe_allow_html=True)
+        search_email = st.text_input("Søg", key="search_email_input", placeholder="Søg...", label_visibility="collapsed")
         filtered_emails = [e for e in all_email_messages if search_email.lower() in e.lower()] if search_email else all_email_messages
         
         reset_email = st.session_state.cb_reset_email
