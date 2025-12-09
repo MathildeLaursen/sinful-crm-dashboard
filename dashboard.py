@@ -423,12 +423,40 @@ with st.expander("Filtrér", expanded=True):
     # Land filter (alle lande som standard)
     all_countries = sorted(df_date_filtered['Country'].unique())
     
+    # Initialize session state for country selection
+    if 'selected_countries' not in st.session_state:
+        st.session_state.selected_countries = all_countries
+    
     with col_land:
         l1, l2 = st.columns(ratio_col4)
         with l1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Land</p>", unsafe_allow_html=True)
         with l2:
-            sel_countries = st.multiselect("Land", all_countries, default=all_countries, placeholder="Vælg...", label_visibility="collapsed")
+            with st.popover("Vælg lande", use_container_width=True):
+                # Select All / Deselect All buttons
+                col_all, col_none = st.columns(2)
+                with col_all:
+                    if st.button("Vælg alle", key="select_all_countries"):
+                        st.session_state.selected_countries = all_countries
+                        st.rerun()
+                with col_none:
+                    if st.button("Fravælg alle", key="deselect_all_countries"):
+                        st.session_state.selected_countries = []
+                        st.rerun()
+                
+                st.divider()
+                
+                # Checkboxes for each country
+                for country in all_countries:
+                    is_selected = country in st.session_state.selected_countries
+                    if st.checkbox(country, value=is_selected, key=f"country_{country}"):
+                        if country not in st.session_state.selected_countries:
+                            st.session_state.selected_countries.append(country)
+                    else:
+                        if country in st.session_state.selected_countries:
+                            st.session_state.selected_countries.remove(country)
+    
+    sel_countries = st.session_state.selected_countries
     
     # Sammenlignings-tekst inde i filter-boksen
     st.caption(f"Sammenlignet med: {prev_start_date} - {prev_end_date}")
