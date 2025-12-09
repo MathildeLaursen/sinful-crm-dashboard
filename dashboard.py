@@ -78,11 +78,9 @@ st.markdown("""
         }
 
         /* 5. Skjul "Press Enter to submit" tekst (kan ikke venstrestilles pga. Streamlit's styling) */
-        .stTextInput [class*="emotion-cache"][class*="instruction" i],
-        .stTextInput + div[class*="emotion-cache"],
-        [data-testid="stForm"] [class*="InputInstruction"],
-        .stForm div[class*="emotion-cache"]:has(> span:only-child),
-        [data-testid="stTextInputRootElement"] + div {
+        .stTextInput [class*="InputInstruction"],
+        [data-testid="stTextInput"] > div:last-child:not(:first-child),
+        .stTextInput > div > [class*="emotion-cache"]:not([data-baseweb]):not([data-testid]):last-child {
             display: none !important;
         }
     </style>
