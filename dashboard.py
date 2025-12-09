@@ -386,6 +386,14 @@ with st.expander("Filtrér", expanded=True):
         st.session_state.selected_emails = []
     if 'selected_variants' not in st.session_state:
         st.session_state.selected_variants = []
+    if 'search_campaign' not in st.session_state:
+        st.session_state.search_campaign = ""
+    if 'search_email' not in st.session_state:
+        st.session_state.search_email = ""
+    if 'search_variant' not in st.session_state:
+        st.session_state.search_variant = ""
+    if 'search_country' not in st.session_state:
+        st.session_state.search_country = ""
     
     # Kampagne filter (kun kampagner i valgt periode)
     all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
@@ -400,17 +408,27 @@ with st.expander("Filtrér", expanded=True):
         with k2:
             count_text = f"{len(st.session_state.selected_campaigns)} valgt" if st.session_state.selected_campaigns else "Alle"
             with st.popover(count_text, use_container_width=True):
-                col_all, col_none = st.columns(2)
-                with col_all:
-                    if st.button("Vælg alle", key="select_all_campaigns"):
-                        st.session_state.selected_campaigns = all_id_campaigns
+                # Select All checkbox
+                all_selected = len(st.session_state.selected_campaigns) == len(all_id_campaigns)
+                if st.checkbox("Select All", value=all_selected, key="select_all_campaigns_cb"):
+                    if not all_selected:
+                        st.session_state.selected_campaigns = list(all_id_campaigns)
                         st.rerun()
-                with col_none:
-                    if st.button("Fravælg alle", key="deselect_all_campaigns"):
+                else:
+                    if all_selected:
                         st.session_state.selected_campaigns = []
                         st.rerun()
+                
+                # Search box
+                search_term = st.text_input("🔍 Type to search", key="search_campaign", label_visibility="collapsed", placeholder="Type to search")
+                
                 st.divider()
-                for campaign in all_id_campaigns:
+                
+                # Filter campaigns by search
+                filtered_campaigns = [c for c in all_id_campaigns if search_term.lower() in c.lower()] if search_term else all_id_campaigns
+                
+                # Checkboxes for campaigns
+                for campaign in filtered_campaigns:
                     is_selected = campaign in st.session_state.selected_campaigns
                     if st.checkbox(campaign, value=is_selected, key=f"campaign_{campaign}"):
                         if campaign not in st.session_state.selected_campaigns:
@@ -435,17 +453,27 @@ with st.expander("Filtrér", expanded=True):
         with em2:
             count_text = f"{len(st.session_state.selected_emails)} valgt" if st.session_state.selected_emails else "Alle"
             with st.popover(count_text, use_container_width=True):
-                col_all, col_none = st.columns(2)
-                with col_all:
-                    if st.button("Vælg alle", key="select_all_emails"):
-                        st.session_state.selected_emails = all_email_messages
+                # Select All checkbox
+                all_selected = len(st.session_state.selected_emails) == len(all_email_messages)
+                if st.checkbox("Select All", value=all_selected, key="select_all_emails_cb"):
+                    if not all_selected:
+                        st.session_state.selected_emails = list(all_email_messages)
                         st.rerun()
-                with col_none:
-                    if st.button("Fravælg alle", key="deselect_all_emails"):
+                else:
+                    if all_selected:
                         st.session_state.selected_emails = []
                         st.rerun()
+                
+                # Search box
+                search_term = st.text_input("🔍 Type to search", key="search_email", label_visibility="collapsed", placeholder="Type to search")
+                
                 st.divider()
-                for email in all_email_messages:
+                
+                # Filter emails by search
+                filtered_emails = [e for e in all_email_messages if search_term.lower() in e.lower()] if search_term else all_email_messages
+                
+                # Checkboxes for emails
+                for email in filtered_emails:
                     is_selected = email in st.session_state.selected_emails
                     if st.checkbox(email, value=is_selected, key=f"email_{email}"):
                         if email not in st.session_state.selected_emails:
@@ -474,17 +502,27 @@ with st.expander("Filtrér", expanded=True):
         with ab2:
             count_text = f"{len(st.session_state.selected_variants)} valgt" if st.session_state.selected_variants else "Alle"
             with st.popover(count_text, use_container_width=True):
-                col_all, col_none = st.columns(2)
-                with col_all:
-                    if st.button("Vælg alle", key="select_all_variants"):
-                        st.session_state.selected_variants = all_variants_with_nan
+                # Select All checkbox
+                all_selected = len(st.session_state.selected_variants) == len(all_variants_with_nan)
+                if st.checkbox("Select All", value=all_selected, key="select_all_variants_cb"):
+                    if not all_selected:
+                        st.session_state.selected_variants = list(all_variants_with_nan)
                         st.rerun()
-                with col_none:
-                    if st.button("Fravælg alle", key="deselect_all_variants"):
+                else:
+                    if all_selected:
                         st.session_state.selected_variants = []
                         st.rerun()
+                
+                # Search box
+                search_term = st.text_input("🔍 Type to search", key="search_variant", label_visibility="collapsed", placeholder="Type to search")
+                
                 st.divider()
-                for variant in all_variants_display:
+                
+                # Filter variants by search (only display non-nan)
+                filtered_variants = [v for v in all_variants_display if search_term.lower() in v.lower()] if search_term else all_variants_display
+                
+                # Checkboxes for variants
+                for variant in filtered_variants:
                     is_selected = variant in st.session_state.selected_variants
                     if st.checkbox(variant, value=is_selected, key=f"variant_{variant}"):
                         if variant not in st.session_state.selected_variants:
@@ -513,21 +551,27 @@ with st.expander("Filtrér", expanded=True):
         with l2:
             count_text = f"{len(st.session_state.selected_countries)} valgt"
             with st.popover(count_text, use_container_width=True):
-                # Select All / Deselect All buttons
-                col_all, col_none = st.columns(2)
-                with col_all:
-                    if st.button("Vælg alle", key="select_all_countries"):
-                        st.session_state.selected_countries = all_countries
+                # Select All checkbox
+                all_selected = len(st.session_state.selected_countries) == len(all_countries)
+                if st.checkbox("Select All", value=all_selected, key="select_all_countries_cb"):
+                    if not all_selected:
+                        st.session_state.selected_countries = list(all_countries)
                         st.rerun()
-                with col_none:
-                    if st.button("Fravælg alle", key="deselect_all_countries"):
+                else:
+                    if all_selected:
                         st.session_state.selected_countries = []
                         st.rerun()
                 
+                # Search box
+                search_term = st.text_input("🔍 Type to search", key="search_country", label_visibility="collapsed", placeholder="Type to search")
+                
                 st.divider()
                 
-                # Checkboxes for each country
-                for country in all_countries:
+                # Filter countries by search
+                filtered_countries = [c for c in all_countries if search_term.lower() in c.lower()] if search_term else all_countries
+                
+                # Checkboxes for countries
+                for country in filtered_countries:
                     is_selected = country in st.session_state.selected_countries
                     if st.checkbox(country, value=is_selected, key=f"country_{country}"):
                         if country not in st.session_state.selected_countries:
