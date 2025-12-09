@@ -296,7 +296,7 @@ with st.expander("Filtrér", expanded=True):
     
     # JUSTÉR SPACING: Ændr første tal i [0.18, 0.82] for at ændre afstand mellem tekst og boks
     # Mindre tal = mindre plads til tekst, større tal = mere plads til tekst
-    label_ratio = [0.15, 0.85]
+    label_ratio = [0.16, 0.84]
     
     # Række 1: Periode, Start, Slut
     col_periode, col_start_group, col_end_group = st.columns(3)
@@ -472,5 +472,6 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
