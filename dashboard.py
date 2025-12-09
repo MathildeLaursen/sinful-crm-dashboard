@@ -431,59 +431,27 @@ else:
     # Synkroniser: fjern kampagner der ikke findes i filtreret data
     st.session_state.selected_campaigns = [c for c in st.session_state.selected_campaigns if c in all_id_campaigns]
 
-# Land filter
+# Land filter - brug multiselect
 with col_land:
-    with st.popover("Land", use_container_width=True):
-        all_countries_selected = len(st.session_state.selected_countries) == len(all_countries) and len(all_countries) > 0
-        
-        # Vælg alle knap
-        col_sel, col_desel = st.columns(2)
-        with col_sel:
-            if st.button("✓ Alle", key="select_all_countries_btn", use_container_width=True):
-                st.session_state.selected_countries = list(all_countries)
-                st.rerun()
-        with col_desel:
-            if st.button("✗ Ingen", key="deselect_all_countries_btn", use_container_width=True):
-                st.session_state.selected_countries = []
-                st.rerun()
-        
-        search_term = st.text_input("🔍 Søg", key="search_country", label_visibility="collapsed", placeholder="Søg...")
-        filtered_countries = [c for c in all_countries if search_term.lower() in c.lower()] if search_term else all_countries
-        
-        for country in filtered_countries:
-            is_selected = country in st.session_state.selected_countries
-            if st.checkbox(country, value=is_selected, key=f"country_{country}"):
-                if country not in st.session_state.selected_countries:
-                    st.session_state.selected_countries.append(country)
-            else:
-                if country in st.session_state.selected_countries:
-                    st.session_state.selected_countries.remove(country)
+    selected_countries = st.multiselect(
+        "Land",
+        options=all_countries,
+        default=st.session_state.selected_countries if st.session_state.selected_countries else all_countries,
+        key="land_multiselect",
+        label_visibility="collapsed"
+    )
+    st.session_state.selected_countries = selected_countries if selected_countries else []
 
-# Kampagne filter
+# Kampagne filter - brug multiselect
 with col_kamp:
-    with st.popover("Kampagne", use_container_width=True):
-        # Vælg alle knapper
-        col_sel, col_desel = st.columns(2)
-        with col_sel:
-            if st.button("✓ Alle", key="select_all_campaigns_btn", use_container_width=True):
-                st.session_state.selected_campaigns = list(all_id_campaigns)
-                st.rerun()
-        with col_desel:
-            if st.button("✗ Ingen", key="deselect_all_campaigns_btn", use_container_width=True):
-                st.session_state.selected_campaigns = []
-                st.rerun()
-        
-        search_term = st.text_input("🔍 Søg", key="search_campaign", label_visibility="collapsed", placeholder="Søg...")
-        filtered_campaigns = [c for c in all_id_campaigns if search_term.lower() in c.lower()] if search_term else all_id_campaigns
-        
-        for campaign in filtered_campaigns:
-            is_selected = campaign in st.session_state.selected_campaigns
-            if st.checkbox(campaign, value=is_selected, key=f"campaign_{campaign}"):
-                if campaign not in st.session_state.selected_campaigns:
-                    st.session_state.selected_campaigns.append(campaign)
-            else:
-                if campaign in st.session_state.selected_campaigns:
-                    st.session_state.selected_campaigns.remove(campaign)
+    selected_campaigns = st.multiselect(
+        "Kampagne", 
+        options=all_id_campaigns,
+        default=st.session_state.selected_campaigns if st.session_state.selected_campaigns else all_id_campaigns,
+        key="kampagne_multiselect",
+        label_visibility="collapsed"
+    )
+    st.session_state.selected_campaigns = selected_campaigns if selected_campaigns else []
 
 sel_id_campaigns = st.session_state.selected_campaigns
 
@@ -502,31 +470,16 @@ else:
     # Synkroniser: fjern emails der ikke findes i filtreret data
     st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
 
-# Email filter
+# Email filter - brug multiselect
 with col_email:
-    with st.popover("Email", use_container_width=True):
-        # Vælg alle knapper
-        col_sel, col_desel = st.columns(2)
-        with col_sel:
-            if st.button("✓ Alle", key="select_all_emails_btn", use_container_width=True):
-                st.session_state.selected_emails = list(all_email_messages)
-                st.rerun()
-        with col_desel:
-            if st.button("✗ Ingen", key="deselect_all_emails_btn", use_container_width=True):
-                st.session_state.selected_emails = []
-                st.rerun()
-        
-        search_term = st.text_input("🔍 Søg", key="search_email", label_visibility="collapsed", placeholder="Søg...")
-        filtered_emails = [e for e in all_email_messages if search_term.lower() in e.lower()] if search_term else all_email_messages
-        
-        for email in filtered_emails:
-            is_selected = email in st.session_state.selected_emails
-            if st.checkbox(email, value=is_selected, key=f"email_{email}"):
-                if email not in st.session_state.selected_emails:
-                    st.session_state.selected_emails.append(email)
-            else:
-                if email in st.session_state.selected_emails:
-                    st.session_state.selected_emails.remove(email)
+    selected_emails = st.multiselect(
+        "Email",
+        options=all_email_messages,
+        default=st.session_state.selected_emails if st.session_state.selected_emails else all_email_messages,
+        key="email_multiselect",
+        label_visibility="collapsed"
+    )
+    st.session_state.selected_emails = selected_emails if selected_emails else []
 
 sel_email_messages = st.session_state.selected_emails
 sel_countries = st.session_state.selected_countries
