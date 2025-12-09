@@ -379,6 +379,14 @@ with st.expander("Filtrér", expanded=True):
     date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
     df_date_filtered = df[date_mask]
     
+    # Initialize session states
+    if 'selected_campaigns' not in st.session_state:
+        st.session_state.selected_campaigns = []
+    if 'selected_emails' not in st.session_state:
+        st.session_state.selected_emails = []
+    if 'selected_variants' not in st.session_state:
+        st.session_state.selected_variants = []
+    
     # Kampagne filter (kun kampagner i valgt periode)
     all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
     
@@ -390,7 +398,27 @@ with st.expander("Filtrér", expanded=True):
         with k1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Kampagne</p>", unsafe_allow_html=True)
         with k2:
-            sel_id_campaigns = st.multiselect("Kampagne", all_id_campaigns, default=[], placeholder="Vælg...", label_visibility="collapsed")
+            with st.popover("Vælg kampagner", use_container_width=True):
+                col_all, col_none = st.columns(2)
+                with col_all:
+                    if st.button("Vælg alle", key="select_all_campaigns"):
+                        st.session_state.selected_campaigns = all_id_campaigns
+                        st.rerun()
+                with col_none:
+                    if st.button("Fravælg alle", key="deselect_all_campaigns"):
+                        st.session_state.selected_campaigns = []
+                        st.rerun()
+                st.divider()
+                for campaign in all_id_campaigns:
+                    is_selected = campaign in st.session_state.selected_campaigns
+                    if st.checkbox(campaign, value=is_selected, key=f"campaign_{campaign}"):
+                        if campaign not in st.session_state.selected_campaigns:
+                            st.session_state.selected_campaigns.append(campaign)
+                    else:
+                        if campaign in st.session_state.selected_campaigns:
+                            st.session_state.selected_campaigns.remove(campaign)
+    
+    sel_id_campaigns = st.session_state.selected_campaigns
     
     # Email filter (afhængig af valgt kampagne OG dato)
     if sel_id_campaigns:
@@ -404,21 +432,69 @@ with st.expander("Filtrér", expanded=True):
         with em1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Email</p>", unsafe_allow_html=True)
         with em2:
-            sel_email_messages = st.multiselect("Email", all_email_messages, default=[], placeholder="Vælg...", label_visibility="collapsed")
+            with st.popover("Vælg emails", use_container_width=True):
+                col_all, col_none = st.columns(2)
+                with col_all:
+                    if st.button("Vælg alle", key="select_all_emails"):
+                        st.session_state.selected_emails = all_email_messages
+                        st.rerun()
+                with col_none:
+                    if st.button("Fravælg alle", key="deselect_all_emails"):
+                        st.session_state.selected_emails = []
+                        st.rerun()
+                st.divider()
+                for email in all_email_messages:
+                    is_selected = email in st.session_state.selected_emails
+                    if st.checkbox(email, value=is_selected, key=f"email_{email}"):
+                        if email not in st.session_state.selected_emails:
+                            st.session_state.selected_emails.append(email)
+                    else:
+                        if email in st.session_state.selected_emails:
+                            st.session_state.selected_emails.remove(email)
+    
+    sel_email_messages = st.session_state.selected_emails
     
     # A/B filter (afhængig af valgt email OG dato)
     if sel_email_messages:
         filtered_for_variant = filtered_for_email[filtered_for_email['Email_Message'].astype(str).isin(sel_email_messages)]
     else:
         filtered_for_variant = filtered_for_email
-    all_variants = sorted(filtered_for_variant['Variant'].astype(str).unique())
+    
+    # Fjern "nan" fra visning men gem alle variants (inkl nan)
+    all_variants_raw = filtered_for_variant['Variant'].astype(str).unique()
+    all_variants_display = sorted([v for v in all_variants_raw if v.lower() != 'nan'])
+    all_variants_with_nan = sorted(all_variants_raw)
     
     with col_ab:
         ab1, ab2 = st.columns(ratio_col3)
         with ab1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>A/B</p>", unsafe_allow_html=True)
         with ab2:
-            sel_variants = st.multiselect("A/B", all_variants, default=[], placeholder="Vælg...", label_visibility="collapsed")
+            with st.popover("Vælg A/B", use_container_width=True):
+                col_all, col_none = st.columns(2)
+                with col_all:
+                    if st.button("Vælg alle", key="select_all_variants"):
+                        st.session_state.selected_variants = all_variants_with_nan
+                        st.rerun()
+                with col_none:
+                    if st.button("Fravælg alle", key="deselect_all_variants"):
+                        st.session_state.selected_variants = []
+                        st.rerun()
+                st.divider()
+                for variant in all_variants_display:
+                    is_selected = variant in st.session_state.selected_variants
+                    if st.checkbox(variant, value=is_selected, key=f"variant_{variant}"):
+                        if variant not in st.session_state.selected_variants:
+                            st.session_state.selected_variants.append(variant)
+                    else:
+                        if variant in st.session_state.selected_variants:
+                            st.session_state.selected_variants.remove(variant)
+    
+    # Hvis ingen variants er valgt manuelt, brug alle (inkl nan)
+    if not st.session_state.selected_variants:
+        sel_variants = all_variants_with_nan
+    else:
+        sel_variants = st.session_state.selected_variants
     
     # Land filter (alle lande som standard)
     all_countries = sorted(df_date_filtered['Country'].unique())
