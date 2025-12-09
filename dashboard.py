@@ -124,20 +124,78 @@ st.markdown("""
             justify-content: space-between !important;
             align-items: center !important;
             width: 100% !important;
-            background: rgba(255, 255, 255, 0.9) !important;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,245,255,0.95) 100%) !important;
             border: 1px solid #D4BFFF !important;
-            border-radius: 8px !important;
+            border-radius: 10px !important;
+            padding: 0.5rem 1rem !important;
+            transition: all 0.3s ease !important;
         }
         
         button[data-testid="stPopoverButton"]:hover {
             border-color: #9B7EBD !important;
-            background: rgba(212, 191, 255, 0.1) !important;
+            background: linear-gradient(135deg, rgba(212,191,255,0.2) 0%, rgba(232,180,203,0.2) 100%) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(155, 126, 189, 0.15) !important;
         }
         
         button[data-testid="stPopoverButton"] p {
             text-align: left !important;
             margin: 0 !important;
             color: #4A3F55 !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Popover dropdown indhold */
+        [data-testid="stPopover"] {
+            background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
+            border: 1px solid #D4BFFF !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
+        }
+        
+        /* Checkboxes i unicorn stil */
+        .stCheckbox > label {
+            padding: 0.4rem 0.6rem !important;
+            border-radius: 6px !important;
+            transition: background 0.2s ease !important;
+        }
+        
+        .stCheckbox > label:hover {
+            background: rgba(212, 191, 255, 0.15) !important;
+        }
+        
+        .stCheckbox > label > span:first-child {
+            border-color: #D4BFFF !important;
+        }
+        
+        .stCheckbox > label > span:first-child[data-checked="true"] {
+            background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
+            border-color: #9B7EBD !important;
+        }
+        
+        /* Små knapper i popover */
+        [data-testid="stPopover"] .stButton > button {
+            padding: 0.3rem 0.6rem !important;
+            font-size: 13px !important;
+            min-height: unset !important;
+        }
+        
+        /* Divider i popover */
+        [data-testid="stPopover"] hr {
+            border-color: #D4BFFF !important;
+            margin: 0.5rem 0 !important;
+        }
+        
+        /* Søgefelt i popover */
+        [data-testid="stPopover"] .stTextInput input {
+            background: rgba(255,255,255,0.9) !important;
+            border-color: #D4BFFF !important;
+            border-radius: 8px !important;
+        }
+        
+        [data-testid="stPopover"] .stTextInput input:focus {
+            border-color: #9B7EBD !important;
+            box-shadow: 0 0 0 2px rgba(155, 126, 189, 0.2) !important;
         }
         
         /* Venstrestil data i tabel */
@@ -426,41 +484,89 @@ if st.session_state.selected_emails is None:
 else:
     st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
 
-# Land multiselect
+# Land filter med checkboxes
 with col_land:
-    land_default = st.session_state.selected_countries if st.session_state.selected_countries else all_countries
-    selected_countries = st.multiselect(
-        "Land",
-        options=all_countries,
-        default=land_default,
-        key="land_multiselect",
-        label_visibility="collapsed"
-    )
-    st.session_state.selected_countries = list(selected_countries)
+    land_count = len(st.session_state.selected_countries)
+    land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land (alle)"
+    with st.popover(land_label, use_container_width=True):
+        # Vælg alle / Fravælg alle knapper
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button("✓ Alle", key="sel_all_land", use_container_width=True):
+                st.session_state.selected_countries = list(all_countries)
+                st.rerun()
+        with btn_col2:
+            if st.button("✗ Ingen", key="desel_all_land", use_container_width=True):
+                st.session_state.selected_countries = []
+                st.rerun()
+        
+        st.markdown("---")
+        for country in all_countries:
+            checked = country in st.session_state.selected_countries
+            if st.checkbox(country, value=checked, key=f"cb_land_{country}"):
+                if country not in st.session_state.selected_countries:
+                    st.session_state.selected_countries.append(country)
+            else:
+                if country in st.session_state.selected_countries:
+                    st.session_state.selected_countries.remove(country)
 
-# Kampagne multiselect
+# Kampagne filter med checkboxes
 with col_kamp:
-    kamp_default = st.session_state.selected_campaigns if st.session_state.selected_campaigns else all_id_campaigns
-    selected_campaigns = st.multiselect(
-        "Kampagne", 
-        options=all_id_campaigns,
-        default=kamp_default,
-        key="kampagne_multiselect",
-        label_visibility="collapsed"
-    )
-    st.session_state.selected_campaigns = list(selected_campaigns)
+    kamp_count = len(st.session_state.selected_campaigns)
+    kamp_label = f"Kampagne ({kamp_count})" if kamp_count < len(all_id_campaigns) else "Kampagne (alle)"
+    with st.popover(kamp_label, use_container_width=True):
+        # Vælg alle / Fravælg alle knapper
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button("✓ Alle", key="sel_all_kamp", use_container_width=True):
+                st.session_state.selected_campaigns = list(all_id_campaigns)
+                st.rerun()
+        with btn_col2:
+            if st.button("✗ Ingen", key="desel_all_kamp", use_container_width=True):
+                st.session_state.selected_campaigns = []
+                st.rerun()
+        
+        st.markdown("---")
+        search_kamp = st.text_input("🔍 Søg", key="search_kamp", placeholder="Søg kampagne...")
+        filtered_campaigns = [c for c in all_id_campaigns if search_kamp.lower() in c.lower()] if search_kamp else all_id_campaigns
+        
+        for campaign in filtered_campaigns:
+            checked = campaign in st.session_state.selected_campaigns
+            if st.checkbox(campaign, value=checked, key=f"cb_kamp_{campaign}"):
+                if campaign not in st.session_state.selected_campaigns:
+                    st.session_state.selected_campaigns.append(campaign)
+            else:
+                if campaign in st.session_state.selected_campaigns:
+                    st.session_state.selected_campaigns.remove(campaign)
 
-# Email multiselect
+# Email filter med checkboxes
 with col_email:
-    email_default = st.session_state.selected_emails if st.session_state.selected_emails else all_email_messages
-    selected_emails = st.multiselect(
-        "Email",
-        options=all_email_messages,
-        default=email_default,
-        key="email_multiselect",
-        label_visibility="collapsed"
-    )
-    st.session_state.selected_emails = list(selected_emails)
+    email_count = len(st.session_state.selected_emails)
+    email_label = f"Email ({email_count})" if email_count < len(all_email_messages) else "Email (alle)"
+    with st.popover(email_label, use_container_width=True):
+        # Vælg alle / Fravælg alle knapper
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button("✓ Alle", key="sel_all_email", use_container_width=True):
+                st.session_state.selected_emails = list(all_email_messages)
+                st.rerun()
+        with btn_col2:
+            if st.button("✗ Ingen", key="desel_all_email", use_container_width=True):
+                st.session_state.selected_emails = []
+                st.rerun()
+        
+        st.markdown("---")
+        search_email = st.text_input("🔍 Søg", key="search_email_input", placeholder="Søg email...")
+        filtered_emails = [e for e in all_email_messages if search_email.lower() in e.lower()] if search_email else all_email_messages
+        
+        for email in filtered_emails:
+            checked = email in st.session_state.selected_emails
+            if st.checkbox(email, value=checked, key=f"cb_email_{email}"):
+                if email not in st.session_state.selected_emails:
+                    st.session_state.selected_emails.append(email)
+            else:
+                if email in st.session_state.selected_emails:
+                    st.session_state.selected_emails.remove(email)
 
 # Gem valgte værdier til filter_data
 sel_id_campaigns = st.session_state.selected_campaigns
