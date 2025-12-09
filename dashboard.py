@@ -292,29 +292,35 @@ with st.expander("Filtrér", expanded=True):
         else:
             return today - datetime.timedelta(days=30), today
     
-    # Samme kolonnebredder som filter-rækken (3 lige store kolonner)
+    # JUSTÉR SPACING: Ændr første tal i [0.18, 0.82] for at ændre afstand mellem tekst og boks
+    # Mindre tal = mindre plads til tekst, større tal = mere plads til tekst
+    label_ratio = [0.18, 0.82]
+    
+    # Række 1: Periode, Start, Slut
     col_periode, col_start_group, col_end_group = st.columns(3)
     
     with col_periode:
-        selected_range = st.selectbox("Periode", date_options, index=1, label_visibility="collapsed")
+        p1, p2 = st.columns(label_ratio)
+        with p1:
+            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Periode</p>", unsafe_allow_html=True)
+        with p2:
+            selected_range = st.selectbox("Periode", date_options, index=1, label_visibility="collapsed")
     
     # Beregn default datoer
     default_start, default_end = get_date_range(selected_range)
     
     with col_start_group:
-        # Start label + dato i samme gruppe med minimal afstand
-        sub1, sub2 = st.columns([0.15, 0.85])
-        with sub1:
+        s1, s2 = st.columns(label_ratio)
+        with s1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Start</p>", unsafe_allow_html=True)
-        with sub2:
+        with s2:
             start_date = st.date_input("Start dato", default_start, label_visibility="collapsed")
     
     with col_end_group:
-        # Slut label + dato i samme gruppe med minimal afstand
-        sub3, sub4 = st.columns([0.15, 0.85])
-        with sub3:
+        e1, e2 = st.columns(label_ratio)
+        with e1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Slut</p>", unsafe_allow_html=True)
-        with sub4:
+        with e2:
             end_date = st.date_input("Slut dato", default_end, label_visibility="collapsed")
 
     delta = end_date - start_date
@@ -330,10 +336,15 @@ with st.expander("Filtrér", expanded=True):
     # Kampagne filter (kun kampagner i valgt periode)
     all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
     
-    # 3 kolonner til filtrene
-    f1, f2, f3 = st.columns(3)
+    # Række 2: Kampagne, Email, A/B (samme layout som række 1)
+    col_kamp, col_email, col_ab = st.columns(3)
     
-    sel_id_campaigns = f1.multiselect("Kampagne", all_id_campaigns, default=[], placeholder="Kampagne", label_visibility="collapsed")
+    with col_kamp:
+        k1, k2 = st.columns(label_ratio)
+        with k1:
+            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Kampagne</p>", unsafe_allow_html=True)
+        with k2:
+            sel_id_campaigns = st.multiselect("Kampagne", all_id_campaigns, default=[], placeholder="Vælg...", label_visibility="collapsed")
     
     # Email filter (afhængig af valgt kampagne OG dato)
     if sel_id_campaigns:
@@ -341,7 +352,13 @@ with st.expander("Filtrér", expanded=True):
     else:
         filtered_for_email = df_date_filtered
     all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique())
-    sel_email_messages = f2.multiselect("Email", all_email_messages, default=[], placeholder="Email", label_visibility="collapsed")
+    
+    with col_email:
+        em1, em2 = st.columns(label_ratio)
+        with em1:
+            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Email</p>", unsafe_allow_html=True)
+        with em2:
+            sel_email_messages = st.multiselect("Email", all_email_messages, default=[], placeholder="Vælg...", label_visibility="collapsed")
     
     # A/B filter (afhængig af valgt email OG dato)
     if sel_email_messages:
@@ -349,7 +366,13 @@ with st.expander("Filtrér", expanded=True):
     else:
         filtered_for_variant = filtered_for_email
     all_variants = sorted(filtered_for_variant['Variant'].astype(str).unique())
-    sel_variants = f3.multiselect("A/B", all_variants, default=[], placeholder="A/B", label_visibility="collapsed")
+    
+    with col_ab:
+        ab1, ab2 = st.columns(label_ratio)
+        with ab1:
+            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>A/B</p>", unsafe_allow_html=True)
+        with ab2:
+            sel_variants = st.multiselect("A/B", all_variants, default=[], placeholder="Vælg...", label_visibility="collapsed")
 
 
 # --- DATA FILTRERING ---
