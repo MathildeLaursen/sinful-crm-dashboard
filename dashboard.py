@@ -234,57 +234,69 @@ def calculate_date_range(preset):
 # Alle filtre på én linje: Periode, Land, Kampagne, Email
 col_dato, col_land, col_kamp, col_email = st.columns(4)
 
+# Preset options
+preset_options = [
+    "Sidste 7 dage",
+    "Sidste 30 dage", 
+    "Denne måned",
+    "Dette kvartal",
+    "I år",
+    "───────────",  # Divider
+    "Sidste måned",
+    "Sidste kvartal",
+]
+
 with col_dato:
-    # Preset dropdown
-    preset_options = [
-        "Sidste 7 dage",
-        "Sidste 30 dage", 
-        "Denne måned",
-        "Dette kvartal",
-        "I år",
-        "───────────",  # Divider
-        "Sidste måned",
-        "Sidste kvartal",
-        "───────────",  # Divider
-        "Tilpasset"
-    ]
-    
-    selected_preset = st.selectbox(
-        "Periode",
-        options=preset_options,
-        index=preset_options.index(st.session_state.date_preset) if st.session_state.date_preset in preset_options else 1,
-        label_visibility="collapsed",
-        key="preset_selector"
-    )
-    
-    # Opdater preset hvis ændret (og ikke divider)
-    if selected_preset not in ["───────────"] and selected_preset != st.session_state.date_preset:
-        st.session_state.date_preset = selected_preset
-        calculated = calculate_date_range(selected_preset)
-        if calculated:
-            st.session_state.custom_date_range = calculated
-        st.rerun()
-    
-    # Kalender til manuel valg
+    # Beregn aktuel range
     calculated_range = calculate_date_range(st.session_state.date_preset)
     current_range = calculated_range if calculated_range else st.session_state.custom_date_range
+    start_d, end_d = current_range
     
-    date_range = st.date_input(
-        "Vælg datoer",
-        value=current_range,
-        label_visibility="collapsed"
-    )
+    # Vis dato-tekst på knappen
+    date_display = f"{start_d.strftime('%d/%m/%Y')} - {end_d.strftime('%d/%m/%Y')}"
     
-    # Håndter manuel ændring
-    if isinstance(date_range, tuple) and len(date_range) == 2:
-        start_date, end_date = date_range
-        # Hvis brugeren ændrer manuelt, skift til "Tilpasset"
-        if date_range != current_range:
-            st.session_state.date_preset = "Tilpasset"
-            st.session_state.custom_date_range = date_range
-    else:
-        start_date = date_range[0] if isinstance(date_range, tuple) else date_range
-        end_date = start_date
+    with st.popover(date_display, use_container_width=True):
+        # Preset dropdown INDE i popover
+        # Beregn index - brug None/placeholder hvis custom datoer er valgt
+        current_preset = st.session_state.date_preset
+        preset_index = preset_options.index(current_preset) if current_preset in preset_options else None
+        
+        selected_preset = st.selectbox(
+            "Hurtig valg",
+            options=preset_options,
+            index=preset_index,
+            placeholder="Vælg periode...",
+            label_visibility="collapsed",
+            key="preset_selector"
+        )
+        
+        # Opdater preset hvis ændret (og ikke divider eller None)
+        if selected_preset and selected_preset not in ["───────────"] and selected_preset != st.session_state.date_preset:
+            st.session_state.date_preset = selected_preset
+            calculated = calculate_date_range(selected_preset)
+            if calculated:
+                st.session_state.custom_date_range = calculated
+            st.rerun()
+        
+        st.divider()
+        
+        # Kalender til manuel valg
+        date_range = st.date_input(
+            "Eller vælg datoer",
+            value=current_range,
+            label_visibility="collapsed"
+        )
+        
+        # Håndter manuel ændring - behold preset men gem custom datoer
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            if date_range != current_range:
+                st.session_state.custom_date_range = date_range
+                # Nulstil preset så custom_date_range bruges
+                st.session_state.date_preset = None
+                st.rerun()
+    
+    # Brug værdierne
+    start_date, end_date = current_range
 
 # Filtrer først efter dato - så dropdowns kun viser data fra valgt periode
 date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
