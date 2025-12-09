@@ -217,7 +217,7 @@ def check_password():
         st.session_state["authenticated"] = True
         return True
 
-    st.title("Newsletter Dashboard 📧")
+    st.title("Newsletter Dashboard")
     st.markdown("🔒 Log ind")
     
     col1, col2 = st.columns([1, 1])
@@ -245,7 +245,7 @@ if not check_password():
 
 # --- HERUNDER STARTER DASHBOARDET ---
 
-st.title("Newsletter Dashboard 📧")
+st.title("Newsletter Dashboard")
 
 # Log ud knap i menuen (sidebar er nu kun til log ud)
 with st.sidebar:
@@ -639,17 +639,17 @@ if not display_pivot_df.empty:
             "Date": st.column_config.DateColumn("Date"),
             "ID_Campaign": st.column_config.TextColumn("Kampagne"),
             "Email_Message": st.column_config.TextColumn("Email"),
-            "Total": st.column_config.NumberColumn("Total", format="%,d"),
-            "DK": st.column_config.NumberColumn("DK", format="%,d"),
-            "SE": st.column_config.NumberColumn("SE", format="%,d"),
-            "NO": st.column_config.NumberColumn("NO", format="%,d"),
-            "FI": st.column_config.NumberColumn("FI", format="%,d"),
+            "Total": st.column_config.NumberColumn("Total", format="localized"),
+            "DK": st.column_config.NumberColumn("DK", format="localized"),
+            "SE": st.column_config.NumberColumn("SE", format="localized"),
+            "NO": st.column_config.NumberColumn("NO", format="localized"),
+            "FI": st.column_config.NumberColumn("FI", format="localized"),
         }
     )
 else:
     st.warning("Ingen data at vise.")
 
-if st.button('🔄 Opdater Data'):
+if st.button('Opdater Data'):
     st.cache_data.clear()
     st.rerun()
 
