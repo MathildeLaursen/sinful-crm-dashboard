@@ -405,7 +405,7 @@ if period_changed:
     st.session_state.selected_emails = None
     st.session_state.selected_countries = None
 
-# Land filter først (for at påvirke tilgængelige kampagner)
+# TRIN 1: Land filter
 all_countries = sorted(df_date_filtered['Country'].unique())
 
 # Pre-select alle lande kun ved første load eller periode-ændring
@@ -415,14 +415,26 @@ else:
     # Synkroniser: fjern lande der ikke findes i perioden
     st.session_state.selected_countries = [c for c in st.session_state.selected_countries if c in all_countries]
 
-# Filtrer på land (tom liste = ingen data)
+# Land multiselect
+with col_land:
+    land_default = st.session_state.selected_countries if st.session_state.selected_countries else all_countries
+    selected_countries = st.multiselect(
+        "Land",
+        options=all_countries,
+        default=land_default,
+        key="land_multiselect",
+        label_visibility="collapsed"
+    )
+    st.session_state.selected_countries = list(selected_countries)
+
+# TRIN 2: Filtrer data baseret på valgte lande (EFTER multiselect opdatering)
 if st.session_state.selected_countries:
     df_land_filtered = df_date_filtered[df_date_filtered['Country'].isin(st.session_state.selected_countries)]
 else:
     df_land_filtered = df_date_filtered.head(0)  # Tom DataFrame
 
-# Kampagne filter (baseret på dato + land)
-all_id_campaigns = sorted(df_land_filtered['ID_Campaign'].astype(str).unique())
+# TRIN 3: Kampagne filter (baseret på filtreret land-data)
+all_id_campaigns = sorted(df_land_filtered['ID_Campaign'].astype(str).unique()) if not df_land_filtered.empty else []
 
 # Pre-select alle kampagner kun ved første load eller periode-ændring
 if st.session_state.selected_campaigns is None:
@@ -430,27 +442,17 @@ if st.session_state.selected_campaigns is None:
 else:
     # Synkroniser: fjern kampagner der ikke findes i filtreret data
     st.session_state.selected_campaigns = [c for c in st.session_state.selected_campaigns if c in all_id_campaigns]
+    # Hvis tom efter sync, vælg alle tilgængelige
+    if not st.session_state.selected_campaigns and all_id_campaigns:
+        st.session_state.selected_campaigns = list(all_id_campaigns)
 
-# Land filter - brug multiselect
-with col_land:
-    # Brug None check i stedet for truthiness check
-    land_default = st.session_state.selected_countries if st.session_state.selected_countries is not None else all_countries
-    selected_countries = st.multiselect(
-        "Land",
-        options=all_countries,
-        default=land_default if land_default else None,
-        key="land_multiselect",
-        label_visibility="collapsed"
-    )
-    st.session_state.selected_countries = list(selected_countries)
-
-# Kampagne filter - brug multiselect
+# Kampagne multiselect
 with col_kamp:
-    kamp_default = st.session_state.selected_campaigns if st.session_state.selected_campaigns is not None else all_id_campaigns
+    kamp_default = st.session_state.selected_campaigns if st.session_state.selected_campaigns else all_id_campaigns
     selected_campaigns = st.multiselect(
         "Kampagne", 
         options=all_id_campaigns,
-        default=kamp_default if kamp_default else None,
+        default=kamp_default if all_id_campaigns else None,
         key="kampagne_multiselect",
         label_visibility="collapsed"
     )
@@ -458,13 +460,13 @@ with col_kamp:
 
 sel_id_campaigns = st.session_state.selected_campaigns
 
-# Email filter (afhængig af valgt kampagne, land OG dato)
-if len(st.session_state.selected_campaigns) < len(all_id_campaigns):
+# TRIN 4: Email filter (baseret på valgte kampagner)
+if st.session_state.selected_campaigns and df_land_filtered is not None and not df_land_filtered.empty:
     filtered_for_email = df_land_filtered[df_land_filtered['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
 else:
     filtered_for_email = df_land_filtered
 
-all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique())
+all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique()) if not filtered_for_email.empty else []
 
 # Pre-select alle emails kun ved første load eller periode-ændring
 if st.session_state.selected_emails is None:
@@ -472,14 +474,17 @@ if st.session_state.selected_emails is None:
 else:
     # Synkroniser: fjern emails der ikke findes i filtreret data
     st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
+    # Hvis tom efter sync, vælg alle tilgængelige
+    if not st.session_state.selected_emails and all_email_messages:
+        st.session_state.selected_emails = list(all_email_messages)
 
-# Email filter - brug multiselect
+# Email multiselect
 with col_email:
-    email_default = st.session_state.selected_emails if st.session_state.selected_emails is not None else all_email_messages
+    email_default = st.session_state.selected_emails if st.session_state.selected_emails else all_email_messages
     selected_emails = st.multiselect(
         "Email",
         options=all_email_messages,
-        default=email_default if email_default else None,
+        default=email_default if all_email_messages else None,
         key="email_multiselect",
         label_visibility="collapsed"
     )
