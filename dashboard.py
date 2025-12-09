@@ -439,8 +439,33 @@ st.divider()
 
 if not current_df.empty:
     graph_df = current_df.sort_values('Date')
-    fig_line = px.line(graph_df, x='Date', y='Open Rate %', hover_data=['ID_Campaign', 'Email_Message'], markers=True)
-    fig_line.update_traces(line_color='#E74C3C')
+    
+    # Omform data til langt format for begge metrics
+    graph_df_melted = graph_df.melt(
+        id_vars=['Date', 'ID_Campaign', 'Email_Message'], 
+        value_vars=['Open Rate %', 'Click Rate %'],
+        var_name='Metric', 
+        value_name='Rate'
+    )
+    
+    fig_line = px.line(
+        graph_df_melted, 
+        x='Date', 
+        y='Rate', 
+        color='Metric',
+        hover_data=['ID_Campaign', 'Email_Message'],
+        markers=True,
+        color_discrete_map={
+            'Open Rate %': '#2E86AB',    # Blå
+            'Click Rate %': '#28A745'     # Grøn
+        }
+    )
+    
+    # Log skala på y-aksen
+    fig_line.update_yaxes(type='log', title='Rate % (log skala)')
+    fig_line.update_xaxes(title='Dato')
+    fig_line.update_layout(legend_title_text='')
+    
     st.plotly_chart(fig_line, use_container_width=True)
 else:
     st.info("Ingen data i valgte periode.")
