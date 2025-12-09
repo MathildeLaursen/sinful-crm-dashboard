@@ -109,9 +109,20 @@ st.markdown("""
         }
         
         /* JUSTÉR DENNE: Afstand mellem label-tekst og dropdown INDEN i hver gruppe */
-        /* Sæt til 0 for minimal afstand */
         [data-testid="stExpander"] .stHorizontalBlock .stHorizontalBlock {
-            gap: 0.1rem !important;  /* Prøv: 0rem, 0.2rem, 0.3rem, 0.5rem */
+            gap: 0.2rem !important;
+        }
+        
+        /* Tving label-kolonnen til kun at tage den plads den behøver */
+        [data-testid="stExpander"] .stHorizontalBlock .stHorizontalBlock .stColumn:first-child {
+            flex: 0 0 auto !important;
+            width: auto !important;
+            min-width: fit-content !important;
+        }
+        
+        /* Lad dropdown-kolonnen fylde resten */
+        [data-testid="stExpander"] .stHorizontalBlock .stHorizontalBlock .stColumn:last-child {
+            flex: 1 1 auto !important;
         }
         
         [data-testid="stExpander"] .stSelectbox,
@@ -477,7 +488,6 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
-
 
 
 
