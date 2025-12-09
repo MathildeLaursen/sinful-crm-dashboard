@@ -384,6 +384,14 @@ div[data-testid="stCheckbox"] label span:first-child {
    KALENDER - Simpel styling
    =========================================== */
 
+/* Skjul "Choose a date range" dropdown i kalenderen */
+[data-baseweb="form-control-label"],
+.stDateInput [data-baseweb="select"],
+.stDateInput label[data-baseweb="form-control-label"],
+div:has(> [data-baseweb="calendar"]) ~ div {
+    display: none !important;
+}
+
 /* Kalender header (måned/år) */
 [data-baseweb="calendar"] button {
     color: #4A3F55 !important;
