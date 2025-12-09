@@ -128,17 +128,19 @@ if not check_password():
 
 # --- HERUNDER STARTER DASHBOARDET ---
 
-st.title("Newsletter Dashboard")
-
-# Log ud knap i menuen (sidebar er nu kun til log ud)
-with st.sidebar:
-    if st.button("Log Ud"):
+# Log ud knap i øverste venstre hjørne
+logout_col, title_col = st.columns([1, 11])
+with logout_col:
+    if st.button("🚪 Log Ud", key="logout_btn"):
         cookie_manager = stx.CookieManager(key="logout_manager")
         cookie_manager.delete("sinful_auth")
         st.session_state["authenticated"] = False
         st.info("Logger ud...")
         time.sleep(1)
         st.rerun()
+
+with title_col:
+    st.title("Newsletter Dashboard")
 
 # --- DATA INDLÆSNING ---
 @st.cache_data(ttl=600)
