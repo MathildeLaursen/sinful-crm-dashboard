@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS HACK: DESIGN TILPASNINGER ---
+# --- CSS: DESIGN TILPASNINGER ---
 st.markdown("""
     <style>
         /* 1. Fjern luft i toppen af hovedvinduet */
@@ -202,7 +202,7 @@ except Exception as e:
 # --- TOP-BAR: FILTRE & DATO (COLLAPSIBLE) ---
 
 # Vi bruger st.expander til at lave en boks der kan foldes ud/ind
-with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=False):
+with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=TRUE):
     
     # Række 1: Datovælger
     date_options = [
@@ -789,5 +789,6 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
