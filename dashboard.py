@@ -491,7 +491,7 @@ if not current_df.empty:
         go.Scatter(
             x=graph_df['Date'], 
             y=graph_df['Open Rate %'],
-            name='Open Rate %',
+            name='Open Rate',
             line=dict(color='#2E86AB', width=2),
             mode='lines+markers'
         ),
@@ -503,7 +503,7 @@ if not current_df.empty:
         go.Scatter(
             x=graph_df['Date'], 
             y=graph_df['Click Rate %'],
-            name='Click Rate %',
+            name='Click Rate',
             line=dict(color='#28A745', width=2),
             mode='lines+markers'
         ),
@@ -511,8 +511,8 @@ if not current_df.empty:
     )
     
     # Akse-titler
-    fig.update_yaxes(title_text="Open Rate %", secondary_y=False)
-    fig.update_yaxes(title_text="Click Rate %", secondary_y=True)
+    fig.update_yaxes(title_text="Open Rate", secondary_y=False)
+    fig.update_yaxes(title_text="Click Rate", secondary_y=True)
     fig.update_xaxes(title_text="")
     
     fig.update_layout(
@@ -532,13 +532,15 @@ if not current_df.empty:
         use_container_width=True,
         hide_index=True,
         column_config={
-            "ID_Campaign": st.column_config.TextColumn("Kampagne (ID - Navn)"),
-            "Email_Message": st.column_config.TextColumn("Email - Message"),
-            "Open Rate %": st.column_config.NumberColumn(format="%.1f%%"),
-            "Click Rate %": st.column_config.NumberColumn(format="%.2f%%"),
-            "Total_Received": st.column_config.NumberColumn(format="%d"),
-            "Unique_Opens": st.column_config.NumberColumn(format="%d"),
-            "Unique_Clicks": st.column_config.NumberColumn(format="%d"),
+            "Date": st.column_config.DateColumn("Date", width="small"),
+            "ID_Campaign": st.column_config.TextColumn("Kampagne (ID - Navn)", width="medium"),
+            "Email_Message": st.column_config.TextColumn("Email - Message", width="large"),
+            "Variant": st.column_config.TextColumn("Variant", width="small"),
+            "Total_Received": st.column_config.NumberColumn("Total_Received", format="%d", width="small"),
+            "Unique_Opens": st.column_config.NumberColumn("Unique_Opens", format="%d", width="small"),
+            "Unique_Clicks": st.column_config.NumberColumn("Unique_Clicks", format="%d", width="small"),
+            "Open Rate %": st.column_config.NumberColumn("Open Rate %", format="%.1f%%", width="small"),
+            "Click Rate %": st.column_config.NumberColumn("Click Rate %", format="%.2f%%", width="small"),
         }
     )
 else:
