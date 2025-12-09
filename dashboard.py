@@ -123,8 +123,8 @@ st.markdown("""
         /* Kolonne 2: Start/Email - smallere labels */
         [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock > .stColumn:nth-child(2) .stHorizontalBlock .stColumn:first-child {
             flex: 0 0 40px !important;
-            width: 40px !important;
-            min-width: 40px !important;
+            width: 20px !important;
+            min-width: 20px !important;
         }
         
         /* Kolonne 3: Slut/A/B - smallest labels */
@@ -502,6 +502,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
