@@ -234,10 +234,22 @@ def load_google_sheet_data():
     
     df['Open Rate %'] = df.apply(lambda x: (x['Unique_Opens'] / x['Total_Received'] * 100) if x['Total_Received'] > 0 else 0, axis=1)
     df['Click Rate %'] = df.apply(lambda x: (x['Unique_Clicks'] / x['Total_Received'] * 100) if x['Total_Received'] > 0 else 0, axis=1)
+    df['Click Through Rate %'] = df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
     
     # Kombinerede kolonner til filtrering
     df['ID_Campaign'] = df['Number'].astype(str) + ' - ' + df['Campaign Name'].astype(str)
     df['Email_Message'] = df['Email'].astype(str) + ' - ' + df['Message'].astype(str)
+    
+    # Ekstraher land fra kampagnenavn eller brug DK som standard
+    def extract_country(campaign_name):
+        campaign_str = str(campaign_name).upper()
+        countries = ['DK', 'SE', 'NO', 'FI', 'DE', 'UK', 'US', 'FR', 'ES', 'IT', 'NL', 'BE', 'AT', 'CH', 'PL']
+        for country in countries:
+            if f'_{country}_' in campaign_str or f'-{country}-' in campaign_str or f' {country} ' in campaign_str:
+                return country
+        return 'DK'  # Standard
+    
+    df['Country'] = df['Campaign Name'].apply(extract_country)
     
     return df
 
@@ -303,9 +315,10 @@ with st.expander("Filtrér", expanded=True):
     ratio_col1 = [0.18, 0.82]  # Periode/Kampagne (bredere labels)
     ratio_col2 = [0.10, 0.90]  # Start/Email (smallere labels)
     ratio_col3 = [0.08, 0.92]  # Slut/A/B (smallest labels)
+    ratio_col4 = [0.10, 0.90]  # Land
     
-    # Række 1: Periode, Start, Slut
-    col_periode, col_start_group, col_end_group = st.columns(3)
+    # Række 1: Periode, Start, Slut, (tom plads for land på række 2)
+    col_periode, col_start_group, col_end_group, col_spacer = st.columns(4)
     
     with col_periode:
         p1, p2 = st.columns(ratio_col1)
@@ -344,8 +357,8 @@ with st.expander("Filtrér", expanded=True):
     # Kampagne filter (kun kampagner i valgt periode)
     all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
     
-    # Række 2: Kampagne, Email, A/B (samme layout som række 1)
-    col_kamp, col_email, col_ab = st.columns(3)
+    # Række 2: Kampagne, Email, A/B, Land
+    col_kamp, col_email, col_ab, col_land = st.columns(4)
     
     with col_kamp:
         k1, k2 = st.columns(ratio_col1)
@@ -382,6 +395,16 @@ with st.expander("Filtrér", expanded=True):
         with ab2:
             sel_variants = st.multiselect("A/B", all_variants, default=[], placeholder="Vælg...", label_visibility="collapsed")
     
+    # Land filter (alle lande som standard)
+    all_countries = sorted(df_date_filtered['Country'].unique())
+    
+    with col_land:
+        l1, l2 = st.columns(ratio_col4)
+        with l1:
+            st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Land</p>", unsafe_allow_html=True)
+        with l2:
+            sel_countries = st.multiselect("Land", all_countries, default=all_countries, placeholder="Vælg...", label_visibility="collapsed")
+    
     # Sammenlignings-tekst inde i filter-boksen
     st.caption(f"Sammenlignet med: {prev_start_date} - {prev_end_date}")
 
@@ -397,6 +420,8 @@ def filter_data(dataset, start, end):
         temp_df = temp_df[temp_df['Email_Message'].astype(str).isin(sel_email_messages)]
     if sel_variants:
         temp_df = temp_df[temp_df['Variant'].astype(str).isin(sel_variants)]
+    if sel_countries:
+        temp_df = temp_df[temp_df['Country'].isin(sel_countries)]
         
     return temp_df
 
@@ -492,8 +517,8 @@ if not current_df.empty:
             x=graph_df['Date'], 
             y=graph_df['Open Rate %'],
             name='Open Rate',
-            line=dict(color='#2E86AB', width=2),
-            mode='lines+markers'
+            marker=dict(color='#2E86AB', size=8),
+            mode='markers'
         ),
         secondary_y=False
     )
@@ -504,8 +529,8 @@ if not current_df.empty:
             x=graph_df['Date'], 
             y=graph_df['Click Rate %'],
             name='Click Rate',
-            line=dict(color='#28A745', width=2),
-            mode='lines+markers'
+            marker=dict(color='#28A745', size=8),
+            mode='markers'
         ),
         secondary_y=True
     )
@@ -526,21 +551,22 @@ else:
 if not current_df.empty:
     display_df = current_df.copy()
     display_df['Date'] = display_df['Date'].dt.date
-    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Variant', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %']
+    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Variant', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %', 'Click Through Rate %']
     st.dataframe(
         display_df[cols_to_show].sort_values(by='Date', ascending=False),
         use_container_width=True,
         hide_index=True,
         column_config={
             "Date": st.column_config.DateColumn("Date", width="small"),
-            "ID_Campaign": st.column_config.TextColumn("Kampagne (ID - Navn)", width="medium"),
-            "Email_Message": st.column_config.TextColumn("Email - Message", width="large"),
-            "Variant": st.column_config.TextColumn("Variant", width="small"),
-            "Total_Received": st.column_config.NumberColumn("Total_Received", format="%d", width="small"),
-            "Unique_Opens": st.column_config.NumberColumn("Unique_Opens", format="%d", width="small"),
-            "Unique_Clicks": st.column_config.NumberColumn("Unique_Clicks", format="%d", width="small"),
-            "Open Rate %": st.column_config.NumberColumn("Open Rate %", format="%.1f%%", width="small"),
-            "Click Rate %": st.column_config.NumberColumn("Click Rate %", format="%.2f%%", width="small"),
+            "ID_Campaign": st.column_config.TextColumn("Kampagne", width="medium"),
+            "Email_Message": st.column_config.TextColumn("Email", width="large"),
+            "Variant": st.column_config.TextColumn("A/B", width="small"),
+            "Total_Received": st.column_config.NumberColumn("Emails Sendt", format="%d", width="small"),
+            "Unique_Opens": st.column_config.NumberColumn("Unikke Opens", format="%d", width="small"),
+            "Unique_Clicks": st.column_config.NumberColumn("Unikke Clicks", format="%d", width="small"),
+            "Open Rate %": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
+            "Click Rate %": st.column_config.NumberColumn("Click Rate", format="%.2f%%", width="small"),
+            "Click Through Rate %": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
         }
     )
 else:
