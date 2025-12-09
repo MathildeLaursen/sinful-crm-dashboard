@@ -39,36 +39,37 @@ st.markdown("""
         }
         
         function fixCalendarPopover() {
+            // Find den hvide boks: div.st-er.st-au.st-av.st-aw.st-ax.st-bx.st-d0
+            document.querySelectorAll('.st-er.st-au.st-av.st-aw.st-ax.st-bx.st-d0').forEach(el => {
+                el.style.cssText = 'background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;';
+            });
+            
+            // Også style parent til calendar direkte
             document.querySelectorAll('[data-baseweb="calendar"]').forEach(calendar => {
-                // Style the calendar itself
-                calendar.setAttribute('style', calendar.getAttribute('style') + '; background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;');
-                
-                // Style all parent elements up to popover
-                let el = calendar.parentElement;
-                while (el) {
-                    const currentStyle = el.getAttribute('style') || '';
-                    el.setAttribute('style', currentStyle + '; background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important; background-color: transparent !important;');
-                    
-                    if (el.getAttribute('data-baseweb') === 'popover') {
-                        el.setAttribute('style', el.getAttribute('style') + '; border: 1px solid #D4BFFF !important; border-radius: 12px !important;');
-                        break;
+                const parent = calendar.parentElement;
+                if (parent) {
+                    parent.style.cssText = 'background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;';
+                    const grandparent = parent.parentElement;
+                    if (grandparent) {
+                        grandparent.style.cssText = 'background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;';
                     }
-                    el = el.parentElement;
                 }
             });
         }
         
-        // Inject CSS dynamically for calendar
+        // Inject CSS dynamically for calendar med HØJESTE specificitet
         function injectCalendarCSS() {
             if (!document.getElementById('calendar-unicorn-fix')) {
                 const style = document.createElement('style');
                 style.id = 'calendar-unicorn-fix';
                 style.textContent = `
+                    div.st-er.st-au.st-av.st-aw.st-ax.st-bx.st-d0,
                     [data-baseweb="popover"] > div,
                     [data-baseweb="popover"] > div > div,
-                    [data-baseweb="calendar"],
-                    div:has(> [data-baseweb="calendar"]) {
+                    div:has(> [data-baseweb="calendar"]),
+                    div:has(> div > [data-baseweb="calendar"]) {
                         background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
+                        background-color: transparent !important;
                     }
                 `;
                 document.head.appendChild(style);
@@ -76,8 +77,8 @@ st.markdown("""
         }
         
         setTimeout(fixCheckboxColors, 100);
-        setTimeout(fixCalendarPopover, 500);
-        setTimeout(injectCalendarCSS, 100);
+        setTimeout(fixCalendarPopover, 300);
+        setTimeout(injectCalendarCSS, 50);
         
         const observer = new MutationObserver(() => {
             fixCheckboxColors();
