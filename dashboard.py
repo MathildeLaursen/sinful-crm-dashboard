@@ -292,7 +292,7 @@ with st.expander("Filtrér)", expanded=True):
         else:
             return today - datetime.timedelta(days=30), today
     
-    col_date1, col_date2, col_date3 = st.columns([1, 1, 1])
+    col_date1, col_start_label, col_date2, col_end_label, col_date3 = st.columns([2, 0.3, 1, 0.3, 1])
     
     with col_date1:
         selected_range = st.selectbox("Periode", date_options, index=1, label_visibility="collapsed")
@@ -300,11 +300,17 @@ with st.expander("Filtrér)", expanded=True):
     # Beregn default datoer
     default_start, default_end = get_date_range(selected_range)
     
+    with col_start_label:
+        st.markdown("<p style='margin-top: 8px; font-size: 14px;'>Start</p>", unsafe_allow_html=True)
+    
     with col_date2:
-        start_date = st.date_input(f"Start: {default_start}", default_start, label_visibility="collapsed")
+        start_date = st.date_input("Start dato", default_start, label_visibility="collapsed")
+    
+    with col_end_label:
+        st.markdown("<p style='margin-top: 8px; font-size: 14px;'>Slut</p>", unsafe_allow_html=True)
     
     with col_date3:
-        end_date = st.date_input(f"Slut: {default_end}", default_end, label_visibility="collapsed")
+        end_date = st.date_input("Slut dato", default_end, label_visibility="collapsed")
 
     delta = end_date - start_date
     prev_end_date = start_date - datetime.timedelta(days=1)
