@@ -553,7 +553,7 @@ show_metric(col6, "Click Through Rate", cur_ctr, is_percent=True)
 if not display_pivot_df.empty:
     display_df = display_pivot_df.copy()
     display_df['Date'] = pd.to_datetime(display_df['Date']).dt.date
-    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Total', 'DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Total']
     sorted_df = display_df[cols_to_show].sort_values(by='Date', ascending=False)
     
     # Beregn højde baseret på antal rækker (35px per række + 38px header)
@@ -568,18 +568,7 @@ if not display_pivot_df.empty:
             "Date": st.column_config.DateColumn("Date"),
             "ID_Campaign": st.column_config.TextColumn("Kampagne"),
             "Email_Message": st.column_config.TextColumn("Email"),
-            "Total": st.column_config.NumberColumn("Total", format="localized"),
-            "DK": st.column_config.NumberColumn("DK", format="localized"),
-            "SE": st.column_config.NumberColumn("SE", format="localized"),
-            "NO": st.column_config.NumberColumn("NO", format="localized"),
-            "FI": st.column_config.NumberColumn("FI", format="localized"),
-            "FR": st.column_config.NumberColumn("FR", format="localized"),
-            "UK": st.column_config.NumberColumn("UK", format="localized"),
-            "DE": st.column_config.NumberColumn("DE", format="localized"),
-            "AT": st.column_config.NumberColumn("AT", format="localized"),
-            "NL": st.column_config.NumberColumn("NL", format="localized"),
-            "BE": st.column_config.NumberColumn("BE", format="localized"),
-            "CH": st.column_config.NumberColumn("CH", format="localized"),
+            "Total": st.column_config.NumberColumn("Emails Sendt", format="localized"),
         }
     )
 else:
