@@ -5,6 +5,8 @@ from streamlit_gsheets import GSheetsConnection
 import extra_streamlit_components as stx
 import datetime
 import time
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # --- SIDE OPSÆTNING ---
 st.set_page_config(
@@ -625,6 +627,82 @@ show_metric(col6, "Click Through Rate", cur_ctr, prev_ctr, is_percent=True)
 if not current_df.empty:
     display_df = current_df.copy()
     display_df['Date'] = pd.to_datetime(display_df['Date']).dt.date
+    
+    # --- GRAF: Open Rate & Click Rate over tid ---
+    # Aggreger per dato for grafen
+    chart_df = current_df.groupby('Date', as_index=False).agg({
+        'Total_Received': 'sum',
+        'Unique_Opens': 'sum',
+        'Unique_Clicks': 'sum'
+    })
+    chart_df['Open Rate'] = (chart_df['Unique_Opens'] / chart_df['Total_Received'] * 100).round(1)
+    chart_df['Click Rate'] = (chart_df['Unique_Clicks'] / chart_df['Total_Received'] * 100).round(2)
+    chart_df = chart_df.sort_values('Date')
+    
+    # Opret graf med to y-akser
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    
+    # Open Rate (venstre y-akse)
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df['Date'], 
+            y=chart_df['Open Rate'],
+            name='Open Rate',
+            line=dict(color='#9B7EBD', width=2),
+            mode='lines+markers',
+            marker=dict(size=6)
+        ),
+        secondary_y=False
+    )
+    
+    # Click Rate (højre y-akse)
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df['Date'], 
+            y=chart_df['Click Rate'],
+            name='Click Rate',
+            line=dict(color='#E8B4CB', width=2),
+            mode='lines+markers',
+            marker=dict(size=6)
+        ),
+        secondary_y=True
+    )
+    
+    # Layout styling (unicorn theme)
+    fig.update_layout(
+        title=None,
+        height=300,
+        margin=dict(l=20, r=20, t=20, b=20),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        plot_bgcolor='rgba(250,245,255,0.5)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        hovermode='x unified'
+    )
+    
+    # Y-akser styling
+    fig.update_yaxes(
+        title_text="Open Rate %", 
+        secondary_y=False,
+        gridcolor='rgba(212,191,255,0.3)',
+        ticksuffix='%'
+    )
+    fig.update_yaxes(
+        title_text="Click Rate %", 
+        secondary_y=True,
+        gridcolor='rgba(232,180,203,0.3)',
+        ticksuffix='%'
+    )
+    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)')
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # --- TABEL ---
     cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %', 'Click Through Rate %']
     sorted_df = display_df[cols_to_show].sort_values(by='Date', ascending=False)
     
