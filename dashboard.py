@@ -113,14 +113,28 @@ st.markdown("""
             gap: 0.2rem !important;
         }
         
-        /* Fast bredde på label-kolonnen så de flugter */
-        [data-testid="stExpander"] .stHorizontalBlock .stHorizontalBlock .stColumn:first-child {
-            flex: 0 0 75px !important;  /* JUSTÉR: Bredde på label-kolonnen */
+        /* Kolonne 1: Periode/Kampagne - bredere labels */
+        [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock > .stColumn:nth-child(1) .stHorizontalBlock .stColumn:first-child {
+            flex: 0 0 75px !important;
             width: 75px !important;
             min-width: 75px !important;
         }
         
-        /* Lad dropdown-kolonnen fylde resten */
+        /* Kolonne 2: Start/Email - smallere labels */
+        [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock > .stColumn:nth-child(2) .stHorizontalBlock .stColumn:first-child {
+            flex: 0 0 40px !important;
+            width: 40px !important;
+            min-width: 40px !important;
+        }
+        
+        /* Kolonne 3: Slut/A/B - smallest labels */
+        [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock > .stColumn:nth-child(3) .stHorizontalBlock .stColumn:first-child {
+            flex: 0 0 30px !important;
+            width: 30px !important;
+            min-width: 30px !important;
+        }
+        
+        /* Lad dropdown-kolonnerne fylde resten */
         [data-testid="stExpander"] .stHorizontalBlock .stHorizontalBlock .stColumn:last-child {
             flex: 1 1 auto !important;
         }
