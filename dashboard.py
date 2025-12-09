@@ -105,7 +105,7 @@ st.markdown("""
         
         /* Afstand mellem hovedkolonner (Periode-gruppe → Start-gruppe) */
         [data-testid="stExpander"] > div > div > .stVerticalBlock > div > .stHorizontalBlock {
-            gap: 1.5rem !important;
+            gap: 2rem !important;
         }
         
         /* JUSTÉR DENNE: Afstand mellem label-tekst og dropdown INDEN i hver gruppe */
@@ -477,6 +477,7 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
