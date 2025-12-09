@@ -106,7 +106,7 @@ st.markdown("""
         /* JUSTÉR DENNE VÆRDI for afstand mellem kolonner (boks → tekst) */
         /* Mindre værdi = tættere sammen, større værdi = mere luft */
         [data-testid="stExpander"] .stHorizontalBlock {
-            gap: 0.5rem !important;  /* Prøv: 0.25rem, 0.5rem, 1rem, 1.5rem, 2rem */
+            gap: 1rem !important;  /* Prøv: 0.25rem, 0.5rem, 1rem, 1.5rem, 2rem */
         }
         
         [data-testid="stExpander"] .stSelectbox,
@@ -396,9 +396,7 @@ prev_df = filter_data(df, prev_start_date, prev_end_date)
 
 
 # --- VISUALISERING ---
-st.subheader(f"Overblik: {start_date} - {end_date}")
-if selected_range != "Brugerdefineret":
-    st.caption(f"Sammenlignet med forrige periode: {prev_start_date} - {prev_end_date}")
+st.caption(f"Sammenlignet med: {prev_start_date} - {prev_end_date}")
 
 col1, col2, col3, col4 = st.columns(4)
 
