@@ -193,13 +193,21 @@ except Exception as e:
 
 today = datetime.date.today()
 
+# Session state init for dato
+if 'date_range' not in st.session_state:
+    st.session_state.date_range = (today - datetime.timedelta(days=30), today)
+if 'date_preset' not in st.session_state:
+    st.session_state.date_preset = "Sidste 30 dage"
+if 'date_reset_counter' not in st.session_state:
+    st.session_state.date_reset_counter = 0
+
 # Helper funktioner til dato-beregning
 def get_date_range_from_preset(preset):
     if preset == "I dag":
         return today, today
     elif preset == "I går":
         return today - datetime.timedelta(days=1), today - datetime.timedelta(days=1)
-    elif preset == "Denne uge (man-søn)":
+    elif preset == "Denne uge":
         start = today - datetime.timedelta(days=today.weekday())
         return start, today
     elif preset == "Sidste 7 dage":
@@ -223,66 +231,106 @@ def get_date_range_from_preset(preset):
         start = datetime.date(today.year - 1, 1, 1)
         end = datetime.date(today.year - 1, 12, 31)
         return start, end
-    return None  # Tilpasset
+    return None
 
-# Session state init for dato
-if 'date_range' not in st.session_state:
-    st.session_state.date_range = (today - datetime.timedelta(days=30), today)
-if 'date_preset' not in st.session_state:
-    st.session_state.date_preset = "Sidste 30 dage"
+# --- FILTER LAYOUT ---
+col_dato, col_land, col_kamp, col_email = st.columns([2, 1, 1, 1])
 
-# Callback: Når preset ændres (dropdown)
-def on_preset_change():
-    preset = st.session_state.date_preset
-    new_range = get_date_range_from_preset(preset)
-    if new_range:
-        st.session_state.date_range = new_range
-
-# Callback: Når dato ændres manuelt (kalender)
-def on_date_change():
-    # Hvis brugeren piller ved kalenderen, sæt preset til "Tilpasset"
-    st.session_state.date_preset = "Tilpasset"
-
-# --- VISUALISERING AF DATO VÆLGER ---
-col_preset, col_picker, col_land, col_kamp, col_email = st.columns([1.2, 1.8, 1, 1, 1])
-
-# 1. Preset Dropdown (Looker Logic)
-with col_preset:
-    presets = [
-        "Tilpasset",
-        "I dag", "I går", 
-        "Denne uge (man-søn)", 
-        "Sidste 7 dage", "Sidste 14 dage", "Sidste 30 dage", 
-        "Denne måned", "Sidste måned", 
-        "I år", "Sidste år"
-    ]
-    st.selectbox(
-        "Dato interval", 
-        options=presets,
-        key="date_preset",
-        on_change=on_preset_change,
-        label_visibility="collapsed"
-    )
-
-# 2. Den faktiske Dato Vælger
-with col_picker:
-    date_range = st.date_input(
-        "Vælg datoer",
-        value=st.session_state.date_range,
-        key="date_input_widget",
-        on_change=on_date_change,
-        label_visibility="collapsed"
-    )
-    # Opdater session state baseret på widget
-    if isinstance(date_range, tuple) and len(date_range) == 2:
-        start_date, end_date = date_range
-        st.session_state.date_range = date_range
-    elif isinstance(date_range, tuple) and len(date_range) == 1:
-        start_date = date_range[0]
-        end_date = start_date
+# Dato filter med presets + kalender i én popover
+with col_dato:
+    # Vis valgt periode i knappen
+    start_d, end_d = st.session_state.date_range
+    if st.session_state.date_preset != "Tilpasset":
+        date_label = f"{st.session_state.date_preset}"
     else:
-        start_date = date_range if isinstance(date_range, datetime.date) else today
-        end_date = start_date
+        date_label = f"{start_d.strftime('%d/%m/%Y')} - {end_d.strftime('%d/%m/%Y')}"
+    
+    with st.popover(date_label, use_container_width=True):
+        # Presets som knapper
+        st.markdown("**Hurtig valg:**")
+        
+        # Række 1: Dage
+        preset_col1, preset_col2, preset_col3 = st.columns(3)
+        with preset_col1:
+            if st.button("I dag", use_container_width=True, key="preset_idag"):
+                st.session_state.date_range = get_date_range_from_preset("I dag")
+                st.session_state.date_preset = "I dag"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        with preset_col2:
+            if st.button("I går", use_container_width=True, key="preset_igaar"):
+                st.session_state.date_range = get_date_range_from_preset("I går")
+                st.session_state.date_preset = "I går"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        with preset_col3:
+            if st.button("Denne uge", use_container_width=True, key="preset_uge"):
+                st.session_state.date_range = get_date_range_from_preset("Denne uge")
+                st.session_state.date_preset = "Denne uge"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        
+        # Række 2: Sidste X dage
+        preset_col4, preset_col5, preset_col6 = st.columns(3)
+        with preset_col4:
+            if st.button("7 dage", use_container_width=True, key="preset_7d"):
+                st.session_state.date_range = get_date_range_from_preset("Sidste 7 dage")
+                st.session_state.date_preset = "Sidste 7 dage"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        with preset_col5:
+            if st.button("14 dage", use_container_width=True, key="preset_14d"):
+                st.session_state.date_range = get_date_range_from_preset("Sidste 14 dage")
+                st.session_state.date_preset = "Sidste 14 dage"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        with preset_col6:
+            if st.button("30 dage", use_container_width=True, key="preset_30d"):
+                st.session_state.date_range = get_date_range_from_preset("Sidste 30 dage")
+                st.session_state.date_preset = "Sidste 30 dage"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        
+        # Række 3: Måneder og år
+        preset_col7, preset_col8, preset_col9 = st.columns(3)
+        with preset_col7:
+            if st.button("Denne mnd", use_container_width=True, key="preset_mnd"):
+                st.session_state.date_range = get_date_range_from_preset("Denne måned")
+                st.session_state.date_preset = "Denne måned"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        with preset_col8:
+            if st.button("Sidste mnd", use_container_width=True, key="preset_sidste_mnd"):
+                st.session_state.date_range = get_date_range_from_preset("Sidste måned")
+                st.session_state.date_preset = "Sidste måned"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        with preset_col9:
+            if st.button("I år", use_container_width=True, key="preset_aar"):
+                st.session_state.date_range = get_date_range_from_preset("I år")
+                st.session_state.date_preset = "I år"
+                st.session_state.date_reset_counter += 1
+                st.rerun()
+        
+        st.divider()
+        st.markdown("**Eller vælg datoer:**")
+        
+        # Kalender
+        date_range = st.date_input(
+            "Vælg periode",
+            value=st.session_state.date_range,
+            key=f"date_picker_{st.session_state.date_reset_counter}",
+            label_visibility="collapsed"
+        )
+        
+        # Opdater session state hvis brugeren vælger manuelt
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            if date_range != st.session_state.date_range:
+                st.session_state.date_range = date_range
+                st.session_state.date_preset = "Tilpasset"
+    
+    # Brug værdierne fra session state
+    start_date, end_date = st.session_state.date_range
 
 # Filtrer først efter dato - så dropdowns kun viser data fra valgt periode
 date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
