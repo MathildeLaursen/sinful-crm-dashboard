@@ -398,7 +398,8 @@ with st.expander("Filtrér", expanded=True):
         with k1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Kampagne</p>", unsafe_allow_html=True)
         with k2:
-            with st.popover("Vælg kampagner", use_container_width=True):
+            count_text = f"{len(st.session_state.selected_campaigns)} valgt" if st.session_state.selected_campaigns else "Alle"
+            with st.popover(count_text, use_container_width=True):
                 col_all, col_none = st.columns(2)
                 with col_all:
                     if st.button("Vælg alle", key="select_all_campaigns"):
@@ -432,7 +433,8 @@ with st.expander("Filtrér", expanded=True):
         with em1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Email</p>", unsafe_allow_html=True)
         with em2:
-            with st.popover("Vælg emails", use_container_width=True):
+            count_text = f"{len(st.session_state.selected_emails)} valgt" if st.session_state.selected_emails else "Alle"
+            with st.popover(count_text, use_container_width=True):
                 col_all, col_none = st.columns(2)
                 with col_all:
                     if st.button("Vælg alle", key="select_all_emails"):
@@ -470,7 +472,8 @@ with st.expander("Filtrér", expanded=True):
         with ab1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>A/B</p>", unsafe_allow_html=True)
         with ab2:
-            with st.popover("Vælg A/B", use_container_width=True):
+            count_text = f"{len(st.session_state.selected_variants)} valgt" if st.session_state.selected_variants else "Alle"
+            with st.popover(count_text, use_container_width=True):
                 col_all, col_none = st.columns(2)
                 with col_all:
                     if st.button("Vælg alle", key="select_all_variants"):
@@ -508,7 +511,8 @@ with st.expander("Filtrér", expanded=True):
         with l1:
             st.markdown("<p style='margin-top: 8px; font-size: 14px; font-weight: bold;'>Land</p>", unsafe_allow_html=True)
         with l2:
-            with st.popover("Vælg lande", use_container_width=True):
+            count_text = f"{len(st.session_state.selected_countries)} valgt"
+            with st.popover(count_text, use_container_width=True):
                 # Select All / Deselect All buttons
                 col_all, col_none = st.columns(2)
                 with col_all:
@@ -538,10 +542,10 @@ with st.expander("Filtrér", expanded=True):
     st.caption(f"Sammenlignet med: {prev_start_date} - {prev_end_date}")
 
 
-# --- DATA FILTRERING ---
+# --- DATA FILTRERING OG AGGREGERING ---
 def filter_data(dataset, start, end):
     mask = (dataset['Date'] >= pd.to_datetime(start)) & (dataset['Date'] <= pd.to_datetime(end))
-    temp_df = dataset.loc[mask]
+    temp_df = dataset.loc[mask].copy()
     
     if sel_id_campaigns:
         temp_df = temp_df[temp_df['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
@@ -551,7 +555,30 @@ def filter_data(dataset, start, end):
         temp_df = temp_df[temp_df['Variant'].astype(str).isin(sel_variants)]
     if sel_countries:
         temp_df = temp_df[temp_df['Country'].isin(sel_countries)]
+    
+    # Aggreger data på tværs af lande
+    # Gruppér på Date, Campaign, Email, Variant og summer metrics
+    if not temp_df.empty:
+        agg_df = temp_df.groupby(['Date', 'ID_Campaign', 'Email_Message', 'Variant'], as_index=False).agg({
+            'Total_Received': 'sum',
+            'Unique_Opens': 'sum',
+            'Unique_Clicks': 'sum',
+            'Unsubscribed': 'sum'
+        })
         
+        # Genberegn rates baseret på aggregerede tal
+        agg_df['Open Rate %'] = agg_df.apply(
+            lambda x: (x['Unique_Opens'] / x['Total_Received'] * 100) if x['Total_Received'] > 0 else 0, axis=1
+        )
+        agg_df['Click Rate %'] = agg_df.apply(
+            lambda x: (x['Unique_Clicks'] / x['Total_Received'] * 100) if x['Total_Received'] > 0 else 0, axis=1
+        )
+        agg_df['Click Through Rate %'] = agg_df.apply(
+            lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1
+        )
+        
+        return agg_df
+    
     return temp_df
 
 current_df = filter_data(df, start_date, end_date)
