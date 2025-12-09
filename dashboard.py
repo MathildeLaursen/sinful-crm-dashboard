@@ -188,21 +188,12 @@ except Exception as e:
     st.error(f"Fejl: {e}")
     st.stop()
 
-
-# --- FILTRE & DATO LOGIK (Looker Style) ---
+# --- FILTRE & DATO LOGIK (Smart Controller) ---
 
 today = datetime.date.today()
 
-# Session state init for dato
-if 'date_range' not in st.session_state:
-    st.session_state.date_range = (today - datetime.timedelta(days=30), today)
-if 'date_preset' not in st.session_state:
-    st.session_state.date_preset = "Sidste 30 dage"
-if 'date_reset_counter' not in st.session_state:
-    st.session_state.date_reset_counter = 0
-
-# Helper funktioner til dato-beregning
-def get_date_range_from_preset(preset):
+# 1. Funktion til at beregne datoer baseret på valg
+def calculate_date_range(preset):
     if preset == "I dag":
         return today, today
     elif preset == "I går":
@@ -233,150 +224,91 @@ def get_date_range_from_preset(preset):
         return start, end
     return None
 
-# --- FILTER LAYOUT ---
-col_dato, col_land, col_kamp, col_email = st.columns([2, 1, 1, 1])
+# 2. Session State Initialisering
+if 'date_range' not in st.session_state:
+    st.session_state.date_range = (today - datetime.timedelta(days=30), today)
+if 'preset_selection' not in st.session_state:
+    st.session_state.preset_selection = "Sidste 30 dage"
 
-# Dato filter med presets + kalender i én popover
-with col_dato:
-    # Vis valgt periode i knappen
-    start_d, end_d = st.session_state.date_range
-    if st.session_state.date_preset != "Tilpasset":
-        date_label = f"{st.session_state.date_preset}"
-    else:
-        date_label = f"{start_d.strftime('%d/%m/%Y')} - {end_d.strftime('%d/%m/%Y')}"
-    
-    with st.popover(date_label, use_container_width=True):
-        # Presets som knapper
-        st.markdown("**Hurtig valg:**")
-        
-        # Række 1: Dage
-        preset_col1, preset_col2, preset_col3 = st.columns(3)
-        with preset_col1:
-            if st.button("I dag", use_container_width=True, key="preset_idag"):
-                st.session_state.date_range = get_date_range_from_preset("I dag")
-                st.session_state.date_preset = "I dag"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        with preset_col2:
-            if st.button("I går", use_container_width=True, key="preset_igaar"):
-                st.session_state.date_range = get_date_range_from_preset("I går")
-                st.session_state.date_preset = "I går"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        with preset_col3:
-            if st.button("Denne uge", use_container_width=True, key="preset_uge"):
-                st.session_state.date_range = get_date_range_from_preset("Denne uge")
-                st.session_state.date_preset = "Denne uge"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        
-        # Række 2: Sidste X dage
-        preset_col4, preset_col5, preset_col6 = st.columns(3)
-        with preset_col4:
-            if st.button("7 dage", use_container_width=True, key="preset_7d"):
-                st.session_state.date_range = get_date_range_from_preset("Sidste 7 dage")
-                st.session_state.date_preset = "Sidste 7 dage"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        with preset_col5:
-            if st.button("14 dage", use_container_width=True, key="preset_14d"):
-                st.session_state.date_range = get_date_range_from_preset("Sidste 14 dage")
-                st.session_state.date_preset = "Sidste 14 dage"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        with preset_col6:
-            if st.button("30 dage", use_container_width=True, key="preset_30d"):
-                st.session_state.date_range = get_date_range_from_preset("Sidste 30 dage")
-                st.session_state.date_preset = "Sidste 30 dage"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        
-        # Række 3: Måneder og år
-        preset_col7, preset_col8, preset_col9 = st.columns(3)
-        with preset_col7:
-            if st.button("Denne mnd", use_container_width=True, key="preset_mnd"):
-                st.session_state.date_range = get_date_range_from_preset("Denne måned")
-                st.session_state.date_preset = "Denne måned"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        with preset_col8:
-            if st.button("Sidste mnd", use_container_width=True, key="preset_sidste_mnd"):
-                st.session_state.date_range = get_date_range_from_preset("Sidste måned")
-                st.session_state.date_preset = "Sidste måned"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        with preset_col9:
-            if st.button("I år", use_container_width=True, key="preset_aar"):
-                st.session_state.date_range = get_date_range_from_preset("I år")
-                st.session_state.date_preset = "I år"
-                st.session_state.date_reset_counter += 1
-                st.rerun()
-        
-        st.divider()
-        st.markdown("**Eller vælg datoer:**")
-        
-        # Kalender
-        date_range = st.date_input(
-            "Vælg periode",
-            value=st.session_state.date_range,
-            key=f"date_picker_{st.session_state.date_reset_counter}",
-            label_visibility="collapsed"
-        )
-        
-        # Opdater session state hvis brugeren vælger manuelt
-        if isinstance(date_range, tuple) and len(date_range) == 2:
-            if date_range != st.session_state.date_range:
-                st.session_state.date_range = date_range
-                st.session_state.date_preset = "Tilpasset"
-    
-    # Brug værdierne fra session state
+# 3. Callbacks (Logikken der binder de to felter sammen)
+def on_preset_change():
+    """Køres når dropdown ændres"""
+    selection = st.session_state.preset_selection
+    new_range = calculate_date_range(selection)
+    if new_range:
+        st.session_state.date_range = new_range
+
+def on_date_change():
+    """Køres når kalenderen ændres manuelt"""
+    st.session_state.preset_selection = "Tilpasset"
+
+# --- LAYOUT AF FILTRE ---
+# Vi laver 5 kolonner for at få dato-vælgerne til at stå pænt sammen
+col_preset, col_picker, col_land, col_kamp, col_email = st.columns([1.2, 1.5, 1.2, 1.2, 1.2])
+
+with col_preset:
+    options = [
+        "Tilpasset", 
+        "I dag", "I går", 
+        "Denne uge", "Sidste 7 dage", "Sidste 14 dage", "Sidste 30 dage", 
+        "Denne måned", "Sidste måned", 
+        "I år", "Sidste år"
+    ]
+    st.selectbox(
+        "Periode preset",
+        options=options,
+        key="preset_selection",
+        on_change=on_preset_change,
+        label_visibility="collapsed" # Skjuler label for et rent look
+    )
+
+with col_picker:
+    st.date_input(
+        "Vælg datoer",
+        value=st.session_state.date_range,
+        key="date_range",
+        on_change=on_date_change,
+        label_visibility="collapsed"
+    )
+
+# Hent de aktuelle datoer til brug i filtrering
+if len(st.session_state.date_range) == 2:
     start_date, end_date = st.session_state.date_range
+else:
+    start_date, end_date = st.session_state.date_range[0], st.session_state.date_range[0]
 
-# Filtrer først efter dato - så dropdowns kun viser data fra valgt periode
+# Filtrer dataframen
 date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
 df_date_filtered = df[date_mask]
 
-# Track perioden - nulstil filtre når perioden ændres
+# --- TRACKING AF PERIODE ÆNDRING (Reset logik) ---
 current_period_key = f"{start_date}_{end_date}"
 if 'last_period_key' not in st.session_state:
     st.session_state.last_period_key = current_period_key
 
 period_changed = st.session_state.last_period_key != current_period_key
 
-# Initialize session states
-if 'selected_campaigns' not in st.session_state:
-    st.session_state.selected_campaigns = None  # None = ikke initialiseret
-if 'selected_emails' not in st.session_state:
-    st.session_state.selected_emails = None
-if 'selected_countries' not in st.session_state:
-    st.session_state.selected_countries = None
-if 'search_campaign' not in st.session_state:
-    st.session_state.search_campaign = ""
-if 'search_email' not in st.session_state:
-    st.session_state.search_email = ""
-if 'search_country' not in st.session_state:
-    st.session_state.search_country = ""
-# Counter til at resette checkbox keys
-if 'cb_reset_land' not in st.session_state:
-    st.session_state.cb_reset_land = 0
-if 'cb_reset_kamp' not in st.session_state:
-    st.session_state.cb_reset_kamp = 0
-if 'cb_reset_email' not in st.session_state:
-    st.session_state.cb_reset_email = 0
-
+# Reset filtre hvis perioden ændres
 if period_changed:
     st.session_state.last_period_key = current_period_key
-    # Nulstil alle filtre når perioden ændres (None = vælg alle)
     st.session_state.selected_campaigns = None
     st.session_state.selected_emails = None
     st.session_state.selected_countries = None
 
-# ALLE filter-options baseret på perioden (uafhængige af hinanden)
+# Initialize session states for filtre hvis de mangler
+if 'selected_campaigns' not in st.session_state: st.session_state.selected_campaigns = None
+if 'selected_emails' not in st.session_state: st.session_state.selected_emails = None
+if 'selected_countries' not in st.session_state: st.session_state.selected_countries = None
+if 'cb_reset_land' not in st.session_state: st.session_state.cb_reset_land = 0
+if 'cb_reset_kamp' not in st.session_state: st.session_state.cb_reset_kamp = 0
+if 'cb_reset_email' not in st.session_state: st.session_state.cb_reset_email = 0
+
+# Opdater filter options baseret på den nye df_date_filtered
 all_countries = sorted(df_date_filtered['Country'].unique())
 all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
 all_email_messages = sorted(df_date_filtered['Email_Message'].astype(str).unique())
 
-# Pre-select alle ved første load eller periode-ændring
+# Pre-select logik
 if st.session_state.selected_countries is None:
     st.session_state.selected_countries = list(all_countries)
 else:
@@ -392,11 +324,15 @@ if st.session_state.selected_emails is None:
 else:
     st.session_state.selected_emails = [e for e in st.session_state.selected_emails if e in all_email_messages]
 
-# Land filter med checkboxes
+# --- HER KOMMER DINE FILTRE (Land, Kampagne, Email) ---
+# (Dette er den samme kode som du havde før, bare indsat i de nye kolonner)
+
+# Land filter
 with col_land:
     land_count = len(st.session_state.selected_countries)
     land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
     with st.popover(land_label, use_container_width=True):
+        # ... (Din eksisterende land-kode her) ...
         # Vælg alle checkbox
         all_land_selected = len(st.session_state.selected_countries) == len(all_countries)
         select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"sel_all_land_{st.session_state.cb_reset_land}")
@@ -420,12 +356,12 @@ with col_land:
                 if country in st.session_state.selected_countries:
                     st.session_state.selected_countries.remove(country)
 
-# Kampagne filter med checkboxes
+# Kampagne filter
 with col_kamp:
     kamp_count = len(st.session_state.selected_campaigns)
     kamp_label = f"Kampagne ({kamp_count})" if kamp_count < len(all_id_campaigns) else "Kampagne"
     with st.popover(kamp_label, use_container_width=True):
-        # Vælg alle checkbox
+        # ... (Din eksisterende kampagne-kode her) ...
         all_kamp_selected = len(st.session_state.selected_campaigns) == len(all_id_campaigns)
         select_all_kamp = st.checkbox("Vælg alle", value=all_kamp_selected, key=f"sel_all_kamp_{st.session_state.cb_reset_kamp}")
         if select_all_kamp and not all_kamp_selected:
@@ -451,12 +387,12 @@ with col_kamp:
                 if campaign in st.session_state.selected_campaigns:
                     st.session_state.selected_campaigns.remove(campaign)
 
-# Email filter med checkboxes
+# Email filter
 with col_email:
     email_count = len(st.session_state.selected_emails)
     email_label = f"Email ({email_count})" if email_count < len(all_email_messages) else "Email"
     with st.popover(email_label, use_container_width=True):
-        # Vælg alle checkbox
+        # ... (Din eksisterende email-kode her) ...
         all_email_selected = len(st.session_state.selected_emails) == len(all_email_messages)
         select_all_email = st.checkbox("Vælg alle", value=all_email_selected, key=f"sel_all_email_{st.session_state.cb_reset_email}")
         if select_all_email and not all_email_selected:
@@ -482,11 +418,6 @@ with col_email:
                 if email in st.session_state.selected_emails:
                     st.session_state.selected_emails.remove(email)
 
-# Gem valgte værdier til filter_data
-sel_id_campaigns = st.session_state.selected_campaigns
-
-sel_email_messages = st.session_state.selected_emails
-sel_countries = st.session_state.selected_countries
 
 
 # --- DATA FILTRERING OG AGGREGERING ---
@@ -616,6 +547,7 @@ else:
 if st.button('Opdater Data'):
     st.cache_data.clear()
     st.rerun()
+
 
 
 
