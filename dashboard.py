@@ -166,8 +166,9 @@ def load_google_sheet_data():
     numeric_cols = ['Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Unsubscribed']
     for col in numeric_cols:
         if col in df.columns:
-            df[col] = df[col].astype(str).str.replace(',', '').str.replace('"', '').str.replace('.', '')
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            # Fjern tusind-separatorer (komma og anførselstegn), behold decimalpunkt
+            df[col] = df[col].astype(str).str.replace(',', '').str.replace('"', '')
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
     
     # Beregn rates
     df['Open Rate %'] = df.apply(lambda x: (x['Unique_Opens'] / x['Total_Received'] * 100) if x['Total_Received'] > 0 else 0, axis=1)
