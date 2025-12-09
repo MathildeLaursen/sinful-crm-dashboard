@@ -646,10 +646,10 @@ if not current_df.empty:
     # Kort email label til grafen (kun Message del)
     chart_df['Email_Short'] = chart_df['Email_Message'].apply(lambda x: x.split(' - ')[-1] if ' - ' in str(x) else str(x))
     
-    # Opret simpel bar chart (uden secondary_y for at undgå stacking)
-    fig = go.Figure()
+    # Opret graf med to y-akser
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
     
-    # Open Rate søjler
+    # Open Rate søjler (venstre y-akse)
     fig.add_trace(
         go.Bar(
             x=chart_df['Email_Short'], 
@@ -658,11 +658,13 @@ if not current_df.empty:
             marker_color='#9B7EBD',
             text=chart_df['Open Rate'].apply(lambda x: f'{x:.1f}%'),
             textposition='outside',
-            textfont=dict(size=10)
-        )
+            textfont=dict(size=10),
+            offsetgroup=0
+        ),
+        secondary_y=False
     )
     
-    # Click Rate søjler
+    # Click Rate søjler (højre y-akse)
     fig.add_trace(
         go.Bar(
             x=chart_df['Email_Short'], 
@@ -671,8 +673,10 @@ if not current_df.empty:
             marker_color='#E8B4CB',
             text=chart_df['Click Rate'].apply(lambda x: f'{x:.1f}%'),
             textposition='outside',
-            textfont=dict(size=10)
-        )
+            textfont=dict(size=10),
+            offsetgroup=1
+        ),
+        secondary_y=True
     )
     
     # Layout styling (unicorn theme)
@@ -680,7 +684,7 @@ if not current_df.empty:
         title="",
         showlegend=True,
         height=350,
-        margin=dict(l=40, r=40, t=40, b=80),
+        margin=dict(l=50, r=50, t=50, b=80),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -696,16 +700,24 @@ if not current_df.empty:
         bargroupgap=0.1
     )
     
-    # Y-akse styling
+    # Y-akser styling
     fig.update_yaxes(
-        title_text="Rate %",
+        title_text="Open Rate %",
+        secondary_y=False,
         gridcolor='rgba(212,191,255,0.3)',
         ticksuffix='%'
+    )
+    fig.update_yaxes(
+        title_text="Click Rate %",
+        secondary_y=True,
+        gridcolor='rgba(232,180,203,0.3)',
+        ticksuffix='%',
+        showgrid=False
     )
     fig.update_xaxes(
         gridcolor='rgba(212,191,255,0.2)',
         tickangle=-45,
-        type='category'  # Kategorisk x-akse uden dato-mellemrum
+        type='category'
     )
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
