@@ -97,12 +97,19 @@ def load_google_sheet_data():
     except Exception:
         return pd.DataFrame()
     
-    # Landekonfiguration: (land, startkolonne-index) - Kun Norden
+    # Landekonfiguration: (land, startkolonne-index) - Alle lande
     country_configs = [
-        ('DK', 15),   # Kolonne P (15 i 0-indexed)
-        ('SE', 21),   # Kolonne V (21 i 0-indexed) 
-        ('NO', 27),   # Kolonne AB (27 i 0-indexed)
-        ('FI', 33),   # Kolonne AH (33 i 0-indexed)
+        ('DK', 15),   # Kolonne P
+        ('SE', 21),   # Kolonne V
+        ('NO', 27),   # Kolonne AB
+        ('FI', 33),   # Kolonne AH
+        ('FR', 39),   # Kolonne AN
+        ('UK', 45),   # Kolonne AT
+        ('DE', 51),   # Kolonne AZ
+        ('AT', 57),   # Kolonne BF
+        ('NL', 63),   # Kolonne BL
+        ('BE', 69),   # Kolonne BR
+        ('CH', 75),   # Kolonne BX
     ]
     
     all_country_data = []
