@@ -395,14 +395,21 @@ div[data-testid="stCheckbox"] label span:first-child {
 }
 
 /* FLYT "Choose a date range" dropdown OVER kalenderen */
-[data-baseweb="datepicker"] {
+[data-baseweb="datepicker"] > div {
     display: flex !important;
     flex-direction: column-reverse !important;
 }
 
-/* Giv dropdown lidt afstand fra kalenderen */
-[data-baseweb="datepicker"] > div:last-child {
+/* Alternativ: Brug order til at flytte elementer */
+[data-baseweb="datepicker"] [data-baseweb="calendar"] {
+    order: 2 !important;
+}
+
+[data-baseweb="datepicker"] > div > div:has([data-baseweb="select"]),
+[data-baseweb="datepicker"] > div > div:last-child {
+    order: 1 !important;
     margin-bottom: 12px !important;
+    margin-top: 0 !important;
 }
 
 /* Style dropdown i unicorn tema */
