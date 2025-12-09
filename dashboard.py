@@ -154,60 +154,55 @@ st.markdown("""
         }
         
         /* Checkboxes i unicorn stil */
-        .stCheckbox > label {
+        .stCheckbox label {
             padding: 0.3rem 0.5rem !important;
             border-radius: 6px !important;
-            transition: background 0.2s ease !important;
             background: transparent !important;
         }
         
-        .stCheckbox > label:hover {
+        .stCheckbox label:hover {
             background: rgba(232, 180, 203, 0.1) !important;
         }
         
-        /* Fjern text highlight/selection styling */
-        .stCheckbox > label > span:last-child,
-        .stCheckbox p,
-        .stCheckbox span {
-            background: transparent !important;
+        /* Checkbox label text - ingen highlight */
+        .stCheckbox label span,
+        .stCheckbox label p {
+            background: none !important;
             background-color: transparent !important;
-            color: #4A3F55 !important;
         }
         
-        /* Checkbox box styling - pastel pink */
-        .stCheckbox > label > div:first-child,
-        .stCheckbox [data-testid="stCheckbox"] > div:first-child,
-        [data-baseweb="checkbox"] > div:first-child {
-            background-color: #F8C8DC !important;
-            border-color: #E8B4CB !important;
+        /* AGGRESSIV override af checkbox farver */
+        .stCheckbox label div[data-testid="stMarkdownContainer"],
+        .stCheckbox div[role="checkbox"],
+        .stCheckbox label > div:first-child,
+        [data-baseweb="checkbox"] div[role="checkbox"],
+        div[data-baseweb="checkbox"] > div:first-child {
+            background-color: #E8B4CB !important;
+            border-color: #D4A5BC !important;
+            background: #E8B4CB !important;
         }
         
-        /* Checkbox checkmark */
+        /* Unchecked state */
+        .stCheckbox div[aria-checked="false"],
+        [data-baseweb="checkbox"] div[aria-checked="false"] {
+            background-color: white !important;
+            border-color: #D4BFFF !important;
+            background: white !important;
+        }
+        
+        /* Checked state - pastel pink */
+        .stCheckbox div[aria-checked="true"],
+        [data-baseweb="checkbox"] div[aria-checked="true"] {
+            background-color: #E8B4CB !important;
+            border-color: #D4A5BC !important;
+            background: #E8B4CB !important;
+        }
+        
+        /* Checkmark hvid */
         .stCheckbox svg,
-        [data-testid="stCheckbox"] svg,
         [data-baseweb="checkbox"] svg {
             fill: white !important;
-            stroke: white !important;
-        }
-        
-        /* Override røde farver til pastel pink */
-        .stCheckbox [style*="rgb(255, 75, 75)"],
-        .stCheckbox [style*="#ff4b4b"],
-        [data-testid="stCheckbox"] [style*="rgb(255, 75, 75)"],
-        [data-testid="stCheckbox"] [style*="#ff4b4b"],
-        [data-baseweb="checkbox"] [style*="rgb(255, 75, 75)"],
-        [data-baseweb="checkbox"] [style*="#ff4b4b"] {
-            background-color: #F8C8DC !important;
-            border-color: #E8B4CB !important;
-        }
-        
-        /* Force pastel pink på alle checked checkboxes */
-        input[type="checkbox"]:checked + div,
-        input[type="checkbox"]:checked ~ div,
-        .stCheckbox input:checked + div,
-        [data-baseweb="checkbox"] input:checked + div {
-            background-color: #F8C8DC !important;
-            border-color: #E8B4CB !important;
+            color: white !important;
         }
         
         /* Små knapper i popover */
@@ -294,20 +289,26 @@ st.markdown("""
             background: rgba(212, 191, 255, 0.3) !important;
         }
         
-        /* Valgt dato i kalender */
+        /* Valgt dato i kalender - AGGRESSIV override */
         [data-baseweb="calendar"] [aria-selected="true"],
-        [data-baseweb="calendar"] [data-highlighted="true"] {
-            background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
+        [data-baseweb="calendar"] [data-highlighted="true"],
+        [data-baseweb="calendar"] button[aria-selected="true"],
+        [data-baseweb="datepicker"] [aria-selected="true"],
+        [data-baseweb="datepicker"] button[aria-selected="true"] {
+            background: #9B7EBD !important;
+            background-color: #9B7EBD !important;
             color: white !important;
         }
         
         /* Dato range highlight */
         [data-baseweb="calendar"] [data-in-range="true"] {
             background: rgba(155, 126, 189, 0.2) !important;
+            background-color: rgba(155, 126, 189, 0.2) !important;
         }
         
         /* Kalender navigation pile */
-        [data-baseweb="calendar"] svg {
+        [data-baseweb="calendar"] svg,
+        [data-baseweb="datepicker"] svg {
             fill: #9B7EBD !important;
         }
         
@@ -317,10 +318,58 @@ st.markdown("""
             font-weight: 600 !important;
         }
         
-        /* Fjern rød fra kalender */
-        [data-baseweb="calendar"] [style*="rgb(255, 75, 75)"],
-        [data-baseweb="calendar"] [style*="#ff4b4b"] {
-            background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
+        /* FJERN AL RØD FRA KALENDER */
+        [data-baseweb="calendar"] [style*="rgb(255"],
+        [data-baseweb="calendar"] [style*="#ff"],
+        [data-baseweb="datepicker"] [style*="rgb(255"],
+        [data-baseweb="datepicker"] [style*="#ff"],
+        [data-baseweb="calendar"] div[style*="background"],
+        [data-baseweb="datepicker"] div[style*="background"] {
+            background: #9B7EBD !important;
+            background-color: #9B7EBD !important;
+        }
+        
+        /* Today marker - pastel lilla i stedet for rød */
+        [data-baseweb="calendar"] [data-today="true"],
+        [data-baseweb="datepicker"] [data-today="true"],
+        [data-baseweb="calendar"] button[data-today="true"],
+        [data-baseweb="datepicker"] button[data-today="true"] {
+            background: #D4BFFF !important;
+            background-color: #D4BFFF !important;
+            color: #4A3F55 !important;
+        }
+        
+        /* Override inline styles på valgte datoer */
+        .stDateInput [style*="background-color: rgb(255"],
+        .stDateInput [style*="background: rgb(255"],
+        [class*="Calendar"] [style*="rgb(255"] {
+            background: #9B7EBD !important;
+            background-color: #9B7EBD !important;
+        }
+        
+        /* GLOBAL OVERRIDE - Streamlit primary color (rød -> lilla) */
+        :root {
+            --primary-color: #9B7EBD !important;
+        }
+        
+        /* Override alle steder hvor Streamlit bruger rød */
+        [style*="background-color: rgb(255, 75, 75)"],
+        [style*="background: rgb(255, 75, 75)"],
+        [style*="rgb(255, 75, 75)"],
+        [style*="#ff4b4b"],
+        [style*="background-color: rgb(255, 43, 43)"],
+        [style*="rgb(255, 43, 43)"] {
+            background: #9B7EBD !important;
+            background-color: #9B7EBD !important;
+            border-color: #9B7EBD !important;
+        }
+        
+        /* Streamlit emotion cache klasser med rød baggrund */
+        [class*="st-emotion-cache"] div[style*="255, 75"],
+        [class*="st-emotion-cache"] div[style*="255, 43"],
+        [class*="st-emotion-cache"] span[style*="255, 75"] {
+            background: #9B7EBD !important;
+            background-color: #9B7EBD !important;
         }
         
         /* Metric cards styling */
