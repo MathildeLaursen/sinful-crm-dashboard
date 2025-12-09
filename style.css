@@ -380,19 +380,6 @@ div[data-testid="stCheckbox"] label span:first-child {
     background: rgba(212, 191, 255, 0.15) !important;
 }
 
-/* Glide Data Editor - Header styling */
-.stDataFrameGlideDataEditor {
-    --gdg-bg-header: linear-gradient(135deg, #E8D5FF 0%, #FFD5E8 100%) !important;
-    --gdg-bg-header-has-focus: rgba(212, 191, 255, 0.3) !important;
-    --gdg-bg-header-hovered: rgba(212, 191, 255, 0.2) !important;
-    --gdg-text-header: #4A3F55 !important;
-    --gdg-text-header-selected: #4A3F55 !important;
-    --gdg-border-color: rgba(212, 191, 255, 0.3) !important;
-    --gdg-accent-color: #9B7EBD !important;
-    --gdg-accent-light: rgba(155, 126, 189, 0.1) !important;
-    --gdg-bg-cell: rgba(255, 255, 255, 0.8) !important;
-    --gdg-bg-bubble: #FAF5FF !important;
-}
 
 /* ===========================================
    KALENDER - Simpel styling
