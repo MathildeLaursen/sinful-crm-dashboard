@@ -19,7 +19,7 @@ css_path = os.path.join(os.path.dirname(__file__), 'style.css')
 with open(css_path) as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-# JavaScript til dynamisk checkbox og kalender fix
+# JavaScript til dynamisk checkbox fix
 st.markdown("""
     <script>
         function fixCheckboxColors() {
@@ -39,43 +39,45 @@ st.markdown("""
         }
         
         function fixCalendarPopover() {
-            // Find alle calendars og style deres parent containers
             document.querySelectorAll('[data-baseweb="calendar"]').forEach(calendar => {
-                // Style kalenderen selv
-                calendar.style.setProperty('background', 'linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%)', 'important');
-                calendar.style.setProperty('border', '1px solid #D4BFFF', 'important');
-                calendar.style.setProperty('border-radius', '12px', 'important');
+                // Style the calendar itself
+                calendar.setAttribute('style', calendar.getAttribute('style') + '; background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;');
                 
-                // Gå op i DOM træet og style alle parent containers
-                let parent = calendar.parentElement;
-                for (let i = 0; i < 10; i++) {
-                    if (parent) {
-                        // Fjern hvid baggrund
-                        parent.style.setProperty('background', 'linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%)', 'important');
-                        parent.style.setProperty('background-color', 'transparent', 'important');
-                        
-                        // Hvis det er popover, tilføj border og shadow
-                        if (parent.getAttribute('data-baseweb') === 'popover') {
-                            parent.style.setProperty('border', '1px solid #D4BFFF', 'important');
-                            parent.style.setProperty('border-radius', '12px', 'important');
-                            parent.style.setProperty('box-shadow', '0 8px 32px rgba(155, 126, 189, 0.2)', 'important');
-                            break;
-                        }
-                        parent = parent.parentElement;
+                // Style all parent elements up to popover
+                let el = calendar.parentElement;
+                while (el) {
+                    const currentStyle = el.getAttribute('style') || '';
+                    el.setAttribute('style', currentStyle + '; background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important; background-color: transparent !important;');
+                    
+                    if (el.getAttribute('data-baseweb') === 'popover') {
+                        el.setAttribute('style', el.getAttribute('style') + '; border: 1px solid #D4BFFF !important; border-radius: 12px !important;');
+                        break;
                     }
+                    el = el.parentElement;
                 }
-            });
-            
-            // Style datepicker containers
-            document.querySelectorAll('[data-baseweb="datepicker"]').forEach(dp => {
-                dp.style.setProperty('background', 'linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%)', 'important');
-                dp.style.setProperty('border', '1px solid #D4BFFF', 'important');
-                dp.style.setProperty('border-radius', '12px', 'important');
             });
         }
         
+        // Inject CSS dynamically for calendar
+        function injectCalendarCSS() {
+            if (!document.getElementById('calendar-unicorn-fix')) {
+                const style = document.createElement('style');
+                style.id = 'calendar-unicorn-fix';
+                style.textContent = `
+                    [data-baseweb="popover"] > div,
+                    [data-baseweb="popover"] > div > div,
+                    [data-baseweb="calendar"],
+                    div:has(> [data-baseweb="calendar"]) {
+                        background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
         setTimeout(fixCheckboxColors, 100);
-        setTimeout(fixCalendarPopover, 100);
+        setTimeout(fixCalendarPopover, 500);
+        setTimeout(injectCalendarCSS, 100);
         
         const observer = new MutationObserver(() => {
             fixCheckboxColors();
