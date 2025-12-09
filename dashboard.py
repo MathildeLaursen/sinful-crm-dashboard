@@ -700,19 +700,24 @@ if not current_df.empty:
         bargroupgap=0.1
     )
     
-    # Y-akser styling
+    # Y-akser styling - tilføj 15% ekstra plads i toppen for labels
+    max_open = chart_df['Open Rate'].max() if not chart_df.empty else 50
+    max_click = chart_df['Click Rate'].max() if not chart_df.empty else 5
+    
     fig.update_yaxes(
         title_text="Open Rate %",
         secondary_y=False,
         gridcolor='rgba(212,191,255,0.3)',
-        ticksuffix='%'
+        ticksuffix='%',
+        range=[0, max_open * 1.2]
     )
     fig.update_yaxes(
         title_text="Click Rate %",
         secondary_y=True,
         gridcolor='rgba(232,180,203,0.3)',
         ticksuffix='%',
-        showgrid=False
+        showgrid=False,
+        range=[0, max_click * 1.2]
     )
     fig.update_xaxes(
         gridcolor='rgba(212,191,255,0.2)',
