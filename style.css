@@ -384,97 +384,56 @@ div[data-testid="stCheckbox"] label span:first-child {
 }
 
 /* ===========================================
-   KALENDER STYLE (Looker / Unicorn Fix)
+   KALENDER
    =========================================== */
 
-/* 1. Input feltet (når kalender er lukket) */
-.stDateInput > div > div {
-    background-color: #FFFFFF !important;
-    border: 1px solid #D4BFFF !important;
-    border-radius: 8px !important;
-    box-shadow: none !important;
-    height: 42px !important; /* Matcher højde på de andre filtre */
-}
-
-/* 2. Selve Kalender boksen (Popup) */
 [data-baseweb="calendar"] {
-    background-color: #FAF5FF !important; /* Lys lilla baggrund */
+    background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
     border: 1px solid #D4BFFF !important;
     border-radius: 12px !important;
-    width: 320px !important;
-    padding: 15px !important;
-    box-shadow: 0 4px 20px rgba(155, 126, 189, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
 }
 
-/* 3. FIX AF HVID KASSE: Skjuler "Choose a date range" dropdown i bunden */
-[data-baseweb="calendar"] div[role="radiogroup"] {
-    display: none !important;
-}
-/* Hvis den ligger i en form control (Streamlit opdateringer varierer lidt) */
-[data-baseweb="calendar"] + div {
-    display: none !important;
-}
-
-/* 4. Sørg for at alt indhold har gennemsigtig baggrund */
-[data-baseweb="calendar"] > div {
-    background-color: transparent !important;
-}
-
-/* Header (Måned/År) */
-[data-baseweb="calendar"] [data-baseweb="typo-headingxsmall"] {
+/* Kalender header (måned/år) */
+[data-baseweb="calendar"] [data-baseweb="typo-headingxsmall"],
+[data-baseweb="calendar"] button {
     color: #4A3F55 !important;
-    font-weight: 600 !important;
-    font-size: 16px !important;
-    text-transform: capitalize !important;
 }
 
-/* Navigations pile */
-[data-baseweb="calendar"] button[aria-label="Previous month"],
-[data-baseweb="calendar"] button[aria-label="Next month"] {
-    color: #9B7EBD !important;
-}
-
-[data-baseweb="calendar"] button:hover {
-    background-color: rgba(155, 126, 189, 0.1) !important;
-}
-
-/* Dage (Man, Tir...) */
-[data-baseweb="calendar"] [role="columnheader"] {
-    color: #9B7EBD !important;
-    font-size: 12px !important;
-}
-
-/* Dato tal */
+/* Kalender dage */
 [data-baseweb="calendar"] [role="gridcell"] {
     color: #4A3F55 !important;
-    font-size: 14px !important;
-    background-color: transparent !important; /* Vigtigt */
 }
 
-/* 5. LOOKER STYLE: Runde cirkler i stedet for firkanter */
 [data-baseweb="calendar"] [role="gridcell"]:hover {
-    background-color: #E8B4CB !important;
-    border-radius: 50% !important;
-    color: white !important;
+    background: rgba(212, 191, 255, 0.3) !important;
 }
 
-/* Den VALGTE dato (Fjerner Rød farve) */
-[data-baseweb="calendar"] [aria-selected="true"] {
-    background-color: #9B7EBD !important; /* Lilla */
-    border-radius: 50% !important; /* Cirkel */
-    color: white !important;
-}
-
-/* Range (perioden imellem start og slut) */
-[data-baseweb="calendar"] [data-in-range="true"] {
-    background-color: rgba(155, 126, 189, 0.15) !important; /* Lys lilla */
-    color: #4A3F55 !important;
-}
-
-/* Start og slut dato i en range (skal stadig være cirkler) */
-[data-baseweb="calendar"] [aria-selected="true"][data-in-range="true"] {
+/* Valgt dato i kalender */
+[data-baseweb="calendar"] [aria-selected="true"],
+[data-baseweb="calendar"] button[aria-selected="true"],
+[data-baseweb="datepicker"] [aria-selected="true"] {
+    background: #9B7EBD !important;
     background-color: #9B7EBD !important;
-    border-radius: 50% !important;
+    color: white !important;
+}
+
+/* Dato range highlight */
+[data-baseweb="calendar"] [data-in-range="true"] {
+    background: rgba(155, 126, 189, 0.2) !important;
+    background-color: rgba(155, 126, 189, 0.2) !important;
+}
+
+/* Kalender navigation pile */
+[data-baseweb="calendar"] svg,
+[data-baseweb="datepicker"] svg {
+    fill: #9B7EBD !important;
+}
+
+/* Ugedage headers */
+[data-baseweb="calendar"] [role="columnheader"] {
+    color: #9B7EBD !important;
+    font-weight: 600 !important;
 }
 
 /* ===========================================
