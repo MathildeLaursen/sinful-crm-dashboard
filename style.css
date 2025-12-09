@@ -394,6 +394,14 @@ div[data-testid="stCheckbox"] label span:first-child {
     box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
 }
 
+/* Skjul "Choose a date range" dropdown i kalender */
+[data-baseweb="datepicker"] [data-baseweb="select"],
+[data-baseweb="datepicker"] > div > div:last-child,
+[data-baseweb="calendar"] + div,
+div[data-baseweb="popover"] [data-baseweb="select"] {
+    display: none !important;
+}
+
 /* Kalender header (måned/år) */
 [data-baseweb="calendar"] [data-baseweb="typo-headingxsmall"],
 [data-baseweb="calendar"] button {
