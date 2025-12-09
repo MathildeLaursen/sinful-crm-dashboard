@@ -463,47 +463,42 @@ st.markdown("""
             border-radius: 8px !important;
         }
 
-        /* --- NY KODE TIL AT ALIGNE DROPDOWN TEKST --- */
+        /* --- HARD RESET AF CHECKBOX ALIGNMENT --- */
         
-        /* 1. Sørg for at hele rækken er en flex-container der centrerer vertikalt */
-        [data-testid="stPopover"] label[data-baseweb="checkbox"] {
+        /* 1. Tvangs-centrering af hele checkbox rækken */
+        div[data-testid="stCheckbox"] label {
+            display: flex !important;
+            align-items: center !important; /* Dette tvinger elementerne til midten vertikalt */
+            min-height: 24px !important;
+            padding-top: 2px !important;
+            padding-bottom: 2px !important;
+        }
+
+        /* 2. Fjern marginer på tekst-containeren */
+        div[data-testid="stCheckbox"] div[data-testid="stMarkdownContainer"] {
             display: flex !important;
             align-items: center !important;
-            justify-content: flex-start !important;
-            gap: 12px !important;
-            padding-top: 4px !important;
-            padding-bottom: 4px !important;
-            height: auto !important;
-            min-height: 32px !important;
-        }
-
-        /* 2. Stabiliser selve boksen (firkanten) */
-        [data-testid="stPopover"] label[data-baseweb="checkbox"] > span:first-child {
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-            transform: translateY(0px) !important;
-        }
-
-        /* 3. Fjern al luft omkring tekst-containeren */
-        [data-testid="stPopover"] label[data-baseweb="checkbox"] > div:last-child {
-            padding: 0 !important;
-            margin: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-        }
-
-        /* 4. Prikken over i'et: Fjern margin på selve teksten */
-        [data-testid="stPopover"] label[data-baseweb="checkbox"] p {
-            margin-bottom: 0px !important;
-            padding: 0 !important;
             line-height: 1 !important;
+        }
+
+        /* 3. DEN VIGTIGSTE: Håndtering af selve teksten (p-tagget) */
+        div[data-testid="stCheckbox"] div[data-testid="stMarkdownContainer"] p {
+            margin-bottom: 0px !important; /* Fjerner luft under teksten */
+            margin-top: 0px !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
+            
+            /* MANUEL FINJUSTERING: */
             position: relative !important;
-            top: 1px !important; /* Finjustering nedad */
+            top: 2px !important; /* <--- ÆNDR DETTE TAL for at flytte teksten op/ned */
         }
         
-        /* 5. Juster søgefeltet i toppen af popoveren */
-        [data-testid="stPopover"] .stTextInput {
-            margin-bottom: 12px !important;
+        /* 4. Sikrer at selve boksen (firkanten) ikke flyver rundt */
+        div[data-testid="stCheckbox"] label span:first-child {
+            align-self: center !important;
+            margin-top: 0 !important;
+            position: relative !important;
+            top: 0px !important;
         }
 
     </style>
