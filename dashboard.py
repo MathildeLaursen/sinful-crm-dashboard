@@ -565,15 +565,15 @@ if not current_df.empty:
         hide_index=True,
         height=table_height,
         column_config={
-            "Date": st.column_config.DateColumn("Date", width=10),
+            "Date": st.column_config.DateColumn("Date", width=70),
             "ID_Campaign": st.column_config.TextColumn("Kampagne"),
             "Email_Message": st.column_config.TextColumn("Email"),
-            "Total_Received": st.column_config.NumberColumn("Emails Sendt", format="localized", width=10),
-            "Unique_Opens": st.column_config.NumberColumn("Unikke Opens", format="localized", width=10),
-            "Unique_Clicks": st.column_config.NumberColumn("Unikke Clicks", format="localized", width=10),
-            "Open Rate %": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width=10),
-            "Click Rate %": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width=10),
-            "Click Through Rate %": st.column_config.NumberColumn("CTR", format="%.1f%%", width=10),
+            "Total_Received": st.column_config.NumberColumn("Emails Sendt", format="localized", width=70),
+            "Unique_Opens": st.column_config.NumberColumn("Unikke Opens", format="localized", width=70),
+            "Unique_Clicks": st.column_config.NumberColumn("Unikke Clicks", format="localized", width=70),
+            "Open Rate %": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width=70),
+            "Click Rate %": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width=70),
+            "Click Through Rate %": st.column_config.NumberColumn("CTR", format="%.1f%%", width=70),
         }
     )
 else:
@@ -582,9 +582,6 @@ else:
 if st.button('Opdater Data'):
     st.cache_data.clear()
     st.rerun()
-
-
-
 
 
 
