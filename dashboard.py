@@ -532,7 +532,7 @@ show_metric(col6, "Click Through Rate", cur_ctr, is_percent=True)
 if not current_df.empty:
     display_df = current_df.copy()
     display_df['Date'] = display_df['Date'].dt.date
-    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Total_Received', 'Unique_Opens', 'Unique_Clicks', 'Open Rate %', 'Click Rate %', 'Click Through Rate %']
+    cols_to_show = ['Date', 'ID_Campaign', 'Email_Message', 'Total_Received']
     st.dataframe(
         display_df[cols_to_show].sort_values(by='Date', ascending=False),
         use_container_width=True,
@@ -542,11 +542,6 @@ if not current_df.empty:
             "ID_Campaign": st.column_config.TextColumn("Kampagne", width="medium"),
             "Email_Message": st.column_config.TextColumn("Email", width="large"),
             "Total_Received": st.column_config.NumberColumn("Emails Sendt", format="%d", width="small"),
-            "Unique_Opens": st.column_config.NumberColumn("Unikke Opens", format="%d", width="small"),
-            "Unique_Clicks": st.column_config.NumberColumn("Unikke Clicks", format="%d", width="small"),
-            "Open Rate %": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
-            "Click Rate %": st.column_config.NumberColumn("Click Rate", format="%.2f%%", width="small"),
-            "Click Through Rate %": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
         }
     )
 else:
