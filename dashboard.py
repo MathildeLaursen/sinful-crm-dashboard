@@ -628,6 +628,9 @@ if not current_df.empty:
     display_df = current_df.copy()
     display_df['Date'] = pd.to_datetime(display_df['Date']).dt.date
     
+    # Lidt luft over grafen
+    st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+    
     # --- GRAF: Open Rate & Click Rate over tid ---
     # Aggreger per dato for grafen
     chart_df = current_df.groupby('Date', as_index=False).agg({
@@ -640,7 +643,7 @@ if not current_df.empty:
     chart_df = chart_df.sort_values('Date')
     
     # Opret graf med to y-akser
-    fig = make_subplots(specs=[[{"secondary_y": True}]], subplot_titles=[""])
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
     
     # Open Rate (venstre y-akse)
     fig.add_trace(
@@ -672,7 +675,7 @@ if not current_df.empty:
     fig.update_layout(
         title=None,
         height=300,
-        margin=dict(l=20, r=20, t=20, b=20),
+        margin=dict(l=20, r=20, t=40, b=20),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -682,7 +685,8 @@ if not current_df.empty:
         ),
         plot_bgcolor='rgba(250,245,255,0.5)',
         paper_bgcolor='rgba(0,0,0,0)',
-        hovermode='x unified'
+        hovermode='x unified',
+        annotations=[]
     )
     
     # Y-akser styling
