@@ -1,0 +1,476 @@
+/* ===========================================
+   CLASSY UNICORN TEMA - Streamlit Dashboard
+   =========================================== */
+
+/* UNICORN FARVEPALETTE */
+:root {
+    --unicorn-pink: #E8B4CB;
+    --unicorn-purple: #9B7EBD;
+    --unicorn-lavender: #D4BFFF;
+    --unicorn-mint: #A8E6CF;
+    --unicorn-peach: #FFD3B6;
+    --unicorn-dark: #4A3F55;
+    --unicorn-light: #FAF5FF;
+    --primary-color: #9B7EBD !important;
+}
+
+/* ===========================================
+   HOVEDLAYOUT
+   =========================================== */
+
+/* Hovedbaggrund med subtil gradient */
+.stApp {
+    background: linear-gradient(135deg, #FAF5FF 0%, #F0E6FF 25%, #FFE6F0 50%, #E6F5FF 75%, #F0FFF4 100%) !important;
+}
+
+/* Fjern luft i toppen af hovedvinduet */
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 5rem;
+}
+
+/* Hovedtitel */
+h1 {
+    background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 50%, #A8E6CF 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+
+/* ===========================================
+   SIDEBAR
+   =========================================== */
+
+/* Gør sidebaren smallere med gradient */
+section[data-testid="stSidebar"] {
+    width: 120px !important;
+    min-width: 120px !important;
+    background: linear-gradient(180deg, #F5E6FF 0%, #FFE6F5 100%) !important;
+}
+
+/* KOMPAKT OG CENTRERET KNAP */
+[data-testid="stSidebar"] .stButton {
+    margin-bottom: 0px !important;
+    padding-bottom: 0px !important;
+}
+
+[data-testid="stSidebar"] button {
+    min-height: 0px !important;
+    height: auto !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    font-size: 14px !important;
+    background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+}
+
+[data-testid="stSidebar"] button:hover {
+    background: linear-gradient(135deg, #8A6DAC 0%, #D7A3BA 100%) !important;
+}
+
+/* ===========================================
+   INPUT FELTER
+   =========================================== */
+
+input:focus, input:active,
+[data-baseweb="input"] input:focus,
+[data-baseweb="select"] > div:focus,
+.stTextInput input:focus,
+.stSelectbox > div > div:focus,
+.stMultiSelect > div > div:focus,
+.stDateInput input:focus {
+    border-color: #9B7EBD !important;
+    box-shadow: 0 0 0 2px rgba(155, 126, 189, 0.2) !important;
+    outline: none !important;
+}
+
+[data-baseweb="input"],
+[data-baseweb="select"],
+.stTextInput > div > div,
+.stSelectbox > div > div,
+.stMultiSelect > div > div,
+.stDateInput > div > div {
+    border-color: #D4BFFF !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 8px !important;
+}
+
+/* Multiselect dropdown */
+.stMultiSelect [data-baseweb="select"] > div,
+.stMultiSelect [data-baseweb="select"] > div:focus,
+.stMultiSelect [data-baseweb="select"] > div:focus-within,
+.stMultiSelect [data-baseweb="select"] > div:active,
+[data-baseweb="popover"] {
+    border-color: #D4BFFF !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+div[data-baseweb="select"] > div {
+    border-color: #D4BFFF !important;
+}
+
+div[data-baseweb="select"] > div:focus-within {
+    border-color: #9B7EBD !important;
+    box-shadow: 0 0 0 2px rgba(155, 126, 189, 0.2) !important;
+}
+
+/* Dato input */
+.stDateInput input {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 8px !important;
+    color: #4A3F55 !important;
+}
+
+.stDateInput > div > div {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,245,255,0.95) 100%) !important;
+    border: 1px solid #D4BFFF !important;
+    border-radius: 10px !important;
+}
+
+/* ===========================================
+   POPOVER / DROPDOWN
+   =========================================== */
+
+/* Popover knap styling */
+button[data-testid="stPopoverButton"] {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,245,255,0.95) 100%) !important;
+    border: 1px solid #D4BFFF !important;
+    border-radius: 10px !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.3s ease !important;
+}
+
+button[data-testid="stPopoverButton"]:hover {
+    border-color: #9B7EBD !important;
+    background: linear-gradient(135deg, rgba(212,191,255,0.2) 0%, rgba(232,180,203,0.2) 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(155, 126, 189, 0.15) !important;
+}
+
+button[data-testid="stPopoverButton"] p {
+    text-align: left !important;
+    margin: 0 !important;
+    color: #4A3F55 !important;
+    font-weight: 500 !important;
+}
+
+/* Popover dropdown indhold */
+[data-testid="stPopover"] {
+    background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
+    border: 1px solid #D4BFFF !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
+}
+
+/* Ensartet spacing mellem checkboxes i popover */
+[data-testid="stPopover"] .stElementContainer {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+[data-testid="stPopover"] .stCheckbox {
+    margin-bottom: 0 !important;
+}
+
+[data-testid="stPopover"] .row-widget.stCheckbox {
+    margin-bottom: 0.2rem !important;
+}
+
+/* Små knapper i popover */
+[data-testid="stPopover"] .stButton > button {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 13px !important;
+    min-height: unset !important;
+}
+
+/* Divider i popover */
+[data-testid="stPopover"] hr {
+    border-color: #D4BFFF !important;
+    margin: 0.5rem 0 !important;
+}
+
+/* Søgefelt i popover */
+[data-testid="stPopover"] .stTextInput input {
+    background: rgba(255,255,255,0.9) !important;
+    border-color: #D4BFFF !important;
+    border-radius: 8px !important;
+}
+
+[data-testid="stPopover"] .stTextInput input:focus {
+    border-color: #9B7EBD !important;
+    box-shadow: 0 0 0 2px rgba(155, 126, 189, 0.2) !important;
+}
+
+/* ===========================================
+   CHECKBOXES
+   =========================================== */
+
+/* Checkboxes i unicorn stil */
+.stCheckbox label {
+    padding: 0.2rem 0.3rem !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+.stCheckbox label:hover {
+    background: rgba(232, 180, 203, 0.1) !important;
+}
+
+/* Tekst ved siden af checkbox - vertikal centrering */
+.stCheckbox label > div:last-child,
+label[data-baseweb="checkbox"] > div.st-dy {
+    display: flex !important;
+    align-items: center !important;
+    padding-top: 0 !important;
+}
+
+/* Checkbox label PRÆCIS alignment */
+label[data-baseweb="checkbox"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+/* Checkbox boks størrelse og alignment */
+label[data-baseweb="checkbox"] > span:first-child {
+    flex-shrink: 0 !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+}
+
+/* FJERN TEKST HIGHLIGHT */
+.stCheckbox label span,
+.stCheckbox label p,
+.stCheckbox span,
+.stCheckbox p,
+.stCheckbox [data-testid="stMarkdownContainer"],
+.stCheckbox [data-testid="stMarkdownContainer"] p,
+.stCheckbox [data-testid="stMarkdownContainer"] span,
+[data-testid="stPopover"] .stCheckbox span,
+[data-testid="stPopover"] .stCheckbox p,
+[data-testid="stPopover"] span,
+[data-testid="stPopover"] p {
+    background: transparent !important;
+    background-color: transparent !important;
+    -webkit-box-decoration-break: clone !important;
+    box-decoration-break: clone !important;
+}
+
+/* CHECKBOX BOKS - target span elementet direkte */
+.stCheckbox label[data-baseweb="checkbox"] > span:first-child,
+label[data-baseweb="checkbox"] > span:first-child {
+    border-color: #D4BFFF !important;
+    background-color: white !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* CHECKED STATE - lilla baggrund */
+.stCheckbox label[data-baseweb="checkbox"] > span.st-cs,
+label[data-baseweb="checkbox"] > span.st-cs {
+    background-color: #9B7EBD !important;
+    border-color: #9B7EBD !important;
+}
+
+/* UNCHECKED STATE - hvid med lilla border */
+.stCheckbox label[data-baseweb="checkbox"] > span.st-io,
+label[data-baseweb="checkbox"] > span.st-io {
+    background-color: white !important;
+    border-color: #D4BFFF !important;
+}
+
+/* FLUEBEN/CHECKMARK - brug ::after pseudo-element */
+.stCheckbox label[data-baseweb="checkbox"] > span.st-cs::after,
+label[data-baseweb="checkbox"] > span.st-cs::after {
+    content: "✓" !important;
+    color: white !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+/* Checkboxes */
+.stCheckbox label span[data-checked="true"] {
+    background-color: #9B7EBD !important;
+    border-color: #9B7EBD !important;
+}
+
+/* --- HARD RESET AF CHECKBOX ALIGNMENT --- */
+
+/* 1. Tvangs-centrering af hele checkbox rækken */
+div[data-testid="stCheckbox"] label {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 24px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+/* 2. Fjern marginer på tekst-containeren */
+div[data-testid="stCheckbox"] div[data-testid="stMarkdownContainer"] {
+    display: flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+}
+
+/* 3. DEN VIGTIGSTE: Håndtering af selve teksten (p-tagget) */
+div[data-testid="stCheckbox"] div[data-testid="stMarkdownContainer"] p {
+    margin-bottom: 0px !important;
+    margin-top: 0px !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+    position: relative !important;
+    top: 2px !important; /* Finjustering nedad */
+}
+
+/* 4. Sikrer at selve boksen (firkanten) ikke flyver rundt */
+div[data-testid="stCheckbox"] label span:first-child {
+    align-self: center !important;
+    margin-top: 0 !important;
+    position: relative !important;
+    top: 0px !important;
+}
+
+/* ===========================================
+   TABEL
+   =========================================== */
+
+[data-testid="stDataFrame"] {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 20px rgba(155, 126, 189, 0.15) !important;
+}
+
+[data-testid="stDataFrame"] td {
+    text-align: left !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+    border-bottom: 1px solid rgba(212, 191, 255, 0.3) !important;
+}
+
+[data-testid="stDataFrame"] th {
+    text-align: left !important;
+    background: linear-gradient(135deg, #E8D5FF 0%, #FFD5E8 100%) !important;
+    color: #4A3F55 !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid #D4BFFF !important;
+}
+
+[data-testid="stDataFrame"] tr:hover td {
+    background: rgba(212, 191, 255, 0.15) !important;
+}
+
+/* ===========================================
+   KALENDER
+   =========================================== */
+
+[data-baseweb="calendar"] {
+    background: linear-gradient(180deg, #FAF5FF 0%, #FFF5FA 100%) !important;
+    border: 1px solid #D4BFFF !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(155, 126, 189, 0.2) !important;
+}
+
+/* Kalender header (måned/år) */
+[data-baseweb="calendar"] [data-baseweb="typo-headingxsmall"],
+[data-baseweb="calendar"] button {
+    color: #4A3F55 !important;
+}
+
+/* Kalender dage */
+[data-baseweb="calendar"] [role="gridcell"] {
+    color: #4A3F55 !important;
+}
+
+[data-baseweb="calendar"] [role="gridcell"]:hover {
+    background: rgba(212, 191, 255, 0.3) !important;
+}
+
+/* Valgt dato i kalender */
+[data-baseweb="calendar"] [aria-selected="true"],
+[data-baseweb="calendar"] button[aria-selected="true"],
+[data-baseweb="datepicker"] [aria-selected="true"] {
+    background: #9B7EBD !important;
+    background-color: #9B7EBD !important;
+    color: white !important;
+}
+
+/* Dato range highlight */
+[data-baseweb="calendar"] [data-in-range="true"] {
+    background: rgba(155, 126, 189, 0.2) !important;
+    background-color: rgba(155, 126, 189, 0.2) !important;
+}
+
+/* Kalender navigation pile */
+[data-baseweb="calendar"] svg,
+[data-baseweb="datepicker"] svg {
+    fill: #9B7EBD !important;
+}
+
+/* Ugedage headers */
+[data-baseweb="calendar"] [role="columnheader"] {
+    color: #9B7EBD !important;
+    font-weight: 600 !important;
+}
+
+/* ===========================================
+   METRIC CARDS
+   =========================================== */
+
+[data-testid="stMetric"] {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 12px !important;
+    padding: 1rem !important;
+    border: 1px solid rgba(155, 126, 189, 0.2) !important;
+    box-shadow: 0 2px 8px rgba(155, 126, 189, 0.1) !important;
+}
+
+[data-testid="stMetricLabel"] {
+    color: #9B7EBD !important;
+}
+
+[data-testid="stMetricValue"] {
+    color: #4A3F55 !important;
+}
+
+/* ===========================================
+   KNAPPER
+   =========================================== */
+
+.stButton > button {
+    background: linear-gradient(135deg, #9B7EBD 0%, #E8B4CB 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button:hover {
+    background: linear-gradient(135deg, #8A6DAC 0%, #D7A3BA 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(155, 126, 189, 0.3) !important;
+}
+
