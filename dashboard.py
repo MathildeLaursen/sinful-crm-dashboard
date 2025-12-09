@@ -77,6 +77,31 @@ st.markdown("""
             border-color: #ccc !important;
         }
 
+        /* 5. Kompakt spacing i filter boksen (expander) */
+        [data-testid="stExpander"] .stVerticalBlock {
+            gap: 0.5rem !important;
+        }
+        
+        [data-testid="stExpander"] .stHorizontalBlock {
+            gap: 1rem !important;
+        }
+        
+        [data-testid="stExpander"] .stSelectbox,
+        [data-testid="stExpander"] .stMultiSelect,
+        [data-testid="stExpander"] .stDateInput {
+            margin-bottom: 0 !important;
+        }
+        
+        /* Reducer luft omkring labels i expander */
+        [data-testid="stExpander"] label {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        /* Kompakt divider */
+        [data-testid="stExpander"] hr {
+            margin: 0.5rem 0 !important;
+        }
+
     </style>
 """, unsafe_allow_html=True)
 
@@ -202,7 +227,7 @@ except Exception as e:
 # --- TOP-BAR: FILTRE & DATO (COLLAPSIBLE) ---
 
 # Vi bruger st.expander til at lave en boks der kan foldes ud/ind
-with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=True):
+with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=TRUE):
     
     # Række 1: Datovælger
     date_options = [
@@ -789,7 +814,6 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
-
 
 
 
