@@ -248,7 +248,7 @@ except Exception as e:
 # --- TOP-BAR: FILTRE & DATO (COLLAPSIBLE) ---
 
 # Vi bruger st.expander til at lave en boks der kan foldes ud/ind
-with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=True):
+with st.expander("Filtrér)", expanded=True):
     
     # Række 1: Datovælger
     date_options = [
@@ -312,23 +312,27 @@ with st.expander("🔍 Tilpas Dashboard (Dato & Filtre)", expanded=True):
 
     # Række 2: Filtre (Vandret layout) - KASKADERENDE
     
-    # Kampagne filter (viser alle)
-    all_id_campaigns = sorted(df['ID_Campaign'].astype(str).unique())
+    # Filtrer først efter dato - så dropdowns kun viser data fra valgt periode
+    date_mask = (df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))
+    df_date_filtered = df[date_mask]
+    
+    # Kampagne filter (kun kampagner i valgt periode)
+    all_id_campaigns = sorted(df_date_filtered['ID_Campaign'].astype(str).unique())
     
     # 3 kolonner til filtrene
     f1, f2, f3 = st.columns(3)
     
     sel_id_campaigns = f1.multiselect("Kampagne", all_id_campaigns, default=[], placeholder="Kampagne", label_visibility="collapsed")
     
-    # Email filter (afhængig af valgt kampagne)
+    # Email filter (afhængig af valgt kampagne OG dato)
     if sel_id_campaigns:
-        filtered_for_email = df[df['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
+        filtered_for_email = df_date_filtered[df_date_filtered['ID_Campaign'].astype(str).isin(sel_id_campaigns)]
     else:
-        filtered_for_email = df
+        filtered_for_email = df_date_filtered
     all_email_messages = sorted(filtered_for_email['Email_Message'].astype(str).unique())
     sel_email_messages = f2.multiselect("Email", all_email_messages, default=[], placeholder="Email", label_visibility="collapsed")
     
-    # A/B filter (afhængig af valgt email, eller kampagne hvis ingen email valgt)
+    # A/B filter (afhængig af valgt email OG dato)
     if sel_email_messages:
         filtered_for_variant = filtered_for_email[filtered_for_email['Email_Message'].astype(str).isin(sel_email_messages)]
     else:
