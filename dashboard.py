@@ -55,7 +55,7 @@ st.markdown("""
             font-size: 14px !important;
         }
 
-        /* 4. Fjern rød ramme fra input felter */
+        /* 4. Fjern rød ramme fra ALLE input felter */
         input:focus, input:active,
         [data-baseweb="input"] input:focus,
         [data-baseweb="select"] > div:focus,
@@ -75,6 +75,27 @@ st.markdown("""
         .stMultiSelect > div > div,
         .stDateInput > div > div {
             border-color: #ccc !important;
+        }
+        
+        /* Specifik for multiselect dropdown */
+        .stMultiSelect [data-baseweb="select"] > div,
+        .stMultiSelect [data-baseweb="select"] > div:focus,
+        .stMultiSelect [data-baseweb="select"] > div:focus-within,
+        .stMultiSelect [data-baseweb="select"] > div:active,
+        [data-baseweb="popover"] {
+            border-color: #ccc !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        
+        /* Target selectbox og multiselect wrapper */
+        div[data-baseweb="select"] > div {
+            border-color: #ccc !important;
+        }
+        
+        div[data-baseweb="select"] > div:focus-within {
+            border-color: #0068c9 !important;
+            box-shadow: none !important;
         }
 
         /* 5. Kompakt spacing i filter boksen (expander) */
@@ -413,4 +434,3 @@ else:
 if st.button('🔄 Opdater Data'):
     st.cache_data.clear()
     st.rerun()
-
