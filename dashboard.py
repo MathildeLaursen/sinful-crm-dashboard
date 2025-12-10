@@ -114,9 +114,12 @@ def load_google_sheet_data():
     """Henter data fra Google Sheet UDEN cache"""
     conn = st.connection("gsheets", type=GSheetsConnection)
     try:
-        # Tving refresh ved at bruge ttl=0 og ingen Streamlit cache
-        raw_df = conn.read(skiprows=2, ttl=0)
-    except Exception:
+        # Tving refresh: ttl=0, worksheet=0 (første sheet)
+        raw_df = conn.read(worksheet=0, ttl=0)
+        # Skip de første 2 rækker (headers)
+        raw_df = raw_df.iloc[2:].reset_index(drop=True)
+    except Exception as e:
+        st.error(f"Fejl ved indlæsning: {e}")
         return pd.DataFrame()
     
     # Landekonfiguration: (land, startkolonne-index) - Alle lande
