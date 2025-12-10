@@ -1,12 +1,13 @@
 
 import streamlit as st
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
 import extra_streamlit_components as stx
 import datetime
 import time
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import gspread
+from google.oauth2.service_account import Credentials
 
 # --- SIDE OPSÆTNING ---
 st.set_page_config(
@@ -109,21 +110,42 @@ def check_password():
 # Titel
 st.title("Newsletter Dashboard")
 
-# --- DATA INDLÆSNING (v2 - force refresh) ---
+# --- DATA INDLÆSNING (v3 - gspread direkte) ---
 def load_google_sheet_data():
-    """Henter data fra Google Sheet - INGEN cache"""
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    """Henter data fra Google Sheet via gspread - INGEN cache"""
     try:
-        # Force complete refresh med usecols for at undgå cache
-        raw_df = conn.read(
-            worksheet=0, 
-            ttl=0,
-            usecols=list(range(80))  # Læs de første 80 kolonner eksplicit
-        )
-        # Skip de første 2 rækker (headers)
-        raw_df = raw_df.iloc[2:].reset_index(drop=True)
+        # Hent credentials fra Streamlit secrets
+        credentials_dict = st.secrets["gcp_service_account"]
+        
+        # Opret credentials
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets.readonly",
+            "https://www.googleapis.com/auth/drive.readonly"
+        ]
+        credentials = Credentials.from_service_account_info(credentials_dict, scopes=scopes)
+        
+        # Opret gspread client
+        gc = gspread.authorize(credentials)
+        
+        # Åbn spreadsheet via URL fra secrets
+        spreadsheet_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
+        spreadsheet = gc.open_by_url(spreadsheet_url)
+        
+        # Hent første worksheet
+        worksheet = spreadsheet.sheet1
+        
+        # Hent ALLE værdier (ingen cache!)
+        all_values = worksheet.get_all_values()
+        
+        # Konverter til DataFrame og skip headers (første 2 rækker)
+        if len(all_values) > 2:
+            data = all_values[2:]    # Data starter fra række 3 (skip 2 header-rækker)
+            raw_df = pd.DataFrame(data)  # Brug numeriske kolonneindex
+        else:
+            return pd.DataFrame()
+            
     except Exception as e:
-        st.error(f"Fejl ved indlæsning: {e}")
+        st.error(f"Fejl ved indlæsning fra Google Sheets: {e}")
         return pd.DataFrame()
     
     # Landekonfiguration: (land, startkolonne-index) - Alle lande
