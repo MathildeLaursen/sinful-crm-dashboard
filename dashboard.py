@@ -268,8 +268,8 @@ preset_options = [
     "Sidste kvartal",
 ]
 
-# Layout: Preset, Kalender, Land, Kampagne, Email, Ignorer A/B
-col_preset, col_dato, col_land, col_kamp, col_email, col_ab = st.columns([1.2, 1.3, 0.8, 0.9, 0.8, 0.9])
+# Layout: Preset, Kalender, Land, Kampagne, Email, Ignorer A/B (ens bredde på filter-knapper)
+col_preset, col_dato, col_land, col_kamp, col_email, col_ab = st.columns([1.0, 1.2, 0.8, 0.8, 0.8, 0.8])
 
 with col_preset:
     preset_index = preset_options.index(st.session_state.date_preset) if st.session_state.date_preset in preset_options else 1
@@ -480,10 +480,9 @@ with col_email:
             st.session_state.cb_reset_email += 1
             st.rerun()
 
-# Ignorer A/B checkbox
+# Ignorer A/B checkbox - wrapped i container for bedre alignment
 with col_ab:
-    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
-    ignore_ab = st.checkbox("Ignorer A/B", value=st.session_state.ignore_ab, key="ignore_ab_cb", help="Kombinér A/B test varianter")
+    ignore_ab = st.checkbox("Ignorer A/B", value=st.session_state.ignore_ab, key="ignore_ab_cb")
     if ignore_ab != st.session_state.ignore_ab:
         st.session_state.ignore_ab = ignore_ab
         st.session_state.selected_emails = None  # Reset email filter
