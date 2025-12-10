@@ -292,53 +292,53 @@ label[data-baseweb="checkbox"] svg path {
    FILTER ROW - ENS BREDDE OG ALIGNMENT
    =========================================== */
 
-/* Sørg for at alle kolonner i filter-rækken har ens alignment */
-[data-testid="stHorizontalBlock"]:first-of-type {
+/* Target alle horizontal blocks og align items til bunden */
+[data-testid="stHorizontalBlock"] {
     align-items: flex-end !important;
 }
 
-/* Alle elementer i filter-rækken skal have samme højde */
-[data-testid="stHorizontalBlock"]:first-of-type > div {
+/* Alle kolonner i horizontal blocks */
+[data-testid="stHorizontalBlock"] > [data-testid="column"] {
     display: flex !important;
-    align-items: flex-end !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
 }
 
 /* ===========================================
-   IGNORER A/B CHECKBOX - MATCHER POPOVER BUTTONS
+   CHECKBOXES I POPOVER - INGEN EKSTRA STYLING
    =========================================== */
 
-/* Checkbox wrapper alignment */
-.checkbox-align-wrapper {
+/* Checkboxes i popover skal være simple - INGEN ramme/baggrund */
+[data-testid="stPopover"] div[data-testid="stCheckbox"],
+[data-testid="stPopover"] div[data-testid="stCheckbox"] > label[data-baseweb="checkbox"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-height: auto !important;
+    padding: 0.2rem 0 !important;
+}
+
+/* ===========================================
+   IGNORER A/B CHECKBOX - ALIGNED MED FILTER ROW
+   (Kun checkboxes UDENFOR popover)
+   =========================================== */
+
+/* Target kun checkboxes der IKKE er i en popover */
+[data-testid="stHorizontalBlock"] > [data-testid="column"] > div > div[data-testid="stCheckbox"] {
+    margin: 0 !important;
+    padding: 0 !important;
     display: flex !important;
     align-items: center !important;
-    height: 42px !important;
-}
-
-/* Style checkboxen som en knap der matcher popover buttons */
-div[data-testid="stCheckbox"] > label[data-baseweb="checkbox"] {
-    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,245,255,0.95) 100%) !important;
-    border: 1px solid #D4BFFF !important;
-    border-radius: 10px !important;
-    padding: 0.5rem 1rem !important;
     min-height: 42px !important;
-    height: 42px !important;
+}
+
+[data-testid="stHorizontalBlock"] > [data-testid="column"] > div > div[data-testid="stCheckbox"] > label[data-baseweb="checkbox"] {
+    margin: 0 !important;
+    padding: 0.3rem 0.5rem !important;
+    min-height: 42px !important;
+    display: flex !important;
+    align-items: center !important;
     white-space: nowrap !important;
-    transition: all 0.3s ease !important;
-    width: 100% !important;
-    justify-content: center !important;
-    box-sizing: border-box !important;
-}
-
-div[data-testid="stCheckbox"] > label[data-baseweb="checkbox"]:hover {
-    border-color: #9B7EBD !important;
-    background: linear-gradient(135deg, rgba(212,191,255,0.2) 0%, rgba(232,180,203,0.2) 100%) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(155, 126, 189, 0.15) !important;
-}
-
-/* Fjern margin under checkbox */
-div[data-testid="stCheckbox"] {
-    margin-bottom: 0 !important;
 }
 
 /* ===========================================
