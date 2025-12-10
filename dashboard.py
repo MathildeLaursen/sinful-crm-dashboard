@@ -110,11 +110,12 @@ def check_password():
 st.title("Newsletter Dashboard")
 
 # --- DATA INDLÆSNING ---
-@st.cache_data(ttl=300)  # 5 minutter cache
 def load_google_sheet_data():
+    """Henter data fra Google Sheet UDEN cache"""
     conn = st.connection("gsheets", type=GSheetsConnection)
     try:
-        raw_df = conn.read(skiprows=2, ttl=0)  # Skip header-rækker, ingen cache på sheet
+        # Tving refresh ved at bruge ttl=0 og ingen Streamlit cache
+        raw_df = conn.read(skiprows=2, ttl=0)
     except Exception:
         return pd.DataFrame()
     
