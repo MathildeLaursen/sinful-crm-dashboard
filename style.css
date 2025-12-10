@@ -289,14 +289,29 @@ label[data-baseweb="checkbox"] svg path {
 }
 
 /* ===========================================
+   FILTER ROW - ENS BREDDE OG ALIGNMENT
+   =========================================== */
+
+/* Sørg for at alle kolonner i filter-rækken har ens alignment */
+[data-testid="stHorizontalBlock"]:first-of-type {
+    align-items: flex-end !important;
+}
+
+/* Alle elementer i filter-rækken skal have samme højde */
+[data-testid="stHorizontalBlock"]:first-of-type > div {
+    display: flex !important;
+    align-items: flex-end !important;
+}
+
+/* ===========================================
    IGNORER A/B CHECKBOX - MATCHER POPOVER BUTTONS
    =========================================== */
 
-/* Container alignment */
-div[data-testid="stCheckbox"] {
+/* Checkbox wrapper alignment */
+.checkbox-align-wrapper {
     display: flex !important;
     align-items: center !important;
-    height: 100% !important;
+    height: 42px !important;
 }
 
 /* Style checkboxen som en knap der matcher popover buttons */
@@ -306,10 +321,12 @@ div[data-testid="stCheckbox"] > label[data-baseweb="checkbox"] {
     border-radius: 10px !important;
     padding: 0.5rem 1rem !important;
     min-height: 42px !important;
+    height: 42px !important;
     white-space: nowrap !important;
     transition: all 0.3s ease !important;
     width: 100% !important;
     justify-content: center !important;
+    box-sizing: border-box !important;
 }
 
 div[data-testid="stCheckbox"] > label[data-baseweb="checkbox"]:hover {
@@ -317,6 +334,11 @@ div[data-testid="stCheckbox"] > label[data-baseweb="checkbox"]:hover {
     background: linear-gradient(135deg, rgba(212,191,255,0.2) 0%, rgba(232,180,203,0.2) 100%) !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 4px 12px rgba(155, 126, 189, 0.15) !important;
+}
+
+/* Fjern margin under checkbox */
+div[data-testid="stCheckbox"] {
+    margin-bottom: 0 !important;
 }
 
 /* ===========================================
