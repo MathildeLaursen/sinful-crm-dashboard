@@ -110,11 +110,11 @@ def check_password():
 st.title("Newsletter Dashboard")
 
 # --- DATA INDLÆSNING ---
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=300)  # 5 minutter cache
 def load_google_sheet_data():
     conn = st.connection("gsheets", type=GSheetsConnection)
     try:
-        raw_df = conn.read(skiprows=2)  # Skip begge header-rækker
+        raw_df = conn.read(skiprows=2, ttl=0)  # Skip header-rækker, ingen cache på sheet
     except Exception:
         return pd.DataFrame()
     
