@@ -430,10 +430,17 @@ def render_flows_tab():
     # Tabel
     table_df = display_df[['Year_Month', 'Flow_Trigger', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
     
-    # Sorter efter flow nummer
+    # Sorter: nyeste måned først, derefter laveste flow nummer
+    def month_to_sortable(m):
+        try:
+            parts = m.split('-')
+            return int(parts[0]) * 100 + int(parts[1])  # 2025-12 -> 202512
+        except:
+            return 0
+    table_df['_month_num'] = table_df['Year_Month'].apply(month_to_sortable)
     table_df['_flow_num'] = table_df['Flow_Trigger'].apply(lambda f: int(re.search(r'Flow\s*(\d+)', f).group(1)) if re.search(r'Flow\s*(\d+)', f) else 999)
-    table_df = table_df.sort_values(['Year_Month', '_flow_num'], ascending=[False, True])
-    table_df = table_df.drop(columns=['_flow_num'])
+    table_df = table_df.sort_values(['_month_num', '_flow_num'], ascending=[False, True])
+    table_df = table_df.drop(columns=['_month_num', '_flow_num'])
     table_height = min((len(table_df) + 1) * 35 + 3, 600)
     
     st.dataframe(
