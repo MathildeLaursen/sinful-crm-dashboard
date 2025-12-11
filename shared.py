@@ -5,9 +5,7 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Spreadsheet IDs
-NEWSLETTER_SHEET_URL = None  # Hentes fra secrets
-SUBSCRIBERS_SHEET_ID = "1yOarXZEWf1ZIhqbEBzAbhQMEhowdKzPGvGC5jfERNjU"
+# Spreadsheet URLs hentes fra secrets
 
 def get_gspread_client():
     """Returnerer en autoriseret gspread client"""
