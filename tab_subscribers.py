@@ -12,6 +12,12 @@ def load_subscribers_data():
     """Henter Subscribers data fra Google Sheet"""
     try:
         gc = get_gspread_client()
+        
+        # Tjek om subscribers_spreadsheet er konfigureret
+        if "subscribers_spreadsheet" not in st.secrets["connections"]["gsheets"]:
+            st.error("⚠️ Mangler 'subscribers_spreadsheet' i secrets. Tilføj: subscribers_spreadsheet = 'URL'")
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        
         subscribers_url = st.secrets["connections"]["gsheets"]["subscribers_spreadsheet"]
         spreadsheet = gc.open_by_url(subscribers_url)
         
