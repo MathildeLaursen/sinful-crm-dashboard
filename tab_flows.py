@@ -4,6 +4,7 @@ Aggregeret på flow niveau (Flow - Trigger)
 """
 import streamlit as st
 import pandas as pd
+import re
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from shared import get_gspread_client, show_metric
@@ -27,21 +28,16 @@ def load_flows_data():
             return pd.DataFrame()
         
         flows_url = st.secrets["connections"]["gsheets"]["flows_spreadsheet"]
-        st.info(f"🔧 DEBUG load: Åbner spreadsheet...")
         spreadsheet = gc.open_by_url(flows_url)
         
         worksheet = spreadsheet.worksheet("All_Flow")
-        st.info(f"🔧 DEBUG load: Henter data fra sheet: {worksheet.title}")
         all_values = worksheet.get_all_values()
-        st.info(f"🔧 DEBUG load: Fik {len(all_values)} rækker fra sheet")
         
         if len(all_values) > 2:
             # Skip header rows (row 1-2 contains headers)
             data = all_values[2:]
             raw_df = pd.DataFrame(data)
-            st.info(f"🔧 DEBUG load: raw_df shape = {raw_df.shape}, kolonner = {len(raw_df.columns)}")
         else:
-            st.warning(f"🔧 DEBUG load: Kun {len(all_values)} rækker - for få til at parse")
             return pd.DataFrame()
             
     except Exception as e:
@@ -134,9 +130,16 @@ def load_flows_data():
 
 
 def get_available_months(df):
-    """Returner liste af tilgængelige måneder sorteret faldende"""
+    """Returner liste af tilgængelige måneder sorteret faldende (nyeste først)"""
     months = df['Year_Month'].unique()
-    return sorted(months, reverse=True)
+    # Sorter som datoer, ikke tekst (2025-12 skal komme før 2025-9)
+    def month_sort_key(m):
+        try:
+            parts = m.split('-')
+            return (int(parts[0]), int(parts[1]))
+        except:
+            return (0, 0)
+    return sorted(months, key=month_sort_key, reverse=True)
 
 
 def aggregate_to_flow_level(df):
@@ -162,18 +165,10 @@ def aggregate_to_flow_level(df):
 def render_flows_tab():
     """Render Flows tab indhold"""
     
-    # DEBUG: Vis secrets status
-    try:
-        flows_url = st.secrets["connections"]["gsheets"].get("flows_spreadsheet", "IKKE SAT")
-        st.info(f"🔧 DEBUG: flows_spreadsheet = {flows_url[:50]}..." if len(flows_url) > 50 else f"🔧 DEBUG: flows_spreadsheet = {flows_url}")
-    except Exception as e:
-        st.error(f"🔧 DEBUG: Kan ikke læse secrets: {e}")
-    
     # Load data
     try:
         with st.spinner('Henter flow data...'):
             df = load_flows_data()
-        st.info(f"🔧 DEBUG: DataFrame shape = {df.shape if not df.empty else 'TOM'}")
         if df.empty:
             st.error("Kunne ikke hente flow data. Tjek Google Sheets konfiguration.")
             return
@@ -244,7 +239,12 @@ def render_flows_tab():
 
     # Filter options
     all_countries = sorted(flow_df['Country'].unique())
-    all_flows = sorted(flow_df['Flow_Trigger'].unique())
+    
+    # Sorter flows efter flow nummer (Flow 1, Flow 2, ...)
+    def flow_sort_key(f):
+        match = re.search(r'Flow\s*(\d+)', f)
+        return int(match.group(1)) if match else 999
+    all_flows = sorted(flow_df['Flow_Trigger'].unique(), key=flow_sort_key)
 
     # Initialize selections
     if st.session_state.fl_selected_countries is None:
@@ -379,7 +379,12 @@ def render_flows_tab():
     })
     chart_df['Open_Rate'] = (chart_df['Unique_Opens'] / chart_df['Received_Email'] * 100).round(1)
     chart_df['Click_Rate'] = (chart_df['Unique_Clicks'] / chart_df['Received_Email'] * 100).round(2)
-    chart_df = chart_df.sort_values('Received_Email', ascending=False)
+    
+    # Sorter efter flow nummer (Flow 1, Flow 2, ...)
+    def chart_flow_sort_key(f):
+        match = re.search(r'Flow\s*(\d+)', f)
+        return int(match.group(1)) if match else 999
+    chart_df = chart_df.iloc[chart_df['Flow_Trigger'].map(chart_flow_sort_key).argsort()]
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     
@@ -424,7 +429,11 @@ def render_flows_tab():
 
     # Tabel
     table_df = display_df[['Year_Month', 'Flow_Trigger', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
-    table_df = table_df.sort_values(['Year_Month', 'Flow_Trigger'], ascending=[False, True])
+    
+    # Sorter efter flow nummer
+    table_df['_flow_num'] = table_df['Flow_Trigger'].apply(lambda f: int(re.search(r'Flow\s*(\d+)', f).group(1)) if re.search(r'Flow\s*(\d+)', f) else 999)
+    table_df = table_df.sort_values(['Year_Month', '_flow_num'], ascending=[False, True])
+    table_df = table_df.drop(columns=['_flow_num'])
     table_height = min((len(table_df) + 1) * 35 + 3, 600)
     
     st.dataframe(
