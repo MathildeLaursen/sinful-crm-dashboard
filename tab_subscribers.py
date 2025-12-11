@@ -7,14 +7,13 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from shared import get_gspread_client, show_metric, format_number
 
-SUBSCRIBERS_SHEET_ID = "1yOarXZEWf1ZIhqbEBzAbhQMEhowdKzPGvGC5jfERNjU"
-
 
 def load_subscribers_data():
     """Henter Subscribers data fra Google Sheet"""
     try:
         gc = get_gspread_client()
-        spreadsheet = gc.open_by_key(SUBSCRIBERS_SHEET_ID)
+        subscribers_url = st.secrets["connections"]["gsheets"]["subscribers_spreadsheet"]
+        spreadsheet = gc.open_by_url(subscribers_url)
         
         # Hent worksheets
         full_subs = spreadsheet.worksheet("Full_Subscribers").get_all_values()
