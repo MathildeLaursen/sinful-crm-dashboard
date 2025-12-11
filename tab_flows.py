@@ -17,6 +17,7 @@ def col_letter_to_index(col_str):
     return result - 1
 
 
+@st.cache_data(ttl=300, show_spinner=False)  # Cache i 5 minutter
 def load_flows_data():
     """Henter Flows data fra Google Sheet"""
     try:
