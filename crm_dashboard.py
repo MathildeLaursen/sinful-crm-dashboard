@@ -10,22 +10,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# DEBUG
-st.write("DEBUG: App starter...")
-
 # Nu kan vi importere resten
 import extra_streamlit_components as stx
 import datetime
 import time
 import os
-
-st.write("DEBUG: Imports done")
-
 from tab_newsletters import render_newsletters_tab
 from tab_subscribers import render_subscribers_tab
 from tab_flows import render_flows_tab
-
-st.write("DEBUG: Tab imports done")
 
 # --- CSS TEMA ---
 css_path = os.path.join(os.path.dirname(__file__), 'style.css')
