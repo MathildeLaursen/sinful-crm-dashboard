@@ -8,6 +8,7 @@ from plotly.subplots import make_subplots
 from shared import get_gspread_client, show_metric, format_number
 
 
+@st.cache_data(ttl=300, show_spinner=False)  # Cache i 5 minutter
 def load_subscribers_data():
     """Henter Subscribers data fra Google Sheet"""
     try:
