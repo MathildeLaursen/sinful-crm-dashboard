@@ -846,21 +846,23 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         
         # Opdater alle y-akser med titler (paa alle grafer)
         for i in range(num_items):
-            # Venstre y-akse (Sendt + Opens)
+            # Venstre y-akse (Sendt + Opens) - starter altid ved 0
             fig.update_yaxes(
                 title_text="Sendt / Opens",
                 title_font=dict(size=10, color='#4A3F55'),
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
+                rangemode='tozero',
                 row=i+1, col=1, secondary_y=False
             )
-            # Hoejre y-akse (Clicks)
+            # Hoejre y-akse (Clicks) - starter altid ved 0
             fig.update_yaxes(
                 title_text="Clicks",
                 title_font=dict(size=10, color='#4A3F55'),
                 gridcolor='rgba(232,180,203,0.2)',
                 showgrid=False,
                 tickformat=',d',
+                rangemode='tozero',
                 row=i+1, col=1, secondary_y=True
             )
         
