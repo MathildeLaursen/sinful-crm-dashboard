@@ -742,7 +742,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                     name='Sendt',
                     marker_color='#9B7EBD',
                     opacity=0.7,
-                    showlegend=(i == 0)
+                    showlegend=(i == 0),
+                    legendgroup='sendt'
                 ),
                 row=row, col=1, secondary_y=False
             )
@@ -756,7 +757,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                     mode='lines+markers',
                     line=dict(color='#A8E6CF', width=2),
                     marker=dict(size=6, color='#A8E6CF'),
-                    showlegend=(i == 0)
+                    showlegend=(i == 0),
+                    legendgroup='opens'
                 ),
                 row=row, col=1, secondary_y=True
             )
@@ -770,7 +772,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                     mode='lines+markers',
                     line=dict(color='#E8B4CB', width=2),
                     marker=dict(size=6, color='#E8B4CB'),
-                    showlegend=(i == 0)
+                    showlegend=(i == 0),
+                    legendgroup='clicks'
                 ),
                 row=row, col=1, secondary_y=True
             )
@@ -782,18 +785,19 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         fig.update_layout(
             showlegend=True,
             height=chart_height,
-            margin=dict(l=60, r=60, t=60, b=60),
-            legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5),
+            margin=dict(l=60, r=60, t=80, b=60),
+            legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="right", x=1),
             plot_bgcolor='rgba(250,245,255,0.5)',
             paper_bgcolor='rgba(0,0,0,0)',
             hovermode='x unified',
             barmode='group'
         )
         
-        # Style subplot titler med mere afstand
+        # Style subplot titler - flyt til venstre så de ikke overlapper med legend
         for annotation in fig['layout']['annotations']:
             annotation['font'] = dict(size=13, color='#7B5EA5', family='sans-serif')
-            annotation['yshift'] = 10  # Flyt titel lidt op
+            annotation['xanchor'] = 'left'
+            annotation['x'] = 0.01  # Flyt titel til venstre
         
         # Opdater alle y-akser
         for i in range(num_mails):
