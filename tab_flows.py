@@ -702,10 +702,13 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         
         subplot_titles = [f"{mail}: {mail_messages[mail]}" if mail_messages[mail] else mail for mail in unique_mails]
         
+        # Beregn vertical spacing baseret på antal mails (mere plads når faerre mails)
+        v_spacing = 0.15 if num_mails <= 3 else (0.12 if num_mails <= 5 else 0.08)
+        
         fig = make_subplots(
             rows=num_mails, cols=1,
             shared_xaxes=True,
-            vertical_spacing=0.08,
+            vertical_spacing=v_spacing,
             subplot_titles=subplot_titles,
             specs=[[{"secondary_y": True}] for _ in range(num_mails)]
         )
@@ -772,20 +775,25 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 row=row, col=1, secondary_y=True
             )
         
-        # Beregn hoejde baseret på antal mails (minimum 200px per mail)
-        chart_height = max(400, num_mails * 180)
+        # Beregn hoejde baseret på antal mails (250px per mail for god plads)
+        chart_height = max(450, num_mails * 250)
         
         # Layout
         fig.update_layout(
             showlegend=True,
             height=chart_height,
-            margin=dict(l=60, r=60, t=40, b=60),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+            margin=dict(l=60, r=60, t=60, b=60),
+            legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5),
             plot_bgcolor='rgba(250,245,255,0.5)',
             paper_bgcolor='rgba(0,0,0,0)',
             hovermode='x unified',
             barmode='group'
         )
+        
+        # Style subplot titler med mere afstand
+        for annotation in fig['layout']['annotations']:
+            annotation['font'] = dict(size=13, color='#7B5EA5', family='sans-serif')
+            annotation['yshift'] = 10  # Flyt titel lidt op
         
         # Opdater alle y-akser
         for i in range(num_mails):
