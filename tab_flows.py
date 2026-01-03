@@ -740,9 +740,19 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             else:
                 subplot_titles.append(str(mail))
         
-        # Fast vertical spacing - kun justeret ned hvis over Plotly's max
+        # Fast pixel-afstand mellem grafer (ca. 40px) uanset antal
+        # Beregn spacing saa pixel-afstanden er ens
+        height_per_chart = 200  # pixels per graf
+        gap_pixels = 40  # oensket afstand i pixels
+        chart_height = num_items * height_per_chart + (num_items - 1) * gap_pixels
+        
+        # v_spacing er relativ til total hoejde, saa beregn den
+        # Spacing = gap / (chart_height - margins) ca.
+        v_spacing = gap_pixels / chart_height if num_items > 1 else 0.1
+        
+        # Sørg for at v_spacing er inden for Plotly's grænser
         max_allowed = 1.0 / (num_items - 1) if num_items > 1 else 0.5
-        v_spacing = min(0.05, max_allowed * 0.9)  # Fast 0.05, eller mindre hvis noedvendigt
+        v_spacing = min(v_spacing, max_allowed * 0.95)
         
         fig = make_subplots(
             rows=num_items, cols=1,
@@ -832,8 +842,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 fig.update_yaxes(range=[0, clicks_range_max], row=row, col=1, secondary_y=True)
         
         # Beregn hoejde baseret på antal items (250px per item for god plads)
-        # Fast hoejde per graf - ensartet for alle flows
-        chart_height = max(350, num_items * 200)
+        # chart_height er allerede beregnet ovenfor - brug minimum 350
+        chart_height = max(350, chart_height)
         
         # Layout
         fig.update_layout(
