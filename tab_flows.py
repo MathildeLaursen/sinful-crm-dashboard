@@ -821,6 +821,15 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 ),
                 row=row, col=1, secondary_y=True
             )
+            
+            # Beregn max for at skalere højre y-akse korrekt
+            max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
+            max_clicks = max(clicks_values) if clicks_values else 0
+            
+            # Skaler højre y-akse så clicks vises i nederste del (ca. 40% af plottet)
+            if max_clicks > 0 and max_left > 0:
+                clicks_range_max = max_clicks * 2.5  # Udvid range så max clicks er ved ca. 40%
+                fig.update_yaxes(range=[0, clicks_range_max], row=row, col=1, secondary_y=True)
         
         # Beregn hoejde baseret på antal items (250px per item for god plads)
         chart_height = max(450, num_items * 250)
@@ -836,13 +845,13 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             hovermode='x unified'
         )
         
-        # Style subplot titler - flyt op over grafen
+        # Style subplot titler - taettere paa grafen
         for annotation in fig['layout']['annotations']:
             annotation['font'] = dict(size=13, color='#7B5EA5', family='sans-serif')
             annotation['xanchor'] = 'left'
             annotation['x'] = 0  # Venstrestillet
             annotation['yanchor'] = 'bottom'
-            annotation['yshift'] = 25  # Mere afstand over grafen
+            annotation['yshift'] = 10  # Taettere paa grafen
         
         # Opdater alle y-akser med titler (paa alle grafer)
         for i in range(num_items):
