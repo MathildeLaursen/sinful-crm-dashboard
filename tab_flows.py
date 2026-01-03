@@ -793,11 +793,13 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             barmode='group'
         )
         
-        # Style subplot titler - flyt til venstre så de ikke overlapper med legend
+        # Style subplot titler - flyt op over grafen
         for annotation in fig['layout']['annotations']:
             annotation['font'] = dict(size=13, color='#7B5EA5', family='sans-serif')
             annotation['xanchor'] = 'left'
-            annotation['x'] = 0.01  # Flyt titel til venstre
+            annotation['x'] = 0  # Venstrestillet
+            annotation['yanchor'] = 'bottom'
+            annotation['yshift'] = 5  # Lidt ekstra afstand over grafen
         
         # Opdater alle y-akser
         for i in range(num_mails):
