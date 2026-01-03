@@ -670,7 +670,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
-    # Chart - tidslinje per mail med antal sendt (soejler) og opens/clicks (linjer)
+    # Chart - stacked grafer, en per mail
     # Sorter måneder kronologisk
     def month_to_sortkey(m):
         parts = m.split('-')
@@ -690,121 +690,121 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         return int(match.group(1)) if match else 999
     unique_mails = sorted(mail_df['Mail'].unique(), key=mail_sort_key)
     
-    # Farvepalette for mails
-    mail_colors = ['#9B7EBD', '#E8B4CB', '#A8E6CF', '#D4BFFF', '#FFB5BA', '#87CEEB', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE']
-    
     if len(sorted_chart_months) > 0 and len(unique_mails) > 0:
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        # Opret subplots - en raekke per mail
+        num_mails = len(unique_mails)
         
-        # Tilfoej soejler for Antal Sendt per mail
+        # Hent mail messages for titler
+        mail_messages = {}
+        for mail in unique_mails:
+            msg = mail_df[mail_df['Mail'] == mail]['Message'].iloc[0] if not mail_df[mail_df['Mail'] == mail].empty else ''
+            mail_messages[mail] = msg if pd.notna(msg) and msg != '' else ''
+        
+        subplot_titles = [f"{mail}: {mail_messages[mail]}" if mail_messages[mail] else mail for mail in unique_mails]
+        
+        fig = make_subplots(
+            rows=num_mails, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.08,
+            subplot_titles=subplot_titles,
+            specs=[[{"secondary_y": True}] for _ in range(num_mails)]
+        )
+        
         for i, mail in enumerate(unique_mails):
+            row = i + 1
             mail_data = mail_df[mail_df['Mail'] == mail].copy()
             
-            # Opret data for alle maaneder (fyld med 0 hvis ingen data)
-            month_values = []
-            for month in sorted_chart_months:
-                month_data = mail_data[mail_data['Year_Month'] == month]
-                if not month_data.empty:
-                    month_values.append(month_data['Received_Email'].sum())
-                else:
-                    month_values.append(0)
-            
-            color = mail_colors[i % len(mail_colors)]
-            
-            fig.add_trace(
-                go.Bar(
-                    x=[format_month_label(m) for m in sorted_chart_months],
-                    y=month_values,
-                    name=f'{mail} - Sendt',
-                    marker_color=color,
-                    opacity=0.7,
-                    offsetgroup=i,
-                    legendgroup=mail,
-                    showlegend=True
-                ),
-                secondary_y=False
-            )
-        
-        # Tilfoej linjer for Opens og Clicks per mail
-        for i, mail in enumerate(unique_mails):
-            mail_data = mail_df[mail_df['Mail'] == mail].copy()
-            
+            # Opret data for alle maaneder
+            sent_values = []
             opens_values = []
             clicks_values = []
             for month in sorted_chart_months:
                 month_data = mail_data[mail_data['Year_Month'] == month]
                 if not month_data.empty:
+                    sent_values.append(month_data['Received_Email'].sum())
                     opens_values.append(month_data['Unique_Opens'].sum())
                     clicks_values.append(month_data['Unique_Clicks'].sum())
                 else:
+                    sent_values.append(0)
                     opens_values.append(0)
                     clicks_values.append(0)
             
-            color = mail_colors[i % len(mail_colors)]
+            x_labels = [format_month_label(m) for m in sorted_chart_months]
             
-            # Opens linje (samme farve, solid)
+            # Soejler for Antal Sendt (primaer y-akse)
+            fig.add_trace(
+                go.Bar(
+                    x=x_labels,
+                    y=sent_values,
+                    name='Sendt',
+                    marker_color='#9B7EBD',
+                    opacity=0.7,
+                    showlegend=(i == 0)
+                ),
+                row=row, col=1, secondary_y=False
+            )
+            
+            # Linje for Opens (sekundaer y-akse)
             fig.add_trace(
                 go.Scatter(
-                    x=[format_month_label(m) for m in sorted_chart_months],
+                    x=x_labels,
                     y=opens_values,
-                    name=f'{mail} - Opens',
+                    name='Opens',
                     mode='lines+markers',
-                    line=dict(color=color, width=2),
-                    marker=dict(size=8, color=color),
-                    legendgroup=mail,
-                    showlegend=False
+                    line=dict(color='#A8E6CF', width=2),
+                    marker=dict(size=6, color='#A8E6CF'),
+                    showlegend=(i == 0)
                 ),
-                secondary_y=True
+                row=row, col=1, secondary_y=True
             )
             
-            # Clicks linje (samme farve, stiplet)
+            # Linje for Clicks (sekundaer y-akse)
             fig.add_trace(
                 go.Scatter(
-                    x=[format_month_label(m) for m in sorted_chart_months],
+                    x=x_labels,
                     y=clicks_values,
-                    name=f'{mail} - Clicks',
+                    name='Clicks',
                     mode='lines+markers',
-                    line=dict(color=color, width=2, dash='dash'),
-                    marker=dict(size=6, symbol='diamond', color=color),
-                    legendgroup=mail,
-                    showlegend=False
+                    line=dict(color='#E8B4CB', width=2),
+                    marker=dict(size=6, color='#E8B4CB'),
+                    showlegend=(i == 0)
                 ),
-                secondary_y=True
+                row=row, col=1, secondary_y=True
             )
+        
+        # Beregn hoejde baseret på antal mails (minimum 200px per mail)
+        chart_height = max(400, num_mails * 180)
         
         # Layout
         fig.update_layout(
-            title="", showlegend=True, height=500,
-            margin=dict(l=60, r=60, t=50, b=80),
+            showlegend=True,
+            height=chart_height,
+            margin=dict(l=60, r=60, t=40, b=60),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-            plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='x unified', barmode='group', bargap=0.15, bargroupgap=0.05
+            plot_bgcolor='rgba(250,245,255,0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='x unified',
+            barmode='group'
         )
         
-        # Y-akser
-        fig.update_yaxes(
-            title_text="Antal sendt",
-            secondary_y=False,
-            gridcolor='rgba(212,191,255,0.3)',
-            tickformat=',d'
-        )
-        fig.update_yaxes(
-            title_text="Opens / Clicks",
-            secondary_y=True,
-            gridcolor='rgba(232,180,203,0.2)',
-            showgrid=False,
-            tickformat=',d'
-        )
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=11))
+        # Opdater alle y-akser
+        for i in range(num_mails):
+            # Primaer y-akse (soejler)
+            fig.update_yaxes(
+                gridcolor='rgba(212,191,255,0.3)',
+                tickformat=',d',
+                row=i+1, col=1, secondary_y=False
+            )
+            # Sekundaer y-akse (linjer)
+            fig.update_yaxes(
+                gridcolor='rgba(232,180,203,0.2)',
+                showgrid=False,
+                tickformat=',d',
+                row=i+1, col=1, secondary_y=True
+            )
         
-        # Tilfoej annotation om linjer
-        fig.add_annotation(
-            text="Soejler: Sendt | Solid linje: Opens | Stiplet: Clicks",
-            xref="paper", yref="paper",
-            x=0.5, y=-0.15,
-            showarrow=False,
-            font=dict(size=10, color='#7B5EA5')
-        )
+        # Opdater x-akser (kun vis labels paa nederste)
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
