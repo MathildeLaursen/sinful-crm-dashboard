@@ -670,13 +670,23 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
-    # Chart - stacked grafer, en per mail
+    # Chart - stacked grafer, en per mail (viser ALLE måneder, uanset slider)
     # Sorter måneder kronologisk
     def month_to_sortkey(m):
         parts = m.split('-')
         return int(parts[0]) * 100 + int(parts[1])
     
-    sorted_chart_months = sorted(mail_df['Year_Month'].unique(), key=month_to_sortkey)
+    # Brug ALLE måneder fra full_df (ikke filtreret af slider)
+    all_months_for_chart = full_df[full_df['Flow_Trigger'] == flow_trigger]['Year_Month'].unique()
+    sorted_chart_months = sorted(all_months_for_chart, key=month_to_sortkey)
+    
+    # Hent ufiltreret data til grafen
+    chart_base_df = full_df[
+        (full_df['Flow_Trigger'] == flow_trigger) &
+        (full_df['Country'].isin(sel_countries))
+    ].copy()
+    if sel_mails is not None:
+        chart_base_df = chart_base_df[chart_base_df['Mail'].isin(sel_mails)]
     
     # Formatér måneder til visning
     def format_month_label(m):
@@ -684,11 +694,11 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
         return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
     
-    # Hent unikke mails sorteret
+    # Hent unikke mails sorteret (fra ufiltreret data til graf)
     def mail_sort_key(m):
         match = re.search(r'Mail\s*(\d+)', str(m))
         return int(match.group(1)) if match else 999
-    unique_mails = sorted(mail_df['Mail'].unique(), key=mail_sort_key)
+    unique_mails = sorted(chart_base_df['Mail'].unique(), key=mail_sort_key)
     
     if len(sorted_chart_months) > 0 and len(unique_mails) > 0:
         # Opret subplots - en raekke per mail
@@ -697,10 +707,11 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         # Hent mail messages for titler
         mail_messages = {}
         for mail in unique_mails:
-            msg = mail_df[mail_df['Mail'] == mail]['Message'].iloc[0] if not mail_df[mail_df['Mail'] == mail].empty else ''
+            msg = chart_base_df[chart_base_df['Mail'] == mail]['Message'].iloc[0] if not chart_base_df[chart_base_df['Mail'] == mail].empty else ''
             mail_messages[mail] = msg if pd.notna(msg) and msg != '' else ''
         
-        subplot_titles = [f"{mail}: {mail_messages[mail]}" if mail_messages[mail] else mail for mail in unique_mails]
+        # Titel format: "Mail x - Message" hvis message findes
+        subplot_titles = [f"{mail} - {mail_messages[mail]}" if mail_messages[mail] else mail for mail in unique_mails]
         
         # Beregn vertical spacing baseret på antal mails (mere plads når faerre mails)
         v_spacing = 0.15 if num_mails <= 3 else (0.12 if num_mails <= 5 else 0.08)
@@ -715,7 +726,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         
         for i, mail in enumerate(unique_mails):
             row = i + 1
-            mail_data = mail_df[mail_df['Mail'] == mail].copy()
+            mail_data = chart_base_df[chart_base_df['Mail'] == mail].copy()
             
             # Opret data for alle maaneder
             sent_values = []
@@ -734,7 +745,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             
             x_labels = [format_month_label(m) for m in sorted_chart_months]
             
-            # Linje for Antal Sendt (primaer y-akse)
+            # Linje for Antal Sendt (venstre y-akse)
             fig.add_trace(
                 go.Scatter(
                     x=x_labels,
@@ -749,7 +760,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 row=row, col=1, secondary_y=False
             )
             
-            # Linje for Opens (sekundaer y-akse)
+            # Linje for Opens (venstre y-akse - sammen med Sendt)
             fig.add_trace(
                 go.Scatter(
                     x=x_labels,
@@ -761,10 +772,10 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                     showlegend=(i == 0),
                     legendgroup='opens'
                 ),
-                row=row, col=1, secondary_y=True
+                row=row, col=1, secondary_y=False
             )
             
-            # Linje for Clicks (sekundaer y-akse)
+            # Linje for Clicks (hoejre y-akse)
             fig.add_trace(
                 go.Scatter(
                     x=x_labels,
@@ -801,16 +812,20 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             annotation['yanchor'] = 'bottom'
             annotation['yshift'] = 25  # Mere afstand over grafen
         
-        # Opdater alle y-akser
+        # Opdater alle y-akser med titler
         for i in range(num_mails):
-            # Primaer y-akse (soejler)
+            # Venstre y-akse (Sendt + Opens)
             fig.update_yaxes(
+                title_text="Sendt / Opens" if i == 0 else None,
+                title_font=dict(size=10, color='#7B5EA5'),
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
                 row=i+1, col=1, secondary_y=False
             )
-            # Sekundaer y-akse (linjer)
+            # Hoejre y-akse (Clicks)
             fig.update_yaxes(
+                title_text="Clicks" if i == 0 else None,
+                title_font=dict(size=10, color='#E8B4CB'),
                 gridcolor='rgba(232,180,203,0.2)',
                 showgrid=False,
                 tickformat=',d',
