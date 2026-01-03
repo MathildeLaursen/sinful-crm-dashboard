@@ -915,17 +915,29 @@ def render_overview_tab_content(df, available_months):
     # Periode slider (på samme linje som dropdowns)
     with col_slider:
         if len(sorted_months) > 1:
-            # Default til sidste 3 måneder (eller alle hvis færre)
+            # Beregn default værdier
             default_end = sorted_months[-1]
             default_start_idx = max(0, len(sorted_months) - 3)
             default_start = sorted_months[default_start_idx]
             
+            # Brug eksisterende session state værdi hvis den findes og er valid
+            slider_key = "fl_month_range_overview"
+            if slider_key in st.session_state:
+                saved_range = st.session_state[slider_key]
+                # Valider at gemte værdier stadig er i sorted_months
+                if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
+                    initial_value = saved_range
+                else:
+                    initial_value = (default_start, default_end)
+            else:
+                initial_value = (default_start, default_end)
+            
             month_range = st.select_slider(
                 "Periode",
                 options=sorted_months,
-                value=(default_start, default_end),
+                value=initial_value,
                 format_func=format_month_short,
-                key="fl_month_range_overview",
+                key=slider_key,
                 label_visibility="collapsed"
             )
             sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
@@ -1068,17 +1080,29 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     # Periode slider (på samme linje som dropdowns)
     with col_slider:
         if len(sorted_months) > 1:
-            # Default til sidste 3 måneder (eller alle hvis færre)
+            # Beregn default værdier
             default_end = sorted_months[-1]
             default_start_idx = max(0, len(sorted_months) - 3)
             default_start = sorted_months[default_start_idx]
             
+            # Brug eksisterende session state værdi hvis den findes og er valid
+            slider_key = f"fl_month_range_{flow_trigger}"
+            if slider_key in st.session_state:
+                saved_range = st.session_state[slider_key]
+                # Valider at gemte værdier stadig er i sorted_months
+                if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
+                    initial_value = saved_range
+                else:
+                    initial_value = (default_start, default_end)
+            else:
+                initial_value = (default_start, default_end)
+            
             month_range = st.select_slider(
                 "Periode",
                 options=sorted_months,
-                value=(default_start, default_end),
+                value=initial_value,
                 format_func=format_month_short,
-                key=f"fl_month_range_{flow_trigger}",
+                key=slider_key,
                 label_visibility="collapsed"
             )
             sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
