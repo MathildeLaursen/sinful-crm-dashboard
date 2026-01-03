@@ -110,6 +110,32 @@ st.markdown("""
             setTimeout(fixSliderColors, 100);
         });
         sliderObserver.observe(document.body, { childList: true, subtree: true });
+        
+        // Dataframe/tabel styling - override inline CSS custom properties
+        function fixDataFrameColors() {
+            document.querySelectorAll('.stDataFrameGlideDataEditor').forEach(df => {
+                // Override CSS custom properties for white/transparent background like metric cards
+                df.style.setProperty('--gdg-bg-cell', 'rgba(255, 255, 255, 0.7)', 'important');
+                df.style.setProperty('--gdg-bg-cell-medium', 'rgba(255, 255, 255, 0.7)', 'important');
+                df.style.setProperty('--gdg-bg-header', 'rgba(255, 255, 255, 0.85)', 'important');
+                df.style.setProperty('--gdg-bg-header-hovered', 'rgba(212, 191, 255, 0.2)', 'important');
+                df.style.setProperty('--gdg-bg-header-has-focus', 'rgba(212, 191, 255, 0.2)', 'important');
+                df.style.setProperty('--gdg-text-header', '#9B7EBD', 'important');
+                df.style.setProperty('--gdg-border-color', 'rgba(155, 126, 189, 0.2)', 'important');
+                df.style.setProperty('--gdg-horizontal-border-color', 'rgba(155, 126, 189, 0.15)', 'important');
+            });
+        }
+        
+        setTimeout(fixDataFrameColors, 200);
+        setTimeout(fixDataFrameColors, 500);
+        setTimeout(fixDataFrameColors, 1000);
+        setTimeout(fixDataFrameColors, 2000);
+        setInterval(fixDataFrameColors, 3000);
+        
+        const dfObserver = new MutationObserver(() => {
+            setTimeout(fixDataFrameColors, 100);
+        });
+        dfObserver.observe(document.body, { childList: true, subtree: true });
     </script>
 """, unsafe_allow_html=True)
 
