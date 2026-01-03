@@ -434,6 +434,38 @@ label[data-baseweb="checkbox"] svg path {
     color: #4A3F55 !important;
 }
 
+/* Delta farver - Unicorn tema */
+[data-testid="stMetricDelta"] svg {
+    display: none !important;
+}
+
+[data-testid="stMetricDelta"] > div {
+    color: inherit !important;
+}
+
+/* Positiv delta - Mint */
+[data-testid="stMetricDelta"][style*="color: rgb(9, 171, 59)"],
+[data-testid="stMetricDelta"][style*="color: rgba(9, 171, 59"],
+[data-testid="stMetric"]:has([data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Up"]) [data-testid="stMetricDelta"] {
+    color: #A8E6CF !important;
+}
+
+/* Negativ delta - Purple */
+[data-testid="stMetricDelta"][style*="color: rgb(255, 43, 43)"],
+[data-testid="stMetricDelta"][style*="color: rgba(255, 43, 43"],
+[data-testid="stMetric"]:has([data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Down"]) [data-testid="stMetricDelta"] {
+    color: #9B7EBD !important;
+}
+
+/* Alternativ metode - target baseret på indhold */
+[data-testid="stMetricDelta"]:has(svg[data-testid="stMetricDeltaIcon-Up"]) {
+    color: #A8E6CF !important;
+}
+
+[data-testid="stMetricDelta"]:has(svg[data-testid="stMetricDeltaIcon-Down"]) {
+    color: #9B7EBD !important;
+}
+
 /* ===========================================
    KNAPPER
    =========================================== */
