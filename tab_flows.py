@@ -5,6 +5,7 @@ Med sub-tabs for hvert flow
 import streamlit as st
 import pandas as pd
 import re
+import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from shared import get_gspread_client, show_metric
@@ -184,7 +185,39 @@ def get_unique_flows(df):
     return sorted(active_flows, key=flow_sort_key)
 
 
-def render_overview_content(flow_df, sel_countries, sel_flows):
+def get_previous_month(year_month):
+    """Returnerer forrige måned i format YYYY-M"""
+    parts = year_month.split('-')
+    year, month = int(parts[0]), int(parts[1])
+    if month == 1:
+        return f"{year - 1}-12"
+    else:
+        return f"{year}-{month - 1}"
+
+
+def calculate_month_progress():
+    """Beregn hvor langt vi er i den nuværende måned (data til og med i går)"""
+    import calendar
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    
+    # Dage med data i denne måned (fra 1. til i går)
+    days_with_data = yesterday.day
+    
+    # Totale dage i måneden
+    total_days_in_month = calendar.monthrange(today.year, today.month)[1]
+    
+    # Procent af måneden
+    return days_with_data / total_days_in_month
+
+
+def get_current_year_month():
+    """Returnerer nuværende måned i format YYYY-M"""
+    today = datetime.date.today()
+    return f"{today.year}-{today.month}"
+
+
+def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     """Render oversigt (alle flows aggregeret)"""
     current_df = flow_df[
         (flow_df['Country'].isin(sel_countries)) &
@@ -211,7 +244,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
     display_df['Click_Rate'] = display_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     display_df['CTR'] = display_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
 
-    # KPI totaler
+    # KPI totaler for nuværende periode
     total_received = display_df['Received_Email'].sum()
     total_opens = display_df['Unique_Opens'].sum()
     total_clicks = display_df['Unique_Clicks'].sum()
@@ -220,14 +253,71 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
     click_rate = (total_clicks / total_received * 100) if total_received > 0 else 0
     ctr = (total_clicks / total_opens * 100) if total_opens > 0 else 0
 
+    # Beregn sammenligning med forrige periode
+    prev_received = None
+    prev_opens = None
+    prev_clicks = None
+    prev_or = None
+    prev_cr = None
+    prev_ctr = None
+    
+    if full_df is not None:
+        # Find de valgte måneder
+        selected_months = display_df['Year_Month'].unique().tolist()
+        current_month = get_current_year_month()
+        
+        # Find forrige måneder
+        prev_months = [get_previous_month(m) for m in selected_months]
+        
+        # Hent data for forrige periode
+        prev_df = full_df[
+            (full_df['Year_Month'].isin(prev_months)) &
+            (full_df['Country'].isin(sel_countries)) &
+            (full_df['Flow_Trigger'].isin(sel_flows))
+        ].copy()
+        
+        if not prev_df.empty:
+            # Aggreger forrige periode
+            prev_agg = prev_df.groupby(['Year_Month'], as_index=False).agg({
+                'Received_Email': 'sum',
+                'Unique_Opens': 'sum',
+                'Unique_Clicks': 'sum',
+            })
+            
+            prev_received_raw = prev_agg['Received_Email'].sum()
+            prev_opens_raw = prev_agg['Unique_Opens'].sum()
+            prev_clicks_raw = prev_agg['Unique_Clicks'].sum()
+            
+            # Tjek om vi har delvis måned (nuværende måned er valgt)
+            if current_month in selected_months:
+                # Beregn hvor langt vi er i måneden
+                month_progress = calculate_month_progress()
+                
+                # Skaler forrige periodes data proportionelt
+                prev_received = prev_received_raw * month_progress
+                prev_opens = prev_opens_raw * month_progress
+                prev_clicks = prev_clicks_raw * month_progress
+            else:
+                # Fuld måned sammenligning
+                prev_received = prev_received_raw
+                prev_opens = prev_opens_raw
+                prev_clicks = prev_clicks_raw
+            
+            # Beregn rater for forrige periode (rater skaleres ikke, kun absolutte tal)
+            if prev_received_raw > 0:
+                prev_or = (prev_opens_raw / prev_received_raw * 100)
+                prev_cr = (prev_clicks_raw / prev_received_raw * 100)
+            if prev_opens_raw > 0:
+                prev_ctr = (prev_clicks_raw / prev_opens_raw * 100)
+
     # KPI Cards
     col1, col2, col3, col4, col5, col6 = st.columns(6)
-    show_metric(col1, "Emails Sendt", total_received)
-    show_metric(col2, "Unikke Opens", total_opens)
-    show_metric(col3, "Unikke Clicks", total_clicks)
-    show_metric(col4, "Open Rate", open_rate, is_percent=True)
-    show_metric(col5, "Click Rate", click_rate, is_percent=True)
-    show_metric(col6, "Click Through Rate", ctr, is_percent=True)
+    show_metric(col1, "Emails Sendt", total_received, prev_received)
+    show_metric(col2, "Unikke Opens", total_opens, prev_opens)
+    show_metric(col3, "Unikke Clicks", total_clicks, prev_clicks)
+    show_metric(col4, "Open Rate", open_rate, prev_or, is_percent=True)
+    show_metric(col5, "Click Rate", click_rate, prev_cr, is_percent=True)
+    show_metric(col6, "Click Through Rate", ctr, prev_ctr, is_percent=True)
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
@@ -580,6 +670,9 @@ def render_overview_tab_content(df, available_months):
 
     # Aggreger til flow niveau for oversigten
     flow_df = aggregate_to_flow_level(df_month_filtered)
+    
+    # Aggreger også fuld df til sammenligning med forrige periode
+    full_flow_df = aggregate_to_flow_level(df)
 
     # Filter options
     all_countries = sorted(flow_df['Country'].unique())
@@ -667,7 +760,7 @@ def render_overview_tab_content(df, available_months):
         return
 
     # Render indhold
-    render_overview_content(flow_df, sel_countries, sel_flows)
+    render_overview_content(flow_df, sel_countries, sel_flows, full_flow_df)
 
     if st.button('Opdater Data', key="fl_refresh_overview"):
         st.rerun()
