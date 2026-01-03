@@ -451,9 +451,12 @@ label[data-baseweb="checkbox"] svg path {
     color: #2D8A6E !important;
 }
 
-/* Negativ delta tekst - mørkere purple for læsbarhed */
+/* Negativ delta tekst - mørkere purple med lilla boble */
 [data-testid="stMetric"]:has([data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Down"]) [data-testid="stMetricDelta"] {
     color: #7B5EA5 !important;
+    background: rgba(155, 126, 189, 0.15) !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
 }
 
 /* ===========================================
