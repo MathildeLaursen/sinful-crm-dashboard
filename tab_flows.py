@@ -694,39 +694,49 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
         return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
     
-    # Hent unikke mails sorteret (fra ufiltreret data til graf)
-    def mail_sort_key(m):
-        match = re.search(r'Mail\s*(\d+)', str(m))
-        return int(match.group(1)) if match else 999
-    unique_mails = sorted(chart_base_df['Mail'].unique(), key=mail_sort_key)
+    # Hent unikke Mail+Message kombinationer sorteret (matcher tabellen)
+    def mail_sort_key(row):
+        match = re.search(r'Mail\s*(\d+)', str(row['Mail']))
+        mail_num = int(match.group(1)) if match else 999
+        msg = str(row['Message']) if pd.notna(row['Message']) else ''
+        return (mail_num, msg)
     
-    if len(sorted_chart_months) > 0 and len(unique_mails) > 0:
-        # Opret subplots - en raekke per mail
-        num_mails = len(unique_mails)
+    # Opret unikke kombinationer af Mail+Message
+    unique_combos = chart_base_df.groupby(['Mail', 'Message'], as_index=False).first()[['Mail', 'Message']]
+    unique_combos['_sort_key'] = unique_combos.apply(mail_sort_key, axis=1)
+    unique_combos = unique_combos.sort_values('_sort_key').drop(columns=['_sort_key'])
+    unique_combos_list = list(unique_combos.itertuples(index=False, name=None))
+    
+    if len(sorted_chart_months) > 0 and len(unique_combos_list) > 0:
+        # Opret subplots - en raekke per mail+message kombination
+        num_items = len(unique_combos_list)
         
-        # Hent mail messages for titler
-        mail_messages = {}
-        for mail in unique_mails:
-            msg = chart_base_df[chart_base_df['Mail'] == mail]['Message'].iloc[0] if not chart_base_df[chart_base_df['Mail'] == mail].empty else ''
-            mail_messages[mail] = msg if pd.notna(msg) and msg != '' else ''
+        # Titel format: "Mail x - Message" hvis message findes, ellers bare "Mail x"
+        subplot_titles = []
+        for mail, message in unique_combos_list:
+            if pd.notna(message) and message != '':
+                subplot_titles.append(f"{mail} - {message}")
+            else:
+                subplot_titles.append(str(mail))
         
-        # Titel format: "Mail x - Message" hvis message findes
-        subplot_titles = [f"{mail} - {mail_messages[mail]}" if mail_messages[mail] else mail for mail in unique_mails]
-        
-        # Beregn vertical spacing baseret på antal mails (mere plads når faerre mails)
-        v_spacing = 0.15 if num_mails <= 3 else (0.12 if num_mails <= 5 else 0.08)
+        # Beregn vertical spacing baseret på antal items (mere plads naar faerre)
+        v_spacing = 0.15 if num_items <= 3 else (0.12 if num_items <= 5 else 0.08)
         
         fig = make_subplots(
-            rows=num_mails, cols=1,
+            rows=num_items, cols=1,
             shared_xaxes=True,
             vertical_spacing=v_spacing,
             subplot_titles=subplot_titles,
-            specs=[[{"secondary_y": True}] for _ in range(num_mails)]
+            specs=[[{"secondary_y": True}] for _ in range(num_items)]
         )
         
-        for i, mail in enumerate(unique_mails):
+        for i, (mail, message) in enumerate(unique_combos_list):
             row = i + 1
-            mail_data = chart_base_df[chart_base_df['Mail'] == mail].copy()
+            # Filtrer paa baade Mail og Message
+            if pd.notna(message) and message != '':
+                mail_data = chart_base_df[(chart_base_df['Mail'] == mail) & (chart_base_df['Message'] == message)].copy()
+            else:
+                mail_data = chart_base_df[(chart_base_df['Mail'] == mail) & (chart_base_df['Message'].isna() | (chart_base_df['Message'] == ''))].copy()
             
             # Opret data for alle maaneder
             sent_values = []
@@ -790,8 +800,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 row=row, col=1, secondary_y=True
             )
         
-        # Beregn hoejde baseret på antal mails (250px per mail for god plads)
-        chart_height = max(450, num_mails * 250)
+        # Beregn hoejde baseret på antal items (250px per item for god plads)
+        chart_height = max(450, num_items * 250)
         
         # Layout
         fig.update_layout(
@@ -812,20 +822,20 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             annotation['yanchor'] = 'bottom'
             annotation['yshift'] = 25  # Mere afstand over grafen
         
-        # Opdater alle y-akser med titler
-        for i in range(num_mails):
+        # Opdater alle y-akser med titler (paa alle grafer)
+        for i in range(num_items):
             # Venstre y-akse (Sendt + Opens)
             fig.update_yaxes(
-                title_text="Sendt / Opens" if i == 0 else None,
-                title_font=dict(size=10, color='#7B5EA5'),
+                title_text="Sendt / Opens",
+                title_font=dict(size=10, color='#4A3F55'),
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
                 row=i+1, col=1, secondary_y=False
             )
             # Hoejre y-akse (Clicks)
             fig.update_yaxes(
-                title_text="Clicks" if i == 0 else None,
-                title_font=dict(size=10, color='#E8B4CB'),
+                title_text="Clicks",
+                title_font=dict(size=10, color='#4A3F55'),
                 gridcolor='rgba(232,180,203,0.2)',
                 showgrid=False,
                 tickformat=',d',
@@ -860,8 +870,11 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     # Kolonner uden Year_Month
     table_df = table_df[['Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
     
+    # Beregn hoejde saa alle raekker vises (35px per raekke + 38px header)
+    table_height = (len(table_df) + 1) * 35 + 3
+    
     st.dataframe(
-        table_df, use_container_width=True, hide_index=True,
+        table_df, use_container_width=True, hide_index=True, height=table_height,
         column_config={
             "Mail": st.column_config.TextColumn("Mail", width="small"),
             "Message": st.column_config.TextColumn("Message", width="medium"),
