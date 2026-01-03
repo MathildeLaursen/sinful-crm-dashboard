@@ -670,64 +670,141 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
-    # Chart - per mail i flowet
-    chart_df = mail_df.groupby(['Mail', 'Message'], as_index=False).agg({
-        'Received_Email': 'sum',
-        'Unique_Opens': 'sum',
-        'Unique_Clicks': 'sum',
-    })
-    chart_df['Open_Rate'] = (chart_df['Unique_Opens'] / chart_df['Received_Email'] * 100).round(1)
-    chart_df['Click_Rate'] = (chart_df['Unique_Clicks'] / chart_df['Received_Email'] * 100).round(2)
+    # Chart - tidslinje per mail med antal sendt (soejler) og opens/clicks (linjer)
+    # Sorter måneder kronologisk
+    def month_to_sortkey(m):
+        parts = m.split('-')
+        return int(parts[0]) * 100 + int(parts[1])
     
-    # Opret label til chart (Mail + Message)
-    chart_df['Label'] = chart_df.apply(
-        lambda x: f"{x['Mail']}" if pd.isna(x['Message']) or x['Message'] == '' else f"{x['Mail']}: {x['Message']}", 
-        axis=1
-    )
+    sorted_chart_months = sorted(mail_df['Year_Month'].unique(), key=month_to_sortkey)
     
-    # Sorter efter mail nummer
+    # Formatér måneder til visning
+    def format_month_label(m):
+        parts = m.split('-')
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+        return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
+    
+    # Hent unikke mails sorteret
     def mail_sort_key(m):
         match = re.search(r'Mail\s*(\d+)', str(m))
         return int(match.group(1)) if match else 999
-    chart_df = chart_df.iloc[chart_df['Mail'].map(mail_sort_key).argsort()]
-
-    if len(chart_df) > 0:
+    unique_mails = sorted(mail_df['Mail'].unique(), key=mail_sort_key)
+    
+    # Farvepalette for mails
+    mail_colors = ['#9B7EBD', '#E8B4CB', '#A8E6CF', '#D4BFFF', '#FFB5BA', '#87CEEB', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE']
+    
+    if len(sorted_chart_months) > 0 and len(unique_mails) > 0:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         
-        fig.add_trace(
-            go.Bar(
-                x=chart_df['Label'], y=chart_df['Open_Rate'],
-                name='Open Rate', marker_color='#9B7EBD',
-                text=chart_df['Open_Rate'].apply(lambda x: f'{x:.1f}%'),
-                textposition='outside', textfont=dict(size=14), offsetgroup=0
-            ),
-            secondary_y=False
-        )
+        # Tilfoej soejler for Antal Sendt per mail
+        for i, mail in enumerate(unique_mails):
+            mail_data = mail_df[mail_df['Mail'] == mail].copy()
+            
+            # Opret data for alle maaneder (fyld med 0 hvis ingen data)
+            month_values = []
+            for month in sorted_chart_months:
+                month_data = mail_data[mail_data['Year_Month'] == month]
+                if not month_data.empty:
+                    month_values.append(month_data['Received_Email'].sum())
+                else:
+                    month_values.append(0)
+            
+            color = mail_colors[i % len(mail_colors)]
+            
+            fig.add_trace(
+                go.Bar(
+                    x=[format_month_label(m) for m in sorted_chart_months],
+                    y=month_values,
+                    name=f'{mail} - Sendt',
+                    marker_color=color,
+                    opacity=0.7,
+                    offsetgroup=i,
+                    legendgroup=mail,
+                    showlegend=True
+                ),
+                secondary_y=False
+            )
         
-        fig.add_trace(
-            go.Bar(
-                x=chart_df['Label'], y=chart_df['Click_Rate'],
-                name='Click Rate', marker_color='#E8B4CB',
-                text=chart_df['Click_Rate'].apply(lambda x: f'{x:.1f}%'),
-                textposition='outside', textfont=dict(size=12), offsetgroup=1
-            ),
-            secondary_y=True
-        )
+        # Tilfoej linjer for Opens og Clicks per mail
+        for i, mail in enumerate(unique_mails):
+            mail_data = mail_df[mail_df['Mail'] == mail].copy()
+            
+            opens_values = []
+            clicks_values = []
+            for month in sorted_chart_months:
+                month_data = mail_data[mail_data['Year_Month'] == month]
+                if not month_data.empty:
+                    opens_values.append(month_data['Unique_Opens'].sum())
+                    clicks_values.append(month_data['Unique_Clicks'].sum())
+                else:
+                    opens_values.append(0)
+                    clicks_values.append(0)
+            
+            color = mail_colors[i % len(mail_colors)]
+            
+            # Opens linje (samme farve, solid)
+            fig.add_trace(
+                go.Scatter(
+                    x=[format_month_label(m) for m in sorted_chart_months],
+                    y=opens_values,
+                    name=f'{mail} - Opens',
+                    mode='lines+markers',
+                    line=dict(color=color, width=2),
+                    marker=dict(size=8, color=color),
+                    legendgroup=mail,
+                    showlegend=False
+                ),
+                secondary_y=True
+            )
+            
+            # Clicks linje (samme farve, stiplet)
+            fig.add_trace(
+                go.Scatter(
+                    x=[format_month_label(m) for m in sorted_chart_months],
+                    y=clicks_values,
+                    name=f'{mail} - Clicks',
+                    mode='lines+markers',
+                    line=dict(color=color, width=2, dash='dash'),
+                    marker=dict(size=6, symbol='diamond', color=color),
+                    legendgroup=mail,
+                    showlegend=False
+                ),
+                secondary_y=True
+            )
         
+        # Layout
         fig.update_layout(
-            title="", showlegend=True, height=455,
-            margin=dict(l=50, r=50, t=50, b=120),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            title="", showlegend=True, height=500,
+            margin=dict(l=60, r=60, t=50, b=80),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
             plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='x unified', barmode='group', bargap=0.3, bargroupgap=0.1
+            hovermode='x unified', barmode='group', bargap=0.15, bargroupgap=0.05
         )
         
-        max_open = chart_df['Open_Rate'].max() if not chart_df.empty else 50
-        max_click = chart_df['Click_Rate'].max() if not chart_df.empty else 5
+        # Y-akser
+        fig.update_yaxes(
+            title_text="Antal sendt",
+            secondary_y=False,
+            gridcolor='rgba(212,191,255,0.3)',
+            tickformat=',d'
+        )
+        fig.update_yaxes(
+            title_text="Opens / Clicks",
+            secondary_y=True,
+            gridcolor='rgba(232,180,203,0.2)',
+            showgrid=False,
+            tickformat=',d'
+        )
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=11))
         
-        fig.update_yaxes(title_text="Open Rate %", secondary_y=False, gridcolor='rgba(212,191,255,0.3)', ticksuffix='%', range=[0, max_open * 1.2])
-        fig.update_yaxes(title_text="Click Rate %", secondary_y=True, gridcolor='rgba(232,180,203,0.3)', ticksuffix='%', showgrid=False, range=[0, max_click * 1.2])
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickangle=-45, type='category', tickfont=dict(size=12))
+        # Tilfoej annotation om linjer
+        fig.add_annotation(
+            text="Soejler: Sendt | Solid linje: Opens | Stiplet: Clicks",
+            xref="paper", yref="paper",
+            x=0.5, y=-0.15,
+            showarrow=False,
+            font=dict(size=10, color='#7B5EA5')
+        )
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
