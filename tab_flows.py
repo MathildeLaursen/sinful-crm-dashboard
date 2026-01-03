@@ -440,15 +440,10 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         )
     
     fig.update_layout(
-        title=dict(
-            text="Antal sendt",
-            font=dict(size=13, color='#7B5EA5'),
-            x=0,
-            xanchor='left'
-        ), 
+        title="",
         showlegend=True, 
         height=520,
-        margin=dict(l=50, r=30, t=40, b=50),
+        margin=dict(l=60, r=30, t=50, b=50),
         legend=dict(
             orientation="h", 
             yanchor="bottom", y=1.02, 
@@ -457,7 +452,17 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         ),
         plot_bgcolor='rgba(250,245,255,0.5)', 
         paper_bgcolor='rgba(0,0,0,0)',
-        hovermode='x unified'
+        hovermode='x unified',
+        annotations=[
+            dict(
+                text="Antal sendt",
+                xref="paper", yref="paper",
+                x=0, y=1.12,
+                showarrow=False,
+                font=dict(size=12, color='#7B5EA5'),
+                xanchor='left'
+            )
+        ]
     )
     
     # Formater y-aksen med kompakte tal (K for tusinder)
