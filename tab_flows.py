@@ -440,10 +440,15 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         )
     
     fig.update_layout(
-        title="", 
+        title=dict(
+            text="Antal sendt",
+            font=dict(size=13, color='#7B5EA5'),
+            x=0,
+            xanchor='left'
+        ), 
         showlegend=True, 
-        height=400,
-        margin=dict(l=50, r=30, t=30, b=50),
+        height=520,
+        margin=dict(l=50, r=30, t=40, b=50),
         legend=dict(
             orientation="h", 
             yanchor="bottom", y=1.02, 
@@ -455,10 +460,25 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         hovermode='x unified'
     )
     
+    # Formater y-aksen med kompakte tal (K for tusinder)
+    def format_y_tick(val):
+        if val >= 1000000:
+            return f'{val/1000000:.0f}M'
+        elif val >= 1000:
+            return f'{val/1000:.0f}K'
+        return f'{val:.0f}'
+    
+    # Beregn passende tick values
+    max_val = chart_df['Received_Email'].max() if not chart_df.empty else 100000
+    tick_step = 50000 if max_val > 100000 else 25000
+    tick_vals = list(range(0, int(max_val * 1.2), tick_step))
+    tick_text = [format_y_tick(v) for v in tick_vals]
+    
     fig.update_yaxes(
-        title_text="Antal sendt", 
+        title_text="", 
         gridcolor='rgba(212,191,255,0.3)',
-        tickformat=',',
+        tickvals=tick_vals,
+        ticktext=tick_text,
         tickfont=dict(size=10)
     )
     fig.update_xaxes(
