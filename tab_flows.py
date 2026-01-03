@@ -852,9 +852,10 @@ def render_overview_tab_content(df, available_months):
 
     # Periode slider (efter dropdowns)
     if len(sorted_months) > 1:
-        # Default til nyeste måned
+        # Default til sidste 3 måneder (eller alle hvis færre)
         default_end = sorted_months[-1]
-        default_start = sorted_months[-1]
+        default_start_idx = max(0, len(sorted_months) - 3)
+        default_start = sorted_months[default_start_idx]
         
         month_range = st.select_slider(
             "Periode",
@@ -1011,9 +1012,10 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
 
     # Periode slider (efter dropdowns)
     if len(sorted_months) > 1:
-        # Default til nyeste måned
+        # Default til sidste 3 måneder (eller alle hvis færre)
         default_end = sorted_months[-1]
-        default_start = sorted_months[-1]
+        default_start_idx = max(0, len(sorted_months) - 3)
+        default_start = sorted_months[default_start_idx]
         
         month_range = st.select_slider(
             "Periode",

@@ -463,32 +463,49 @@ label[data-baseweb="checkbox"] svg path {
    RANGE SLIDER - Unicorn tema
    =========================================== */
 
-/* Slider track (baggrund) */
-[data-testid="stSlider"] > div > div > div {
+/* Slider container */
+div[data-baseweb="slider"] {
+    margin-top: 10px !important;
+}
+
+/* Slider track (baggrund) - den fulde track */
+div[data-baseweb="slider"] > div > div:first-child {
     background: linear-gradient(90deg, #E8D5FF 0%, #FFD5E8 100%) !important;
-    height: 8px !important;
-    border-radius: 4px !important;
+    height: 10px !important;
+    border-radius: 5px !important;
 }
 
-/* Slider filled track (valgt område) */
-[data-testid="stSlider"] [role="slider"] {
-    background: #9B7EBD !important;
-    border: 2px solid #9B7EBD !important;
-    width: 20px !important;
-    height: 20px !important;
-    top: -6px !important;
+/* Slider track inner */
+div[data-baseweb="slider"] > div > div > div {
+    height: 10px !important;
 }
 
-/* Slider selection (det lilla område mellem handles) */
-[data-testid="stSlider"] > div > div > div > div {
+/* Slider selection (det valgte område) */
+div[data-baseweb="slider"] > div > div > div[role="progressbar"] {
     background: #9B7EBD !important;
+    height: 10px !important;
+}
+
+/* Slider håndtag (thumbs) */
+div[data-baseweb="slider"] [role="slider"] {
+    background: #9B7EBD !important;
+    border: 3px solid white !important;
+    box-shadow: 0 2px 6px rgba(155, 126, 189, 0.4) !important;
+    width: 22px !important;
+    height: 22px !important;
+}
+
+div[data-baseweb="slider"] [role="slider"]:hover {
+    background: #8A6DAC !important;
+    transform: scale(1.1) !important;
 }
 
 /* Slider værdi labels */
 [data-testid="stSlider"] [data-testid="stTickBarMin"],
 [data-testid="stSlider"] [data-testid="stTickBarMax"] {
     color: #9B7EBD !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
 }
 
 /* ===========================================
