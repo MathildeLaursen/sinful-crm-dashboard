@@ -345,6 +345,7 @@ label[data-baseweb="checkbox"] svg path {
    TABEL - Samme stil som metric cards
    =========================================== */
 
+/* Container wrapper */
 [data-testid="stDataFrame"] {
     border-radius: 12px !important;
     overflow: hidden !important;
@@ -353,6 +354,33 @@ label[data-baseweb="checkbox"] svg path {
     background: rgba(255, 255, 255, 0.7) !important;
 }
 
+/* Indre container og iframe */
+[data-testid="stDataFrame"] > div,
+[data-testid="stDataFrame"] iframe {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 12px !important;
+}
+
+/* Glide-data-grid specifikke selektorer */
+[data-testid="stDataFrame"] .dvn-scroller {
+    background: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Header styling via glide-data-grid */
+[data-testid="stDataFrame"] [data-testid="glide-cell-header"],
+[data-testid="stDataFrame"] .header-cell {
+    background: rgba(255, 255, 255, 0.85) !important;
+    color: #9B7EBD !important;
+}
+
+/* Alternativ: Style hele dataframe området */
+.stDataFrame,
+div[data-testid="stDataFrame"] > div > div {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 12px !important;
+}
+
+/* Standard HTML table fallback */
 [data-testid="stDataFrame"] td {
     text-align: left !important;
     background: rgba(255, 255, 255, 0.7) !important;
