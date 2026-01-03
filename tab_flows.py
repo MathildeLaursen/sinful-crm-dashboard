@@ -376,7 +376,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
-    # Chart - tidslinje per flow over tid
+    # Chart - tidslinje: Antal sendt per flow over tid
     # Unicorn farvepalette - en unik farve per flow
     flow_colors = {
         'Flow 4': '#9B7EBD',   # Lilla
@@ -392,23 +392,10 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         'Flow 32': '#F5B7B1',  # Fersken
     }
     
-    def lighten_color(hex_color, factor=0.4):
-        """Gør en farve lysere"""
-        hex_color = hex_color.lstrip('#')
-        r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-        r = int(r + (255 - r) * factor)
-        g = int(g + (255 - g) * factor)
-        b = int(b + (255 - b) * factor)
-        return f'#{r:02x}{g:02x}{b:02x}'
-    
     # Aggreger per flow og måned
     chart_df = display_df.groupby(['Year_Month', 'Flow_Trigger'], as_index=False).agg({
         'Received_Email': 'sum',
-        'Unique_Opens': 'sum',
-        'Unique_Clicks': 'sum',
     })
-    chart_df['Open_Rate'] = (chart_df['Unique_Opens'] / chart_df['Received_Email'] * 100).round(1)
-    chart_df['Click_Rate'] = (chart_df['Unique_Clicks'] / chart_df['Received_Email'] * 100).round(2)
     
     # Formater måned til visning
     chart_df['Month_Label'] = chart_df['Year_Month'].apply(format_month_short)
@@ -422,64 +409,54 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         return int(match.group(1)) if match else 999
     unique_flows = sorted(chart_df['Flow_Trigger'].unique(), key=chart_flow_sort_key)
 
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig = go.Figure()
     
-    # Tilføj linjer for hvert flow
+    # Tilføj linje for hvert flow
     for flow in unique_flows:
         flow_data = chart_df[chart_df['Flow_Trigger'] == flow]
         short_name = get_short_flow_name(flow)
         
-        # Hent farve for dette flow (eller default)
-        base_color = flow_colors.get(short_name, '#9B7EBD')
-        light_color = lighten_color(base_color, 0.4)
+        # Hent farve for dette flow
+        color = flow_colors.get(short_name, '#9B7EBD')
         
-        # Open Rate linje (mørkere farve, solid)
         fig.add_trace(
             go.Scatter(
                 x=flow_data['Month_Label'], 
-                y=flow_data['Open_Rate'],
-                name=f'{short_name} OR',
+                y=flow_data['Received_Email'],
+                name=short_name,
                 mode='lines+markers',
-                line=dict(color=base_color, width=2),
+                line=dict(color=color, width=2),
                 marker=dict(size=6),
-                legendgroup=short_name,
-            ),
-            secondary_y=False
-        )
-        
-        # Click Rate linje (lysere farve, stiplet)
-        fig.add_trace(
-            go.Scatter(
-                x=flow_data['Month_Label'], 
-                y=flow_data['Click_Rate'],
-                name=f'{short_name} CR',
-                mode='lines+markers',
-                line=dict(color=light_color, width=2, dash='dot'),
-                marker=dict(size=5),
-                legendgroup=short_name,
-            ),
-            secondary_y=True
+                hovertemplate=f'{short_name}<br>%{{x}}: %{{y:,.0f}} sendt<extra></extra>'
+            )
         )
     
     fig.update_layout(
-        title="", showlegend=True, height=455,
-        margin=dict(l=50, r=50, t=30, b=50),
+        title="", 
+        showlegend=True, 
+        height=400,
+        margin=dict(l=50, r=30, t=30, b=50),
         legend=dict(
             orientation="h", 
             yanchor="bottom", y=1.02, 
             xanchor="center", x=0.5,
             font=dict(size=10)
         ),
-        plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(250,245,255,0.5)', 
+        paper_bgcolor='rgba(0,0,0,0)',
         hovermode='x unified'
     )
     
-    max_open = chart_df['Open_Rate'].max() if not chart_df.empty else 50
-    max_click = chart_df['Click_Rate'].max() if not chart_df.empty else 10
-    
-    fig.update_yaxes(title_text="Open Rate %", secondary_y=False, gridcolor='rgba(212,191,255,0.3)', ticksuffix='%', range=[0, max_open * 1.15])
-    fig.update_yaxes(title_text="Click Rate %", secondary_y=True, gridcolor='rgba(232,180,203,0.3)', ticksuffix='%', showgrid=False, range=[0, max_click * 1.15])
-    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickfont=dict(size=11))
+    fig.update_yaxes(
+        title_text="Antal sendt", 
+        gridcolor='rgba(212,191,255,0.3)',
+        tickformat=',',
+        tickfont=dict(size=10)
+    )
+    fig.update_xaxes(
+        gridcolor='rgba(212,191,255,0.2)', 
+        tickfont=dict(size=11)
+    )
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
