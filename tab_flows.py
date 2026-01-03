@@ -262,12 +262,28 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     prev_ctr = None
     
     if full_df is not None:
-        # Find de valgte måneder
+        # Find de valgte måneder og sorter dem
         selected_months = display_df['Year_Month'].unique().tolist()
         current_month = get_current_year_month()
         
-        # Find forrige måneder
-        prev_months = [get_previous_month(m) for m in selected_months]
+        # Sorter måneder (ældste først) for at finde den ældste
+        def month_to_tuple(m):
+            parts = m.split('-')
+            return (int(parts[0]), int(parts[1]))
+        
+        sorted_months = sorted(selected_months, key=month_to_tuple)
+        oldest_selected = sorted_months[0]
+        num_months = len(selected_months)
+        
+        # Find sammenligningsperioden: N måneder FØR den ældste valgte måned
+        prev_months = []
+        temp_month = oldest_selected
+        for _ in range(num_months):
+            temp_month = get_previous_month(temp_month)
+            prev_months.append(temp_month)
+        
+        # Den ældste måned i sammenligningsperioden (skal evt. skaleres)
+        oldest_prev_month = min(prev_months, key=month_to_tuple)
         
         # Hent data for forrige periode
         prev_df = full_df[
@@ -277,41 +293,42 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         ].copy()
         
         if not prev_df.empty:
-            # Aggreger forrige periode
+            # Aggreger forrige periode PER MÅNED
             prev_agg = prev_df.groupby(['Year_Month'], as_index=False).agg({
                 'Received_Email': 'sum',
                 'Unique_Opens': 'sum',
                 'Unique_Clicks': 'sum',
             })
             
-            prev_received_raw = prev_agg['Received_Email'].sum()
-            prev_opens_raw = prev_agg['Unique_Opens'].sum()
-            prev_clicks_raw = prev_agg['Unique_Clicks'].sum()
+            # Beregn totaler med korrekt skalering
+            prev_received = 0
+            prev_opens = 0
+            prev_clicks = 0
             
-            # Kun skaler hvis den nuværende måned er den ENESTE valgte måned
-            # Ellers sammenligner vi bare fulde måneder med fulde måneder
-            only_current_month_selected = (len(selected_months) == 1 and current_month in selected_months)
+            # Tjek om nuværende måned er valgt (så skal den ældste i sammenligning skaleres)
+            current_month_selected = current_month in selected_months
+            month_progress = calculate_month_progress() if current_month_selected else 1.0
             
-            if only_current_month_selected:
-                # Beregn hvor langt vi er i måneden
-                month_progress = calculate_month_progress()
+            for _, row in prev_agg.iterrows():
+                month = row['Year_Month']
                 
-                # Skaler forrige periodes data proportionelt
-                prev_received = prev_received_raw * month_progress
-                prev_opens = prev_opens_raw * month_progress
-                prev_clicks = prev_clicks_raw * month_progress
-            else:
-                # Fuld måned sammenligning (eller blanding af måneder)
-                prev_received = prev_received_raw
-                prev_opens = prev_opens_raw
-                prev_clicks = prev_clicks_raw
+                if month == oldest_prev_month and current_month_selected:
+                    # Denne er den ældste i sammenligningen og nuværende måned er valgt - skaler
+                    prev_received += row['Received_Email'] * month_progress
+                    prev_opens += row['Unique_Opens'] * month_progress
+                    prev_clicks += row['Unique_Clicks'] * month_progress
+                else:
+                    # Fuld måned sammenligning
+                    prev_received += row['Received_Email']
+                    prev_opens += row['Unique_Opens']
+                    prev_clicks += row['Unique_Clicks']
             
-            # Beregn rater for forrige periode (rater skaleres ikke, kun absolutte tal)
-            if prev_received_raw > 0:
-                prev_or = (prev_opens_raw / prev_received_raw * 100)
-                prev_cr = (prev_clicks_raw / prev_received_raw * 100)
-            if prev_opens_raw > 0:
-                prev_ctr = (prev_clicks_raw / prev_opens_raw * 100)
+            # Beregn rater for forrige periode
+            if prev_received > 0:
+                prev_or = (prev_opens / prev_received * 100)
+                prev_cr = (prev_clicks / prev_received * 100)
+            if prev_opens > 0:
+                prev_ctr = (prev_clicks / prev_opens * 100)
 
     # KPI Cards
     col1, col2, col3, col4, col5, col6 = st.columns(6)
