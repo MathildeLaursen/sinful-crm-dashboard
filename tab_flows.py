@@ -537,55 +537,37 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
 
 def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=None, full_df=None):
     """Render indhold for et enkelt flow med mail-niveau breakdown"""
-    # Filtrer til dette specifikke flow og valgte lande
-    flow_data = raw_df[
+    # Filtrer til dette specifikke flow og valgte lande (UDEN mail filter - til scorecards)
+    flow_data_all = raw_df[
         (raw_df['Flow_Trigger'] == flow_trigger) &
         (raw_df['Country'].isin(sel_countries))
     ].copy()
     
-    # Filtrer ogsaa paa valgte mails hvis angivet (sel_mails er nu tuples af (Mail, Message))
-    if sel_mails is not None and len(sel_mails) > 0:
-        # Opret filter for hver (Mail, Message) kombination
-        mail_filter = pd.Series([False] * len(flow_data), index=flow_data.index)
-        for mail, msg in sel_mails:
-            if pd.notna(msg) and msg != '':
-                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'] == msg)
-            else:
-                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'].isna() | (flow_data['Message'] == ''))
-        flow_data = flow_data[mail_filter]
-    
-    if flow_data.empty:
+    if flow_data_all.empty:
         st.warning(f"Ingen data for {flow_trigger} med de valgte filtre.")
         return
     
-    # Aggreger per mail (sum over alle lande og måneder)
-    mail_df = flow_data.groupby(['Year_Month', 'Mail', 'Message'], as_index=False).agg({
+    # Aggreger ALLE mails for scorecards (ingen mail filter)
+    scorecard_df = flow_data_all.groupby(['Year_Month'], as_index=False).agg({
         'Received_Email': 'sum',
-        'Total_Opens': 'sum',
         'Unique_Opens': 'sum',
-        'Total_Clicks': 'sum',
         'Unique_Clicks': 'sum',
         'Unsubscribed': 'sum',
         'Bounced': 'sum',
     })
-    
-    # Genberegn rater
-    mail_df['Open_Rate'] = mail_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
-    mail_df['Click_Rate'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
-    mail_df['CTR'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
 
-    # KPI totaler for dette flow
-    total_received = mail_df['Received_Email'].sum()
-    total_opens = mail_df['Unique_Opens'].sum()
-    total_clicks = mail_df['Unique_Clicks'].sum()
-    total_unsub = mail_df['Unsubscribed'].sum()
-    total_bounced = mail_df['Bounced'].sum()
+    # KPI totaler for dette flow (ALLE mails)
+    total_received = scorecard_df['Received_Email'].sum()
+    total_opens = scorecard_df['Unique_Opens'].sum()
+    total_clicks = scorecard_df['Unique_Clicks'].sum()
+    total_unsub = scorecard_df['Unsubscribed'].sum()
+    total_bounced = scorecard_df['Bounced'].sum()
     
     open_rate = (total_opens / total_received * 100) if total_received > 0 else 0
     click_rate = (total_clicks / total_received * 100) if total_received > 0 else 0
     ctr = (total_clicks / total_opens * 100) if total_opens > 0 else 0
 
-    # Sammenligning med forrige periode
+    # Sammenligning med forrige periode (ALLE mails - ingen mail filter)
     prev_received = None
     prev_opens = None
     prev_clicks = None
@@ -595,7 +577,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     
     if full_df is not None:
         # Find de valgte måneder
-        selected_months = mail_df['Year_Month'].unique().tolist()
+        selected_months = scorecard_df['Year_Month'].unique().tolist()
         current_month = get_current_year_month()
         
         # Sorter måneder for at finde den ældste
@@ -617,21 +599,12 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         # Den ældste måned i sammenligningsperioden
         oldest_prev_month = min(prev_months, key=month_to_tuple)
         
-        # Hent data for forrige periode (samme flow, lande og mails)
+        # Hent data for forrige periode (samme flow og lande - INGEN mail filter for scorecards)
         prev_filter = (
             (full_df['Year_Month'].isin(prev_months)) &
             (full_df['Flow_Trigger'] == flow_trigger) &
             (full_df['Country'].isin(sel_countries))
         )
-        if sel_mails is not None and len(sel_mails) > 0:
-            # Opret filter for hver (Mail, Message) kombination
-            mail_filter_prev = pd.Series([False] * len(full_df), index=full_df.index)
-            for mail, msg in sel_mails:
-                if pd.notna(msg) and msg != '':
-                    mail_filter_prev |= (full_df['Mail'] == mail) & (full_df['Message'] == msg)
-                else:
-                    mail_filter_prev |= (full_df['Mail'] == mail) & (full_df['Message'].isna() | (full_df['Message'] == ''))
-            prev_filter = prev_filter & mail_filter_prev
         
         prev_data = full_df[prev_filter].copy()
         
@@ -673,7 +646,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             if prev_opens > 0:
                 prev_ctr = (prev_clicks / prev_opens * 100)
 
-    # KPI Cards
+    # KPI Cards (viser ALLE mails - ikke påvirket af Ignorer Inaktive)
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     show_metric(col1, "Emails Sendt", total_received, prev_received)
     show_metric(col2, "Unikke Opens", total_opens, prev_opens)
@@ -681,6 +654,34 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     show_metric(col4, "Open Rate", open_rate, prev_or, is_percent=True)
     show_metric(col5, "Click Rate", click_rate, prev_cr, is_percent=True)
     show_metric(col6, "Click Through Rate", ctr, prev_ctr, is_percent=True)
+    
+    # --- Filtreret data til tabel og grafer (påvirkes af Ignorer Inaktive) ---
+    flow_data = flow_data_all.copy()
+    if sel_mails is not None and len(sel_mails) > 0:
+        # Opret filter for hver (Mail, Message) kombination
+        mail_filter = pd.Series([False] * len(flow_data), index=flow_data.index)
+        for mail, msg in sel_mails:
+            if pd.notna(msg) and msg != '':
+                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'] == msg)
+            else:
+                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'].isna() | (flow_data['Message'] == ''))
+        flow_data = flow_data[mail_filter]
+    
+    # Aggreger per mail for tabel og grafer
+    mail_df = flow_data.groupby(['Year_Month', 'Mail', 'Message'], as_index=False).agg({
+        'Received_Email': 'sum',
+        'Total_Opens': 'sum',
+        'Unique_Opens': 'sum',
+        'Total_Clicks': 'sum',
+        'Unique_Clicks': 'sum',
+        'Unsubscribed': 'sum',
+        'Bounced': 'sum',
+    })
+    
+    # Genberegn rater
+    mail_df['Open_Rate'] = mail_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    mail_df['Click_Rate'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    mail_df['CTR'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
 
     # Fast afstand mellem scorecards og grafer (30px)
     st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
