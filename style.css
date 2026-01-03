@@ -460,6 +460,38 @@ label[data-baseweb="checkbox"] svg path {
 }
 
 /* ===========================================
+   RANGE SLIDER - Unicorn tema
+   =========================================== */
+
+/* Slider track (baggrund) */
+[data-testid="stSlider"] > div > div > div {
+    background: linear-gradient(90deg, #E8D5FF 0%, #FFD5E8 100%) !important;
+    height: 8px !important;
+    border-radius: 4px !important;
+}
+
+/* Slider filled track (valgt område) */
+[data-testid="stSlider"] [role="slider"] {
+    background: #9B7EBD !important;
+    border: 2px solid #9B7EBD !important;
+    width: 20px !important;
+    height: 20px !important;
+    top: -6px !important;
+}
+
+/* Slider selection (det lilla område mellem handles) */
+[data-testid="stSlider"] > div > div > div > div {
+    background: #9B7EBD !important;
+}
+
+/* Slider værdi labels */
+[data-testid="stSlider"] [data-testid="stTickBarMin"],
+[data-testid="stSlider"] [data-testid="stTickBarMax"] {
+    color: #9B7EBD !important;
+    font-weight: 500 !important;
+}
+
+/* ===========================================
    KNAPPER
    =========================================== */
 

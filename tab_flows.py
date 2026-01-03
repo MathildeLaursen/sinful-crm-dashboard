@@ -240,6 +240,18 @@ def get_months_in_range(start_month, end_month, all_months):
     return sorted(result, key=month_to_tuple)
 
 
+def format_month_short(year_month):
+    """Formater måned til kort dansk format (Jan 25, Feb 25, osv.)"""
+    month_names = {
+        1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Maj', 6: 'Jun',
+        7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Okt', 11: 'Nov', 12: 'Dec'
+    }
+    parts = year_month.split('-')
+    year = parts[0][2:]  # Sidste 2 cifre af året
+    month = int(parts[1])
+    return f"{month_names[month]} {year}"
+
+
 def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     """Render oversigt (alle flows aggregeret)"""
     current_df = flow_df[
@@ -761,43 +773,10 @@ def render_overview_tab_content(df, available_months):
     
     sorted_months = sorted(available_months, key=month_to_tuple)
     
-    # Layout - filters
-    col_month, col_land, col_flow, col_spacer = st.columns([2, 1, 1, 2])
-
-    # Måned range slider
-    with col_month:
-        if len(sorted_months) > 1:
-            # Default til nyeste måned
-            default_end = sorted_months[-1]
-            default_start = sorted_months[-1]
-            
-            month_range = st.select_slider(
-                "Periode",
-                options=sorted_months,
-                value=(default_start, default_end),
-                key="fl_month_range_overview"
-            )
-            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
-        else:
-            # Kun én måned tilgængelig
-            st.info(f"Måned: {sorted_months[0]}")
-            sel_months = sorted_months
-    
-    if not sel_months:
-        st.warning("Vælg mindst én måned.")
-        return
-    
-    df_month_filtered = df[df['Year_Month'].isin(sel_months)]
-
-    # Aggreger til flow niveau for oversigten
-    flow_df = aggregate_to_flow_level(df_month_filtered)
-    
-    # Aggreger også fuld df til sammenligning med forrige periode
+    # Aggreger fuld df først for at få filter options
     full_flow_df = aggregate_to_flow_level(df)
-
-    # Filter options
-    all_countries = sorted(flow_df['Country'].unique())
-    all_flows = get_unique_flows(flow_df)
+    all_countries = sorted(full_flow_df['Country'].unique())
+    all_flows = get_unique_flows(full_flow_df)
 
     # Initialize selections
     if st.session_state.fl_selected_countries is None:
@@ -809,6 +788,9 @@ def render_overview_tab_content(df, available_months):
         st.session_state.fl_selected_flows = list(all_flows)
     else:
         st.session_state.fl_selected_flows = [f for f in st.session_state.fl_selected_flows if f in all_flows]
+
+    # Layout - dropdowns først
+    col_land, col_flow, col_spacer = st.columns([1, 1, 4])
 
     # Land filter
     with col_land:
@@ -868,6 +850,43 @@ def render_overview_tab_content(df, available_months):
                 st.session_state.fl_cb_reset_flow += 1
                 st.rerun()
 
+    # Periode slider (efter dropdowns)
+    if len(sorted_months) > 1:
+        # Default til nyeste måned
+        default_end = sorted_months[-1]
+        default_start = sorted_months[-1]
+        
+        month_range = st.select_slider(
+            "Periode",
+            options=sorted_months,
+            value=(default_start, default_end),
+            format_func=format_month_short,
+            key="fl_month_range_overview"
+        )
+        sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
+        
+        # Vis valgt periode
+        start_fmt = format_month_short(month_range[0])
+        end_fmt = format_month_short(month_range[1])
+        if start_fmt == end_fmt:
+            st.caption(f"Valgt: {start_fmt}")
+        else:
+            st.caption(f"Valgt: {start_fmt} - {end_fmt}")
+    else:
+        # Kun én måned tilgængelig
+        st.info(f"Periode: {format_month_short(sorted_months[0])}")
+        sel_months = sorted_months
+    
+    if not sel_months:
+        st.warning("Vælg mindst én måned.")
+        return
+
+    # Filtrer data efter valgte måneder
+    df_month_filtered = df[df['Year_Month'].isin(sel_months)]
+    
+    # Aggreger til flow niveau for oversigten
+    flow_df = aggregate_to_flow_level(df_month_filtered)
+
     # Check selections
     sel_countries = st.session_state.fl_selected_countries
     sel_flows = st.session_state.fl_selected_flows
@@ -897,47 +916,19 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     
     sorted_months = sorted(available_months, key=month_to_tuple)
     
-    # Layout - filters
-    col_month, col_land, col_mail, col_spacer = st.columns([2, 1, 1, 2])
-
-    # Måned range slider
-    with col_month:
-        if len(sorted_months) > 1:
-            # Default til nyeste måned
-            default_end = sorted_months[-1]
-            default_start = sorted_months[-1]
-            
-            month_range = st.select_slider(
-                "Periode",
-                options=sorted_months,
-                value=(default_start, default_end),
-                key=f"fl_month_range_{flow_trigger}"
-            )
-            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
-        else:
-            # Kun én måned tilgængelig
-            st.info(f"Måned: {sorted_months[0]}")
-            sel_months = sorted_months
+    # Hent data for dette flow for at få filter options
+    flow_data_all = df[df['Flow_Trigger'] == flow_trigger]
+    all_countries = sorted(flow_data_all['Country'].unique()) if not flow_data_all.empty else []
     
-    if not sel_months:
-        st.warning("Vælg mindst én måned.")
-        return
-    
-    df_month_filtered = df[df['Year_Month'].isin(sel_months)]
-
-    # Filter options - kun lande der har data for dette flow
-    flow_data = df_month_filtered[df_month_filtered['Flow_Trigger'] == flow_trigger]
-    all_countries = sorted(flow_data['Country'].unique()) if not flow_data.empty else []
-
     if not all_countries:
-        st.warning(f"Ingen data for dette flow i de valgte måneder.")
+        st.warning(f"Ingen data for dette flow.")
         return
 
     # Hent alle mails for dette flow
     def mail_sort_key(m):
         match = re.search(r'Mail\s*(\d+)', str(m))
         return int(match.group(1)) if match else 999
-    all_mails = sorted(flow_data['Mail'].unique(), key=mail_sort_key)
+    all_mails = sorted(flow_data_all['Mail'].unique(), key=mail_sort_key)
 
     # Initialize country selection
     if st.session_state.fl_selected_countries is None:
@@ -958,6 +949,9 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
             st.session_state[mail_state_key] = list(all_mails)
     if mail_reset_key not in st.session_state:
         st.session_state[mail_reset_key] = 0
+
+    # Layout - dropdowns først
+    col_land, col_mail, col_spacer = st.columns([1, 1, 4])
 
     # Land filter
     with col_land:
@@ -1014,6 +1008,40 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_state_key] = new_selected_mails
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
+
+    # Periode slider (efter dropdowns)
+    if len(sorted_months) > 1:
+        # Default til nyeste måned
+        default_end = sorted_months[-1]
+        default_start = sorted_months[-1]
+        
+        month_range = st.select_slider(
+            "Periode",
+            options=sorted_months,
+            value=(default_start, default_end),
+            format_func=format_month_short,
+            key=f"fl_month_range_{flow_trigger}"
+        )
+        sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
+        
+        # Vis valgt periode
+        start_fmt = format_month_short(month_range[0])
+        end_fmt = format_month_short(month_range[1])
+        if start_fmt == end_fmt:
+            st.caption(f"Valgt: {start_fmt}")
+        else:
+            st.caption(f"Valgt: {start_fmt} - {end_fmt}")
+    else:
+        # Kun én måned tilgængelig
+        st.info(f"Periode: {format_month_short(sorted_months[0])}")
+        sel_months = sorted_months
+    
+    if not sel_months:
+        st.warning("Vælg mindst én måned.")
+        return
+
+    # Filtrer data efter valgte måneder
+    df_month_filtered = df[df['Year_Month'].isin(sel_months)]
 
     # Check selections
     sel_countries = st.session_state.fl_selected_countries
