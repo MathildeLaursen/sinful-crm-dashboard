@@ -740,10 +740,10 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             else:
                 subplot_titles.append(str(mail))
         
-        # Fast pixel-afstand mellem grafer (ca. 40px) uanset antal
+        # Fast pixel-afstand mellem grafer uanset antal
         # Beregn spacing saa pixel-afstanden er ens
-        height_per_chart = 200  # pixels per graf
-        gap_pixels = 40  # oensket afstand i pixels
+        height_per_chart = 180  # pixels per graf
+        gap_pixels = 60  # oensket afstand i pixels
         chart_height = num_items * height_per_chart + (num_items - 1) * gap_pixels
         
         # v_spacing er relativ til total hoejde, saa beregn den
