@@ -288,8 +288,11 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
             prev_opens_raw = prev_agg['Unique_Opens'].sum()
             prev_clicks_raw = prev_agg['Unique_Clicks'].sum()
             
-            # Tjek om vi har delvis måned (nuværende måned er valgt)
-            if current_month in selected_months:
+            # Kun skaler hvis den nuværende måned er den ENESTE valgte måned
+            # Ellers sammenligner vi bare fulde måneder med fulde måneder
+            only_current_month_selected = (len(selected_months) == 1 and current_month in selected_months)
+            
+            if only_current_month_selected:
                 # Beregn hvor langt vi er i måneden
                 month_progress = calculate_month_progress()
                 
@@ -298,7 +301,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
                 prev_opens = prev_opens_raw * month_progress
                 prev_clicks = prev_clicks_raw * month_progress
             else:
-                # Fuld måned sammenligning
+                # Fuld måned sammenligning (eller blanding af måneder)
                 prev_received = prev_received_raw
                 prev_opens = prev_opens_raw
                 prev_clicks = prev_clicks_raw
