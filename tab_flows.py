@@ -920,26 +920,31 @@ def render_overview_tab_content(df, available_months):
             default_start_idx = max(0, len(sorted_months) - 3)
             default_start = sorted_months[default_start_idx]
             
-            # Brug eksisterende session state værdi hvis den findes og er valid
-            slider_key = "fl_month_range_overview"
-            if slider_key in st.session_state:
-                saved_range = st.session_state[slider_key]
-                # Valider at gemte værdier stadig er i sorted_months
-                if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
-                    initial_value = saved_range
-                else:
-                    initial_value = (default_start, default_end)
+            # Brug separat saved state (ikke widget key) for at overleve st.rerun()
+            saved_key = "fl_month_range_overview_saved"
+            if saved_key not in st.session_state:
+                st.session_state[saved_key] = (default_start, default_end)
+            
+            # Valider at gemte værdier stadig er i sorted_months
+            saved_range = st.session_state[saved_key]
+            if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
+                initial_value = saved_range
             else:
                 initial_value = (default_start, default_end)
+                st.session_state[saved_key] = initial_value
             
             month_range = st.select_slider(
                 "Periode",
                 options=sorted_months,
                 value=initial_value,
                 format_func=format_month_short,
-                key=slider_key,
+                key="fl_month_range_overview",
                 label_visibility="collapsed"
             )
+            
+            # Gem værdien i separat state efter rendering
+            st.session_state[saved_key] = month_range
+            
             sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
         else:
             # Kun én måned tilgængelig
@@ -1085,26 +1090,31 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
             default_start_idx = max(0, len(sorted_months) - 3)
             default_start = sorted_months[default_start_idx]
             
-            # Brug eksisterende session state værdi hvis den findes og er valid
-            slider_key = f"fl_month_range_{flow_trigger}"
-            if slider_key in st.session_state:
-                saved_range = st.session_state[slider_key]
-                # Valider at gemte værdier stadig er i sorted_months
-                if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
-                    initial_value = saved_range
-                else:
-                    initial_value = (default_start, default_end)
+            # Brug separat saved state (ikke widget key) for at overleve st.rerun()
+            saved_key = f"fl_month_range_{flow_trigger}_saved"
+            if saved_key not in st.session_state:
+                st.session_state[saved_key] = (default_start, default_end)
+            
+            # Valider at gemte værdier stadig er i sorted_months
+            saved_range = st.session_state[saved_key]
+            if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
+                initial_value = saved_range
             else:
                 initial_value = (default_start, default_end)
+                st.session_state[saved_key] = initial_value
             
             month_range = st.select_slider(
                 "Periode",
                 options=sorted_months,
                 value=initial_value,
                 format_func=format_month_short,
-                key=slider_key,
+                key=f"fl_month_range_{flow_trigger}",
                 label_visibility="collapsed"
             )
+            
+            # Gem værdien i separat state efter rendering
+            st.session_state[saved_key] = month_range
+            
             sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
         else:
             # Kun én måned tilgængelig
