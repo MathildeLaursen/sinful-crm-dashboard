@@ -463,49 +463,74 @@ label[data-baseweb="checkbox"] svg path {
    RANGE SLIDER - Unicorn tema
    =========================================== */
 
-/* Slider container */
-div[data-baseweb="slider"] {
-    margin-top: 10px !important;
+/* Slider wrapper */
+[data-testid="stSlider"] {
+    padding-top: 5px !important;
 }
 
-/* Slider track (baggrund) - den fulde track */
-div[data-baseweb="slider"] > div > div:first-child {
-    background: linear-gradient(90deg, #E8D5FF 0%, #FFD5E8 100%) !important;
-    height: 10px !important;
-    border-radius: 5px !important;
+/* TRACK - Den fulde baggrund */
+[data-testid="stSlider"] [data-testid="stThumbValue"],
+[data-testid="stSlider"] div[data-baseweb="slider"] > div > div:first-child,
+[data-testid="stSlider"] div[data-baseweb="slider"] > div:first-child > div:first-child {
+    background: #E8D5FF !important;
+    height: 12px !important;
+    border-radius: 6px !important;
 }
 
-/* Slider track inner */
-div[data-baseweb="slider"] > div > div > div {
-    height: 10px !important;
-}
-
-/* Slider selection (det valgte område) */
-div[data-baseweb="slider"] > div > div > div[role="progressbar"] {
+/* SELECTED RANGE - Det valgte lilla område */
+[data-testid="stSlider"] div[data-baseweb="slider"] > div > div:nth-child(2),
+[data-testid="stSlider"] div[data-baseweb="slider"] [style*="background"][style*="rgb"] {
     background: #9B7EBD !important;
-    height: 10px !important;
+    background-color: #9B7EBD !important;
+    height: 12px !important;
 }
 
-/* Slider håndtag (thumbs) */
-div[data-baseweb="slider"] [role="slider"] {
+/* THUMBS/HANDLES - Håndtagene */
+[data-testid="stSlider"] [role="slider"],
+[data-testid="stSlider"] div[data-baseweb="slider"] [role="slider"] {
     background: #9B7EBD !important;
+    background-color: #9B7EBD !important;
     border: 3px solid white !important;
-    box-shadow: 0 2px 6px rgba(155, 126, 189, 0.4) !important;
-    width: 22px !important;
-    height: 22px !important;
+    box-shadow: 0 2px 8px rgba(155, 126, 189, 0.5) !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
 }
 
-div[data-baseweb="slider"] [role="slider"]:hover {
+[data-testid="stSlider"] [role="slider"]:hover {
     background: #8A6DAC !important;
-    transform: scale(1.1) !important;
+    transform: scale(1.15) !important;
+    cursor: grab !important;
 }
 
-/* Slider værdi labels */
-[data-testid="stSlider"] [data-testid="stTickBarMin"],
-[data-testid="stSlider"] [data-testid="stTickBarMax"] {
+[data-testid="stSlider"] [role="slider"]:active {
+    cursor: grabbing !important;
+}
+
+/* VALUE LABELS over handles */
+[data-testid="stSlider"] [data-testid="stThumbValue"] {
     color: #9B7EBD !important;
     font-weight: 600 !important;
-    font-size: 14px !important;
+    font-size: 13px !important;
+    background: transparent !important;
+}
+
+/* TICK MARKS - Start og slut labels */
+[data-testid="stSlider"] [data-testid="stTickBarMin"],
+[data-testid="stSlider"] [data-testid="stTickBarMax"] {
+    color: #7B5EA5 !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+}
+
+/* Override alle inline styles på slider tracks */
+[data-testid="stSlider"] div[style*="background-color: rgb(14, 17, 23)"],
+[data-testid="stSlider"] div[style*="background-color: rgb(255,"] {
+    background-color: #9B7EBD !important;
+}
+
+[data-testid="stSlider"] div[style*="background-color: rgb(49, 51, 63)"] {
+    background-color: #E8D5FF !important;
 }
 
 /* ===========================================
