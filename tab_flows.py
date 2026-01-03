@@ -400,8 +400,11 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     # Formater måned til visning
     chart_df['Month_Label'] = chart_df['Year_Month'].apply(format_month_short)
     
-    # Sorter måneder kronologisk
+    # Sorter måneder kronologisk og få den korrekte rækkefølge
     chart_df = chart_df.sort_values('Year_Month')
+    
+    # Få kronologisk sorterede måneder til x-aksen
+    months_sorted = chart_df.drop_duplicates('Year_Month').sort_values('Year_Month')['Month_Label'].tolist()
     
     # Få unikke flows sorteret efter nummer
     def chart_flow_sort_key(f):
@@ -413,7 +416,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     
     # Tilføj linje for hvert flow
     for flow in unique_flows:
-        flow_data = chart_df[chart_df['Flow_Trigger'] == flow]
+        flow_data = chart_df[chart_df['Flow_Trigger'] == flow].sort_values('Year_Month')
         short_name = get_short_flow_name(flow)
         
         # Hent farve for dette flow
@@ -455,7 +458,9 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     )
     fig.update_xaxes(
         gridcolor='rgba(212,191,255,0.2)', 
-        tickfont=dict(size=11)
+        tickfont=dict(size=11),
+        categoryorder='array',
+        categoryarray=months_sorted
     )
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
