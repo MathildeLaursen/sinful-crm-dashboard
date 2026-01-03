@@ -740,9 +740,9 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             else:
                 subplot_titles.append(str(mail))
         
-        # Beregn vertical spacing - max er 1/(rows-1), bruge 35% af max (50% mindre end foer)
-        max_spacing = 1.0 / (num_items - 1) if num_items > 1 else 0.1
-        v_spacing = min(0.08, max_spacing * 0.35)
+        # Fast vertical spacing - kun justeret ned hvis over Plotly's max
+        max_allowed = 1.0 / (num_items - 1) if num_items > 1 else 0.5
+        v_spacing = min(0.05, max_allowed * 0.9)  # Fast 0.05, eller mindre hvis noedvendigt
         
         fig = make_subplots(
             rows=num_items, cols=1,
@@ -832,13 +832,14 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 fig.update_yaxes(range=[0, clicks_range_max], row=row, col=1, secondary_y=True)
         
         # Beregn hoejde baseret på antal items (250px per item for god plads)
-        chart_height = max(450, num_items * 250)
+        # Fast hoejde per graf - ensartet for alle flows
+        chart_height = max(350, num_items * 200)
         
         # Layout
         fig.update_layout(
             showlegend=True,
             height=chart_height,
-            margin=dict(l=60, r=60, t=80, b=60),
+            margin=dict(l=60, r=60, t=50, b=40),
             legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="right", x=1),
             plot_bgcolor='rgba(250,245,255,0.5)',
             paper_bgcolor='rgba(0,0,0,0)',
