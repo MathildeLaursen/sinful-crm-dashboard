@@ -376,8 +376,33 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
-    # Chart - aggregeret per flow
-    chart_df = display_df.groupby('Flow_Trigger', as_index=False).agg({
+    # Chart - tidslinje per flow over tid
+    # Unicorn farvepalette - en unik farve per flow
+    flow_colors = {
+        'Flow 4': '#9B7EBD',   # Lilla
+        'Flow 5': '#E8B4CB',   # Pink
+        'Flow 7': '#A8E6CF',   # Mint
+        'Flow 10': '#7EC8E3',  # Lyseblå
+        'Flow 16': '#F7DC6F',  # Gul
+        'Flow 20': '#BB8FCE',  # Violet
+        'Flow 21': '#F1948A',  # Koral
+        'Flow 22': '#85C1E9',  # Himmelblå
+        'Flow 23': '#82E0AA',  # Lysegrøn
+        'Flow 30': '#D7BDE2',  # Lavendel
+        'Flow 32': '#F5B7B1',  # Fersken
+    }
+    
+    def lighten_color(hex_color, factor=0.4):
+        """Gør en farve lysere"""
+        hex_color = hex_color.lstrip('#')
+        r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+        r = int(r + (255 - r) * factor)
+        g = int(g + (255 - g) * factor)
+        b = int(b + (255 - b) * factor)
+        return f'#{r:02x}{g:02x}{b:02x}'
+    
+    # Aggreger per flow og måned
+    chart_df = display_df.groupby(['Year_Month', 'Flow_Trigger'], as_index=False).agg({
         'Received_Email': 'sum',
         'Unique_Opens': 'sum',
         'Unique_Clicks': 'sum',
@@ -385,48 +410,76 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     chart_df['Open_Rate'] = (chart_df['Unique_Opens'] / chart_df['Received_Email'] * 100).round(1)
     chart_df['Click_Rate'] = (chart_df['Unique_Clicks'] / chart_df['Received_Email'] * 100).round(2)
     
-    # Sorter efter flow nummer (Flow 1, Flow 2, ...)
+    # Formater måned til visning
+    chart_df['Month_Label'] = chart_df['Year_Month'].apply(format_month_short)
+    
+    # Sorter måneder kronologisk
+    chart_df = chart_df.sort_values('Year_Month')
+    
+    # Få unikke flows sorteret efter nummer
     def chart_flow_sort_key(f):
         match = re.search(r'Flow\s*(\d+)', f)
         return int(match.group(1)) if match else 999
-    chart_df = chart_df.iloc[chart_df['Flow_Trigger'].map(chart_flow_sort_key).argsort()]
+    unique_flows = sorted(chart_df['Flow_Trigger'].unique(), key=chart_flow_sort_key)
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     
-    fig.add_trace(
-        go.Bar(
-            x=chart_df['Flow_Trigger'], y=chart_df['Open_Rate'],
-            name='Open Rate', marker_color='#9B7EBD',
-            text=chart_df['Open_Rate'].apply(lambda x: f'{x:.1f}%'),
-            textposition='outside', textfont=dict(size=14), offsetgroup=0
-        ),
-        secondary_y=False
-    )
-    
-    fig.add_trace(
-        go.Bar(
-            x=chart_df['Flow_Trigger'], y=chart_df['Click_Rate'],
-            name='Click Rate', marker_color='#E8B4CB',
-            text=chart_df['Click_Rate'].apply(lambda x: f'{x:.1f}%'),
-            textposition='outside', textfont=dict(size=12), offsetgroup=1
-        ),
-        secondary_y=True
-    )
+    # Tilføj linjer for hvert flow
+    for flow in unique_flows:
+        flow_data = chart_df[chart_df['Flow_Trigger'] == flow]
+        short_name = get_short_flow_name(flow)
+        
+        # Hent farve for dette flow (eller default)
+        base_color = flow_colors.get(short_name, '#9B7EBD')
+        light_color = lighten_color(base_color, 0.4)
+        
+        # Open Rate linje (mørkere farve, solid)
+        fig.add_trace(
+            go.Scatter(
+                x=flow_data['Month_Label'], 
+                y=flow_data['Open_Rate'],
+                name=f'{short_name} OR',
+                mode='lines+markers',
+                line=dict(color=base_color, width=2),
+                marker=dict(size=6),
+                legendgroup=short_name,
+            ),
+            secondary_y=False
+        )
+        
+        # Click Rate linje (lysere farve, stiplet)
+        fig.add_trace(
+            go.Scatter(
+                x=flow_data['Month_Label'], 
+                y=flow_data['Click_Rate'],
+                name=f'{short_name} CR',
+                mode='lines+markers',
+                line=dict(color=light_color, width=2, dash='dot'),
+                marker=dict(size=5),
+                legendgroup=short_name,
+            ),
+            secondary_y=True
+        )
     
     fig.update_layout(
         title="", showlegend=True, height=455,
-        margin=dict(l=50, r=50, t=50, b=120),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=50, r=50, t=30, b=50),
+        legend=dict(
+            orientation="h", 
+            yanchor="bottom", y=1.02, 
+            xanchor="center", x=0.5,
+            font=dict(size=10)
+        ),
         plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
-        hovermode='x unified', barmode='group', bargap=0.3, bargroupgap=0.1
+        hovermode='x unified'
     )
     
     max_open = chart_df['Open_Rate'].max() if not chart_df.empty else 50
-    max_click = chart_df['Click_Rate'].max() if not chart_df.empty else 5
+    max_click = chart_df['Click_Rate'].max() if not chart_df.empty else 10
     
-    fig.update_yaxes(title_text="Open Rate %", secondary_y=False, gridcolor='rgba(212,191,255,0.3)', ticksuffix='%', range=[0, max_open * 1.2])
-    fig.update_yaxes(title_text="Click Rate %", secondary_y=True, gridcolor='rgba(232,180,203,0.3)', ticksuffix='%', showgrid=False, range=[0, max_click * 1.2])
-    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickangle=-45, type='category', tickfont=dict(size=12))
+    fig.update_yaxes(title_text="Open Rate %", secondary_y=False, gridcolor='rgba(212,191,255,0.3)', ticksuffix='%', range=[0, max_open * 1.15])
+    fig.update_yaxes(title_text="Click Rate %", secondary_y=True, gridcolor='rgba(232,180,203,0.3)', ticksuffix='%', showgrid=False, range=[0, max_click * 1.15])
+    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickfont=dict(size=11))
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
