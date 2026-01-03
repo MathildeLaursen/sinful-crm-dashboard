@@ -438,7 +438,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     )
 
 
-def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=None):
+def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=None, full_df=None):
     """Render indhold for et enkelt flow med mail-niveau breakdown"""
     # Filtrer til dette specifikke flow og valgte lande
     flow_data = raw_df[
@@ -481,14 +481,95 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     click_rate = (total_clicks / total_received * 100) if total_received > 0 else 0
     ctr = (total_clicks / total_opens * 100) if total_opens > 0 else 0
 
+    # Sammenligning med forrige periode
+    prev_received = None
+    prev_opens = None
+    prev_clicks = None
+    prev_or = None
+    prev_cr = None
+    prev_ctr = None
+    
+    if full_df is not None:
+        # Find de valgte måneder
+        selected_months = mail_df['Year_Month'].unique().tolist()
+        current_month = get_current_year_month()
+        
+        # Sorter måneder for at finde den ældste
+        def month_to_tuple(m):
+            parts = m.split('-')
+            return (int(parts[0]), int(parts[1]))
+        
+        sorted_months = sorted(selected_months, key=month_to_tuple)
+        oldest_selected = sorted_months[0]
+        num_months = len(selected_months)
+        
+        # Find sammenligningsperioden: N måneder FØR den ældste valgte måned
+        prev_months = []
+        temp_month = oldest_selected
+        for _ in range(num_months):
+            temp_month = get_previous_month(temp_month)
+            prev_months.append(temp_month)
+        
+        # Den ældste måned i sammenligningsperioden
+        oldest_prev_month = min(prev_months, key=month_to_tuple)
+        
+        # Hent data for forrige periode (samme flow, lande og mails)
+        prev_filter = (
+            (full_df['Year_Month'].isin(prev_months)) &
+            (full_df['Flow_Trigger'] == flow_trigger) &
+            (full_df['Country'].isin(sel_countries))
+        )
+        if sel_mails is not None:
+            prev_filter = prev_filter & (full_df['Mail'].isin(sel_mails))
+        
+        prev_data = full_df[prev_filter].copy()
+        
+        if not prev_data.empty:
+            # Aggreger forrige periode PER MÅNED
+            prev_agg = prev_data.groupby(['Year_Month'], as_index=False).agg({
+                'Received_Email': 'sum',
+                'Unique_Opens': 'sum',
+                'Unique_Clicks': 'sum',
+            })
+            
+            # Beregn totaler med korrekt skalering
+            prev_received = 0
+            prev_opens = 0
+            prev_clicks = 0
+            
+            # Tjek om nuværende måned er valgt
+            current_month_selected = current_month in selected_months
+            month_progress = calculate_month_progress() if current_month_selected else 1.0
+            
+            for _, row in prev_agg.iterrows():
+                month = row['Year_Month']
+                
+                if month == oldest_prev_month and current_month_selected:
+                    # Skaler den ældste måned i sammenligningen
+                    prev_received += row['Received_Email'] * month_progress
+                    prev_opens += row['Unique_Opens'] * month_progress
+                    prev_clicks += row['Unique_Clicks'] * month_progress
+                else:
+                    # Fuld måned
+                    prev_received += row['Received_Email']
+                    prev_opens += row['Unique_Opens']
+                    prev_clicks += row['Unique_Clicks']
+            
+            # Beregn rater for forrige periode
+            if prev_received > 0:
+                prev_or = (prev_opens / prev_received * 100)
+                prev_cr = (prev_clicks / prev_received * 100)
+            if prev_opens > 0:
+                prev_ctr = (prev_clicks / prev_opens * 100)
+
     # KPI Cards
     col1, col2, col3, col4, col5, col6 = st.columns(6)
-    show_metric(col1, "Emails Sendt", total_received)
-    show_metric(col2, "Unikke Opens", total_opens)
-    show_metric(col3, "Unikke Clicks", total_clicks)
-    show_metric(col4, "Open Rate", open_rate, is_percent=True)
-    show_metric(col5, "Click Rate", click_rate, is_percent=True)
-    show_metric(col6, "Click Through Rate", ctr, is_percent=True)
+    show_metric(col1, "Emails Sendt", total_received, prev_received)
+    show_metric(col2, "Unikke Opens", total_opens, prev_opens)
+    show_metric(col3, "Unikke Clicks", total_clicks, prev_clicks)
+    show_metric(col4, "Open Rate", open_rate, prev_or, is_percent=True)
+    show_metric(col5, "Click Rate", click_rate, prev_cr, is_percent=True)
+    show_metric(col6, "Click Through Rate", ctr, prev_ctr, is_percent=True)
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
@@ -556,38 +637,71 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
     # Tabel med mail-niveau data
-    table_df = mail_df[['Year_Month', 'Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
+    # Tjek om flere måneder er valgt - aggreger i så fald
+    unique_months = mail_df['Year_Month'].nunique()
     
-    # Sorter: nyeste måned først, derefter laveste mail nummer
-    def month_to_sortable(m):
-        try:
-            parts = m.split('-')
-            return int(parts[0]) * 100 + int(parts[1])
-        except:
-            return 0
-    table_df['_month_num'] = table_df['Year_Month'].apply(month_to_sortable)
-    table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
-    table_df = table_df.sort_values(['_month_num', '_mail_num'], ascending=[False, True])
-    table_df = table_df.drop(columns=['_month_num', '_mail_num'])
-    # Beregn højde så alle rækker vises (ingen max begrænsning)
-    table_height = (len(table_df) + 1) * 35 + 3
-    
-    st.dataframe(
-        table_df, use_container_width=True, hide_index=True, height=table_height,
-        column_config={
-            "Year_Month": st.column_config.TextColumn("Måned", width="small"),
-            "Mail": st.column_config.TextColumn("Mail", width="small"),
-            "Message": st.column_config.TextColumn("Message", width="medium"),
-            "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
-            "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
-            "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
-            "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
-            "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
-            "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
-            "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
-            "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
-        }
-    )
+    if unique_months > 1:
+        # Aggreger over måneder - vis kun per mail
+        table_df = mail_df.groupby(['Mail', 'Message'], as_index=False).agg({
+            'Received_Email': 'sum',
+            'Unique_Opens': 'sum',
+            'Unique_Clicks': 'sum',
+            'Unsubscribed': 'sum',
+            'Bounced': 'sum',
+        })
+        # Genberegn rater efter aggregering
+        table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+        table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+        table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
+        
+        # Sorter efter mail nummer
+        table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
+        table_df = table_df.sort_values('_mail_num', ascending=True)
+        table_df = table_df.drop(columns=['_mail_num'])
+        
+        # Kolonner uden Year_Month
+        table_df = table_df[['Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
+        
+        st.dataframe(
+            table_df, use_container_width=True, hide_index=True,
+            column_config={
+                "Mail": st.column_config.TextColumn("Mail", width="small"),
+                "Message": st.column_config.TextColumn("Message", width="medium"),
+                "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
+                "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
+                "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
+                "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
+                "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
+                "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
+                "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
+                "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
+            }
+        )
+    else:
+        # Én måned valgt - vis med måned kolonne
+        table_df = mail_df[['Year_Month', 'Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
+        
+        # Sorter efter mail nummer
+        table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
+        table_df = table_df.sort_values('_mail_num', ascending=True)
+        table_df = table_df.drop(columns=['_mail_num'])
+        
+        st.dataframe(
+            table_df, use_container_width=True, hide_index=True,
+            column_config={
+                "Year_Month": st.column_config.TextColumn("Måned", width="small"),
+                "Mail": st.column_config.TextColumn("Mail", width="small"),
+                "Message": st.column_config.TextColumn("Message", width="medium"),
+                "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
+                "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
+                "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
+                "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
+                "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
+                "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
+                "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
+                "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
+            }
+        )
 
 
 def get_short_flow_name(flow_trigger):
@@ -929,7 +1043,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         return
 
     # Render indhold
-    render_single_flow_content(df_month_filtered, flow_trigger, sel_countries, sel_mails)
+    render_single_flow_content(df_month_filtered, flow_trigger, sel_countries, sel_mails, df)
 
     if st.button('Opdater Data', key=f"fl_refresh_{flow_trigger}"):
         st.rerun()
