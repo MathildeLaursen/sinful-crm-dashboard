@@ -252,7 +252,7 @@ def format_month_short(year_month):
     return f"{month_names[month]} {year}"
 
 
-def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
+def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None, all_months_df=None):
     """Render oversigt (alle flows aggregeret)"""
     current_df = flow_df[
         (flow_df['Country'].isin(sel_countries)) &
@@ -376,7 +376,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
 
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
-    # Chart - tidslinje: Antal sendt per flow over tid
+    # Chart - tidslinje: Antal sendt per flow over tid (ALLE måneder, uanset slider)
     # Unicorn farvepalette - dynamisk tildeling til flows
     # Farver gentages hvis der er flere flows end farver
     UNICORN_COLORS = [
@@ -397,8 +397,15 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
         '#FADBD8',   # Lyserød
     ]
     
+    # Brug alle måneder til grafen (ikke filtreret af slider)
+    chart_source_df = all_months_df if all_months_df is not None else display_df
+    chart_source_df = chart_source_df[
+        (chart_source_df['Country'].isin(sel_countries)) &
+        (chart_source_df['Flow_Trigger'].isin(sel_flows))
+    ].copy()
+    
     # Aggreger per flow og måned
-    chart_df = display_df.groupby(['Year_Month', 'Flow_Trigger'], as_index=False).agg({
+    chart_df = chart_source_df.groupby(['Year_Month', 'Flow_Trigger'], as_index=False).agg({
         'Received_Email': 'sum',
     })
     
@@ -1018,7 +1025,29 @@ def render_overview_tab_content(df, available_months):
     # Aggreger fuld df først for at få filter options
     full_flow_df = aggregate_to_flow_level(df)
     all_countries = sorted(full_flow_df['Country'].unique())
-    all_flows = get_unique_flows(full_flow_df)
+    all_flows_full = get_unique_flows(full_flow_df)
+    
+    # Find aktive flows (sendt denne eller sidste måned)
+    current_month = get_current_year_month()
+    today = datetime.date.today()
+    if today.month == 1:
+        prev_month = f"{today.year - 1}-12"
+    else:
+        prev_month = f"{today.year}-{today.month - 1}"
+    
+    recent_months = [current_month, prev_month]
+    recent_data = full_flow_df[
+        (full_flow_df['Year_Month'].isin(recent_months)) & 
+        (full_flow_df['Received_Email'] > 0)
+    ]
+    active_flows = set(recent_data['Flow_Trigger'].unique())
+    
+    # Initialize ignore inactive state (default True)
+    if 'fl_ignore_inactive_overview' not in st.session_state:
+        st.session_state.fl_ignore_inactive_overview = True
+    
+    # Filtrer flows baseret på ignore_inactive
+    all_flows = [f for f in all_flows_full if f in active_flows] if st.session_state.fl_ignore_inactive_overview else all_flows_full
 
     # Initialize selections
     if st.session_state.fl_selected_countries is None:
@@ -1030,9 +1059,11 @@ def render_overview_tab_content(df, available_months):
         st.session_state.fl_selected_flows = list(all_flows)
     else:
         st.session_state.fl_selected_flows = [f for f in st.session_state.fl_selected_flows if f in all_flows]
+        if not st.session_state.fl_selected_flows:
+            st.session_state.fl_selected_flows = list(all_flows)
 
-    # Layout - dropdowns og slider på samme linje
-    col_land, col_flow, col_slider = st.columns([1, 1, 4])
+    # Layout - dropdowns, checkbox og slider på samme linje
+    col_land, col_flow, col_inaktive, col_slider = st.columns([1, 1, 0.8, 3.2])
 
     # Land filter
     with col_land:
@@ -1091,6 +1122,21 @@ def render_overview_tab_content(df, available_months):
                 st.session_state.fl_selected_flows = new_selected_flows
                 st.session_state.fl_cb_reset_flow += 1
                 st.rerun()
+
+    # Ignorer Inaktive checkbox
+    with col_inaktive:
+        ignore_inactive = st.checkbox(
+            "Ignorer Inaktive", 
+            value=st.session_state.fl_ignore_inactive_overview, 
+            key="fl_ignore_inactive_overview_cb"
+        )
+        if ignore_inactive != st.session_state.fl_ignore_inactive_overview:
+            st.session_state.fl_ignore_inactive_overview = ignore_inactive
+            # Reset flow selection når toggle ændres
+            new_all_flows = [f for f in all_flows_full if f in active_flows] if ignore_inactive else all_flows_full
+            st.session_state.fl_selected_flows = list(new_all_flows)
+            st.session_state.fl_cb_reset_flow += 1
+            st.rerun()
 
     # Periode slider (på samme linje som dropdowns)
     with col_slider:
@@ -1152,8 +1198,9 @@ def render_overview_tab_content(df, available_months):
         st.warning("Vælg mindst ét flow.")
         return
 
-    # Render indhold
-    render_overview_content(flow_df, sel_countries, sel_flows, full_flow_df)
+    # Render indhold (send også alle måneder til grafen)
+    all_months_flow_df = aggregate_to_flow_level(df)
+    render_overview_content(flow_df, sel_countries, sel_flows, full_flow_df, all_months_flow_df)
 
     if st.button('Opdater Data', key="fl_refresh_overview"):
         st.rerun()
