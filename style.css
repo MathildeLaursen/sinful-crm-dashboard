@@ -460,68 +460,30 @@ label[data-baseweb="checkbox"] svg path {
 }
 
 /* ===========================================
-   RANGE SLIDER - Unicorn tema
+   RANGE SLIDER - Unicorn tema (MINIMAL)
+   Lad Streamlit's tema håndtere det meste
    =========================================== */
 
-/* Slider wrapper */
-[data-testid="stSlider"] {
-    padding-top: 5px !important;
-}
-
-/* TRACK - Den fulde baggrund */
-[data-testid="stSlider"] [data-testid="stThumbValue"],
-[data-testid="stSlider"] div[data-baseweb="slider"] > div > div:first-child,
-[data-testid="stSlider"] div[data-baseweb="slider"] > div:first-child > div:first-child {
-    background: #E8D5FF !important;
-    height: 10px !important;
-    border-radius: 5px !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-/* Fjern alle uønskede borders og shadows på slider */
-[data-testid="stSlider"] div[data-baseweb="slider"] div {
-    border-top: none !important;
-    border-bottom: none !important;
-}
-
-/* SELECTED RANGE - Det valgte lilla område */
-[data-testid="stSlider"] div[data-baseweb="slider"] > div > div:nth-child(2),
-[data-testid="stSlider"] div[data-baseweb="slider"] [style*="background"][style*="rgb"] {
-    background: #9B7EBD !important;
-    background-color: #9B7EBD !important;
-    height: 10px !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
 /* THUMBS/HANDLES - Håndtagene */
-[data-testid="stSlider"] [role="slider"],
-[data-testid="stSlider"] div[data-baseweb="slider"] [role="slider"] {
+[data-testid="stSlider"] [role="slider"] {
     background: #9B7EBD !important;
-    background-color: #9B7EBD !important;
     border: 3px solid white !important;
     box-shadow: 0 2px 8px rgba(155, 126, 189, 0.5) !important;
-    width: 24px !important;
-    height: 24px !important;
+    width: 22px !important;
+    height: 22px !important;
     border-radius: 50% !important;
 }
 
 [data-testid="stSlider"] [role="slider"]:hover {
     background: #8A6DAC !important;
-    transform: scale(1.15) !important;
+    transform: scale(1.1) !important;
     cursor: grab !important;
-}
-
-[data-testid="stSlider"] [role="slider"]:active {
-    cursor: grabbing !important;
 }
 
 /* VALUE LABELS over handles */
 [data-testid="stSlider"] [data-testid="stThumbValue"] {
     color: #9B7EBD !important;
     font-weight: 600 !important;
-    font-size: 13px !important;
     background: transparent !important;
 }
 
@@ -529,18 +491,6 @@ label[data-baseweb="checkbox"] svg path {
 [data-testid="stSlider"] [data-testid="stTickBarMin"],
 [data-testid="stSlider"] [data-testid="stTickBarMax"] {
     color: #7B5EA5 !important;
-    font-weight: 500 !important;
-    font-size: 12px !important;
-}
-
-/* Override alle inline styles på slider tracks */
-[data-testid="stSlider"] div[style*="background-color: rgb(14, 17, 23)"],
-[data-testid="stSlider"] div[style*="background-color: rgb(255,"] {
-    background-color: #9B7EBD !important;
-}
-
-[data-testid="stSlider"] div[style*="background-color: rgb(49, 51, 63)"] {
-    background-color: #E8D5FF !important;
 }
 
 /* ===========================================
