@@ -343,60 +343,28 @@ label[data-baseweb="checkbox"] svg path {
 
 /* ===========================================
    TABEL - Samme stil som metric cards
+   Glide-data-grid bruger CSS custom properties
    =========================================== */
 
-/* Container wrapper */
+/* Ydre container styling */
 [data-testid="stDataFrame"] {
     border-radius: 12px !important;
     overflow: hidden !important;
     box-shadow: 0 2px 8px rgba(155, 126, 189, 0.1) !important;
     border: 1px solid rgba(155, 126, 189, 0.2) !important;
-    background: rgba(255, 255, 255, 0.7) !important;
 }
 
-/* Indre container og iframe */
-[data-testid="stDataFrame"] > div,
-[data-testid="stDataFrame"] iframe {
-    background: rgba(255, 255, 255, 0.7) !important;
-    border-radius: 12px !important;
-}
-
-/* Glide-data-grid specifikke selektorer */
-[data-testid="stDataFrame"] .dvn-scroller {
-    background: rgba(255, 255, 255, 0.7) !important;
-}
-
-/* Header styling via glide-data-grid */
-[data-testid="stDataFrame"] [data-testid="glide-cell-header"],
-[data-testid="stDataFrame"] .header-cell {
-    background: rgba(255, 255, 255, 0.85) !important;
-    color: #9B7EBD !important;
-}
-
-/* Alternativ: Style hele dataframe området */
-.stDataFrame,
-div[data-testid="stDataFrame"] > div > div {
-    background: rgba(255, 255, 255, 0.7) !important;
-    border-radius: 12px !important;
-}
-
-/* Standard HTML table fallback */
-[data-testid="stDataFrame"] td {
-    text-align: left !important;
-    background: rgba(255, 255, 255, 0.7) !important;
-    border-bottom: 1px solid rgba(155, 126, 189, 0.15) !important;
-}
-
-[data-testid="stDataFrame"] th {
-    text-align: left !important;
-    background: rgba(255, 255, 255, 0.85) !important;
-    color: #9B7EBD !important;
-    font-weight: 600 !important;
-    border-bottom: 1px solid rgba(155, 126, 189, 0.25) !important;
-}
-
-[data-testid="stDataFrame"] tr:hover td {
-    background: rgba(255, 255, 255, 0.9) !important;
+/* Override glide-data-grid CSS variabler for at matche metric cards */
+.stDataFrameGlideDataEditor {
+    --gdg-bg-cell: rgba(255, 255, 255, 0.7) !important;
+    --gdg-bg-cell-medium: rgba(255, 255, 255, 0.7) !important;
+    --gdg-bg-header: rgba(255, 255, 255, 0.85) !important;
+    --gdg-bg-header-hovered: rgba(212, 191, 255, 0.2) !important;
+    --gdg-bg-header-has-focus: rgba(212, 191, 255, 0.2) !important;
+    --gdg-text-header: #9B7EBD !important;
+    --gdg-text-header-selected: #7B5EA5 !important;
+    --gdg-border-color: rgba(155, 126, 189, 0.2) !important;
+    --gdg-horizontal-border-color: rgba(155, 126, 189, 0.15) !important;
 }
 
 
