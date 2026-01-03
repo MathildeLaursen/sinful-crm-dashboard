@@ -789,8 +789,8 @@ def render_overview_tab_content(df, available_months):
     else:
         st.session_state.fl_selected_flows = [f for f in st.session_state.fl_selected_flows if f in all_flows]
 
-    # Layout - dropdowns først
-    col_land, col_flow, col_spacer = st.columns([1, 1, 4])
+    # Layout - dropdowns og slider på samme linje
+    col_land, col_flow, col_slider = st.columns([1, 1, 4])
 
     # Land filter
     with col_land:
@@ -850,33 +850,26 @@ def render_overview_tab_content(df, available_months):
                 st.session_state.fl_cb_reset_flow += 1
                 st.rerun()
 
-    # Periode slider (efter dropdowns)
-    if len(sorted_months) > 1:
-        # Default til sidste 3 måneder (eller alle hvis færre)
-        default_end = sorted_months[-1]
-        default_start_idx = max(0, len(sorted_months) - 3)
-        default_start = sorted_months[default_start_idx]
-        
-        month_range = st.select_slider(
-            "Periode",
-            options=sorted_months,
-            value=(default_start, default_end),
-            format_func=format_month_short,
-            key="fl_month_range_overview"
-        )
-        sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
-        
-        # Vis valgt periode
-        start_fmt = format_month_short(month_range[0])
-        end_fmt = format_month_short(month_range[1])
-        if start_fmt == end_fmt:
-            st.caption(f"Valgt: {start_fmt}")
+    # Periode slider (på samme linje som dropdowns)
+    with col_slider:
+        if len(sorted_months) > 1:
+            # Default til sidste 3 måneder (eller alle hvis færre)
+            default_end = sorted_months[-1]
+            default_start_idx = max(0, len(sorted_months) - 3)
+            default_start = sorted_months[default_start_idx]
+            
+            month_range = st.select_slider(
+                "Periode",
+                options=sorted_months,
+                value=(default_start, default_end),
+                format_func=format_month_short,
+                key="fl_month_range_overview"
+            )
+            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
         else:
-            st.caption(f"Valgt: {start_fmt} - {end_fmt}")
-    else:
-        # Kun én måned tilgængelig
-        st.info(f"Periode: {format_month_short(sorted_months[0])}")
-        sel_months = sorted_months
+            # Kun én måned tilgængelig
+            st.info(f"Periode: {format_month_short(sorted_months[0])}")
+            sel_months = sorted_months
     
     if not sel_months:
         st.warning("Vælg mindst én måned.")
@@ -951,8 +944,8 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     if mail_reset_key not in st.session_state:
         st.session_state[mail_reset_key] = 0
 
-    # Layout - dropdowns først
-    col_land, col_mail, col_spacer = st.columns([1, 1, 4])
+    # Layout - dropdowns og slider på samme linje
+    col_land, col_mail, col_slider = st.columns([1, 1, 4])
 
     # Land filter
     with col_land:
@@ -1010,33 +1003,26 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
 
-    # Periode slider (efter dropdowns)
-    if len(sorted_months) > 1:
-        # Default til sidste 3 måneder (eller alle hvis færre)
-        default_end = sorted_months[-1]
-        default_start_idx = max(0, len(sorted_months) - 3)
-        default_start = sorted_months[default_start_idx]
-        
-        month_range = st.select_slider(
-            "Periode",
-            options=sorted_months,
-            value=(default_start, default_end),
-            format_func=format_month_short,
-            key=f"fl_month_range_{flow_trigger}"
-        )
-        sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
-        
-        # Vis valgt periode
-        start_fmt = format_month_short(month_range[0])
-        end_fmt = format_month_short(month_range[1])
-        if start_fmt == end_fmt:
-            st.caption(f"Valgt: {start_fmt}")
+    # Periode slider (på samme linje som dropdowns)
+    with col_slider:
+        if len(sorted_months) > 1:
+            # Default til sidste 3 måneder (eller alle hvis færre)
+            default_end = sorted_months[-1]
+            default_start_idx = max(0, len(sorted_months) - 3)
+            default_start = sorted_months[default_start_idx]
+            
+            month_range = st.select_slider(
+                "Periode",
+                options=sorted_months,
+                value=(default_start, default_end),
+                format_func=format_month_short,
+                key=f"fl_month_range_{flow_trigger}"
+            )
+            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
         else:
-            st.caption(f"Valgt: {start_fmt} - {end_fmt}")
-    else:
-        # Kun én måned tilgængelig
-        st.info(f"Periode: {format_month_short(sorted_months[0])}")
-        sel_months = sorted_months
+            # Kun én måned tilgængelig
+            st.info(f"Periode: {format_month_short(sorted_months[0])}")
+            sel_months = sorted_months
     
     if not sel_months:
         st.warning("Vælg mindst én måned.")
