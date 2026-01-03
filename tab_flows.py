@@ -25,7 +25,7 @@ def load_flows_data():
         
         # Tjek om flows_spreadsheet er konfigureret
         if "flows_spreadsheet" not in st.secrets["connections"]["gsheets"]:
-            st.error("Mangler 'flows_spreadsheet' i secrets. Tilfoej: flows_spreadsheet = 'URL'")
+            st.error("Mangler 'flows_spreadsheet' i secrets. Tilføj: flows_spreadsheet = 'URL'")
             return pd.DataFrame()
         
         flows_url = st.secrets["connections"]["gsheets"]["flows_spreadsheet"]
@@ -42,7 +42,7 @@ def load_flows_data():
             return pd.DataFrame()
             
     except Exception as e:
-        st.error(f"Fejl ved indlaesning fra Google Sheets: {type(e).__name__}: {e}")
+        st.error(f"Fejl ved indlæsning fra Google Sheets: {type(e).__name__}: {e}")
         st.info(f"URL brugt: {st.secrets['connections']['gsheets'].get('flows_spreadsheet', 'IKKE SAT')}")
         return pd.DataFrame()
     
@@ -131,9 +131,9 @@ def load_flows_data():
 
 
 def get_available_months(df):
-    """Returner liste af tilgaengelige maaneder sorteret faldende (nyeste foerst)"""
+    """Returner liste af tilgængelige måneder sorteret faldende (nyeste først)"""
     months = df['Year_Month'].unique()
-    # Sorter som datoer, ikke tekst (2025-12 skal komme foer 2025-9)
+    # Sorter som datoer, ikke tekst (2025-12 skal komme før 2025-9)
     def month_sort_key(m):
         try:
             parts = m.split('-')
@@ -183,7 +183,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
         st.warning("Ingen data matcher de valgte filtre.")
         return
 
-    # Aggreger til visning (sum over alle lande og maaneder)
+    # Aggreger til visning (sum over alle lande og måneder)
     display_df = current_df.groupby(['Year_Month', 'Flow_Trigger'], as_index=False).agg({
         'Received_Email': 'sum',
         'Total_Opens': 'sum',
@@ -278,7 +278,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
     # Tabel
     table_df = display_df[['Year_Month', 'Flow_Trigger', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
     
-    # Sorter: nyeste maaned foerst, derefter laveste flow nummer
+    # Sorter: nyeste måned først, derefter laveste flow nummer
     def month_to_sortable(m):
         try:
             parts = m.split('-')
@@ -294,7 +294,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
     st.dataframe(
         table_df, use_container_width=True, hide_index=True, height=table_height,
         column_config={
-            "Year_Month": st.column_config.TextColumn("Maaned", width="small"),
+            "Year_Month": st.column_config.TextColumn("Måned", width="small"),
             "Flow_Trigger": st.column_config.TextColumn("Flow - Trigger", width="large"),
             "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
             "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
@@ -320,7 +320,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries):
         st.warning(f"Ingen data for {flow_trigger} med de valgte filtre.")
         return
     
-    # Aggreger per mail (sum over alle lande og maaneder)
+    # Aggreger per mail (sum over alle lande og måneder)
     mail_df = flow_data.groupby(['Year_Month', 'Mail', 'Message'], as_index=False).agg({
         'Received_Email': 'sum',
         'Total_Opens': 'sum',
@@ -424,7 +424,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries):
     # Tabel med mail-niveau data
     table_df = mail_df[['Year_Month', 'Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
     
-    # Sorter: nyeste maaned foerst, derefter laveste mail nummer
+    # Sorter: nyeste måned først, derefter laveste mail nummer
     def month_to_sortable(m):
         try:
             parts = m.split('-')
@@ -440,7 +440,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries):
     st.dataframe(
         table_df, use_container_width=True, hide_index=True, height=table_height,
         column_config={
-            "Year_Month": st.column_config.TextColumn("Maaned", width="small"),
+            "Year_Month": st.column_config.TextColumn("Måned", width="small"),
             "Mail": st.column_config.TextColumn("Mail", width="small"),
             "Message": st.column_config.TextColumn("Message", width="medium"),
             "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
@@ -453,6 +453,12 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries):
             "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
         }
     )
+
+
+def get_short_flow_name(flow_trigger):
+    """Udtræk kun 'Flow X' fra 'Flow X - Trigger Name'"""
+    match = re.search(r'(Flow\s*\d+)', flow_trigger)
+    return match.group(1) if match else flow_trigger
 
 
 def render_flows_tab():
@@ -469,11 +475,11 @@ def render_flows_tab():
         st.error(f"Fejl: {e}")
         return
 
-    # Faa tilgaengelige maaneder
+    # Få tilgængelige måneder
     available_months = get_available_months(df)
     
     if not available_months:
-        st.warning("Ingen maaneder tilgaengelige i data.")
+        st.warning("Ingen måneder tilgængelige i data.")
         return
 
     # Session state
@@ -490,15 +496,35 @@ def render_flows_tab():
     if 'fl_cb_reset_flow' not in st.session_state:
         st.session_state.fl_cb_reset_flow = 0
 
+    # Hent alle flows først (før filtrering) for at kunne vise subtabs
+    all_flow_triggers = get_unique_flows(df)
+    
+    # Sub-tabs: Oversigt + et tab per flow (med korte navne)
+    tab_labels = ["Oversigt"] + [get_short_flow_name(f) for f in all_flow_triggers]
+    sub_tabs = st.tabs(tab_labels)
+    
+    # Oversigt tab
+    with sub_tabs[0]:
+        render_overview_tab_content(df, available_months)
+    
+    # Individuelle flow tabs
+    for i, flow_trigger in enumerate(all_flow_triggers):
+        with sub_tabs[i + 1]:
+            render_single_flow_tab_content(df, flow_trigger, available_months)
+
+
+def render_overview_tab_content(df, available_months):
+    """Render oversigt tab med filtre og indhold"""
+    
     # Layout - filters
     col_month, col_land, col_spacer = st.columns([1.2, 1, 3.8])
 
-    # Maaned vaelger (dropdown med multiselect)
+    # Måned vælger (dropdown med multiselect)
     with col_month:
-        with st.popover("Maaned", use_container_width=True):
+        with st.popover("Måned", use_container_width=True):
             reset_month = st.session_state.fl_cb_reset_month
             all_months_selected = set(st.session_state.fl_selected_months) == set(available_months)
-            select_all_months = st.checkbox("Vaelg alle", value=all_months_selected, key=f"fl_sel_all_month_{reset_month}")
+            select_all_months = st.checkbox("Vælg alle", value=all_months_selected, key=f"fl_sel_all_month_{reset_month}")
             
             new_selected_months = []
             for month in available_months:
@@ -519,10 +545,10 @@ def render_flows_tab():
                 st.session_state.fl_cb_reset_month += 1
                 st.rerun()
 
-    # Filtrer data efter valgte maaneder
+    # Filtrer data efter valgte måneder
     sel_months = st.session_state.fl_selected_months
     if not sel_months:
-        st.warning("Vaelg mindst en maaned.")
+        st.warning("Vælg mindst én måned.")
         return
     
     df_month_filtered = df[df['Year_Month'].isin(sel_months)]
@@ -552,7 +578,7 @@ def render_flows_tab():
         with st.popover(land_label, use_container_width=True):
             reset_land = st.session_state.fl_cb_reset_land
             all_land_selected = len(st.session_state.fl_selected_countries) == len(all_countries)
-            select_all_land = st.checkbox("Vaelg alle", value=all_land_selected, key=f"fl_sel_all_land_{reset_land}")
+            select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"fl_sel_all_land_{reset_land}")
             
             new_selected = []
             for country in all_countries:
@@ -578,21 +604,109 @@ def render_flows_tab():
     sel_flows = st.session_state.fl_selected_flows
 
     if not sel_countries:
-        st.warning("Vaelg mindst et land.")
+        st.warning("Vælg mindst ét land.")
         return
 
-    # Sub-tabs: Oversigt + et tab per flow
-    tab_names = ["Oversigt"] + list(all_flows)
-    sub_tabs = st.tabs(tab_names)
-    
-    # Oversigt tab
-    with sub_tabs[0]:
-        render_overview_content(flow_df, sel_countries, sel_flows)
-    
-    # Individuelle flow tabs
-    for i, flow_trigger in enumerate(all_flows):
-        with sub_tabs[i + 1]:
-            render_single_flow_content(df_month_filtered, flow_trigger, sel_countries)
+    # Render indhold
+    render_overview_content(flow_df, sel_countries, sel_flows)
 
-    if st.button('Opdater Data', key="fl_refresh"):
+    if st.button('Opdater Data', key="fl_refresh_overview"):
+        st.rerun()
+
+
+def render_single_flow_tab_content(df, flow_trigger, available_months):
+    """Render enkelt flow tab med filtre og indhold"""
+    
+    # Layout - filters
+    col_month, col_land, col_spacer = st.columns([1.2, 1, 3.8])
+
+    # Måned vælger
+    with col_month:
+        with st.popover("Måned", use_container_width=True):
+            reset_month = st.session_state.fl_cb_reset_month
+            all_months_selected = set(st.session_state.fl_selected_months) == set(available_months)
+            select_all_months = st.checkbox("Vælg alle", value=all_months_selected, key=f"fl_sel_all_month_sf_{flow_trigger}_{reset_month}")
+            
+            new_selected_months = []
+            for month in available_months:
+                checked = month in st.session_state.fl_selected_months
+                if st.checkbox(month, value=checked, key=f"fl_cb_month_sf_{flow_trigger}_{month}_{reset_month}"):
+                    new_selected_months.append(month)
+            
+            if select_all_months and not all_months_selected:
+                st.session_state.fl_selected_months = list(available_months)
+                st.session_state.fl_cb_reset_month += 1
+                st.rerun()
+            elif not select_all_months and all_months_selected:
+                st.session_state.fl_selected_months = []
+                st.session_state.fl_cb_reset_month += 1
+                st.rerun()
+            elif set(new_selected_months) != set(st.session_state.fl_selected_months):
+                st.session_state.fl_selected_months = new_selected_months
+                st.session_state.fl_cb_reset_month += 1
+                st.rerun()
+
+    # Filtrer data efter valgte måneder
+    sel_months = st.session_state.fl_selected_months
+    if not sel_months:
+        st.warning("Vælg mindst én måned.")
+        return
+    
+    df_month_filtered = df[df['Year_Month'].isin(sel_months)]
+
+    # Filter options - kun lande der har data for dette flow
+    flow_data = df_month_filtered[df_month_filtered['Flow_Trigger'] == flow_trigger]
+    all_countries = sorted(flow_data['Country'].unique()) if not flow_data.empty else []
+
+    if not all_countries:
+        st.warning(f"Ingen data for dette flow i de valgte måneder.")
+        return
+
+    # Initialize country selection
+    if st.session_state.fl_selected_countries is None:
+        st.session_state.fl_selected_countries = list(all_countries)
+    else:
+        st.session_state.fl_selected_countries = [c for c in st.session_state.fl_selected_countries if c in all_countries]
+        if not st.session_state.fl_selected_countries:
+            st.session_state.fl_selected_countries = list(all_countries)
+
+    # Land filter
+    with col_land:
+        land_count = len(st.session_state.fl_selected_countries)
+        land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
+        with st.popover(land_label, use_container_width=True):
+            reset_land = st.session_state.fl_cb_reset_land
+            all_land_selected = len(st.session_state.fl_selected_countries) == len(all_countries)
+            select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"fl_sel_all_land_sf_{flow_trigger}_{reset_land}")
+            
+            new_selected = []
+            for country in all_countries:
+                checked = country in st.session_state.fl_selected_countries
+                if st.checkbox(country, value=checked, key=f"fl_cb_land_sf_{flow_trigger}_{country}_{reset_land}"):
+                    new_selected.append(country)
+            
+            if select_all_land and not all_land_selected:
+                st.session_state.fl_selected_countries = list(all_countries)
+                st.session_state.fl_cb_reset_land += 1
+                st.rerun()
+            elif not select_all_land and all_land_selected:
+                st.session_state.fl_selected_countries = []
+                st.session_state.fl_cb_reset_land += 1
+                st.rerun()
+            elif set(new_selected) != set(st.session_state.fl_selected_countries):
+                st.session_state.fl_selected_countries = new_selected
+                st.session_state.fl_cb_reset_land += 1
+                st.rerun()
+
+    # Check selections
+    sel_countries = st.session_state.fl_selected_countries
+
+    if not sel_countries:
+        st.warning("Vælg mindst ét land.")
+        return
+
+    # Render indhold
+    render_single_flow_content(df_month_filtered, flow_trigger, sel_countries)
+
+    if st.button('Opdater Data', key=f"fl_refresh_{flow_trigger}"):
         st.rerun()
