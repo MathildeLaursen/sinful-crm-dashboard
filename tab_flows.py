@@ -734,14 +734,15 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             
             x_labels = [format_month_label(m) for m in sorted_chart_months]
             
-            # Soejler for Antal Sendt (primaer y-akse)
+            # Linje for Antal Sendt (primaer y-akse)
             fig.add_trace(
-                go.Bar(
+                go.Scatter(
                     x=x_labels,
                     y=sent_values,
                     name='Sendt',
-                    marker_color='#9B7EBD',
-                    opacity=0.7,
+                    mode='lines+markers',
+                    line=dict(color='#9B7EBD', width=2),
+                    marker=dict(size=6, color='#9B7EBD'),
                     showlegend=(i == 0),
                     legendgroup='sendt'
                 ),
@@ -789,8 +790,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="right", x=1),
             plot_bgcolor='rgba(250,245,255,0.5)',
             paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='x unified',
-            barmode='group'
+            hovermode='x unified'
         )
         
         # Style subplot titler - flyt op over grafen
@@ -799,7 +799,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             annotation['xanchor'] = 'left'
             annotation['x'] = 0  # Venstrestillet
             annotation['yanchor'] = 'bottom'
-            annotation['yshift'] = 5  # Lidt ekstra afstand over grafen
+            annotation['yshift'] = 25  # Mere afstand over grafen
         
         # Opdater alle y-akser
         for i in range(num_mails):
