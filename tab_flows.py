@@ -217,6 +217,29 @@ def get_current_year_month():
     return f"{today.year}-{today.month}"
 
 
+def get_months_in_range(start_month, end_month, all_months):
+    """Returnerer alle måneder mellem start og slut (inklusiv) fra listen af tilgængelige måneder"""
+    def month_to_tuple(m):
+        parts = m.split('-')
+        return (int(parts[0]), int(parts[1]))
+    
+    start_tuple = month_to_tuple(start_month)
+    end_tuple = month_to_tuple(end_month)
+    
+    # Sørg for at start er før end
+    if start_tuple > end_tuple:
+        start_tuple, end_tuple = end_tuple, start_tuple
+    
+    # Filtrer måneder inden for range
+    result = []
+    for m in all_months:
+        m_tuple = month_to_tuple(m)
+        if start_tuple <= m_tuple <= end_tuple:
+            result.append(m)
+    
+    return sorted(result, key=month_to_tuple)
+
+
 def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     """Render oversigt (alle flows aggregeret)"""
     current_df = flow_df[
@@ -636,72 +659,42 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
 
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-    # Tabel med mail-niveau data
-    # Tjek om flere måneder er valgt - aggreger i så fald
-    unique_months = mail_df['Year_Month'].nunique()
+    # Tabel med mail-niveau data (altid aggregeret - uden måned kolonne)
+    table_df = mail_df.groupby(['Mail', 'Message'], as_index=False).agg({
+        'Received_Email': 'sum',
+        'Unique_Opens': 'sum',
+        'Unique_Clicks': 'sum',
+        'Unsubscribed': 'sum',
+        'Bounced': 'sum',
+    })
+    # Genberegn rater efter aggregering
+    table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
     
-    if unique_months > 1:
-        # Aggreger over måneder - vis kun per mail
-        table_df = mail_df.groupby(['Mail', 'Message'], as_index=False).agg({
-            'Received_Email': 'sum',
-            'Unique_Opens': 'sum',
-            'Unique_Clicks': 'sum',
-            'Unsubscribed': 'sum',
-            'Bounced': 'sum',
-        })
-        # Genberegn rater efter aggregering
-        table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
-        table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
-        table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
-        
-        # Sorter efter mail nummer
-        table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
-        table_df = table_df.sort_values('_mail_num', ascending=True)
-        table_df = table_df.drop(columns=['_mail_num'])
-        
-        # Kolonner uden Year_Month
-        table_df = table_df[['Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
-        
-        st.dataframe(
-            table_df, use_container_width=True, hide_index=True,
-            column_config={
-                "Mail": st.column_config.TextColumn("Mail", width="small"),
-                "Message": st.column_config.TextColumn("Message", width="medium"),
-                "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
-                "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
-                "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
-                "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
-                "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
-                "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
-                "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
-                "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
-            }
-        )
-    else:
-        # Én måned valgt - vis med måned kolonne
-        table_df = mail_df[['Year_Month', 'Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
-        
-        # Sorter efter mail nummer
-        table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
-        table_df = table_df.sort_values('_mail_num', ascending=True)
-        table_df = table_df.drop(columns=['_mail_num'])
-        
-        st.dataframe(
-            table_df, use_container_width=True, hide_index=True,
-            column_config={
-                "Year_Month": st.column_config.TextColumn("Måned", width="small"),
-                "Mail": st.column_config.TextColumn("Mail", width="small"),
-                "Message": st.column_config.TextColumn("Message", width="medium"),
-                "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
-                "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
-                "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
-                "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
-                "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
-                "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
-                "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
-                "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
-            }
-        )
+    # Sorter efter mail nummer
+    table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
+    table_df = table_df.sort_values('_mail_num', ascending=True)
+    table_df = table_df.drop(columns=['_mail_num'])
+    
+    # Kolonner uden Year_Month
+    table_df = table_df[['Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
+    
+    st.dataframe(
+        table_df, use_container_width=True, hide_index=True,
+        column_config={
+            "Mail": st.column_config.TextColumn("Mail", width="small"),
+            "Message": st.column_config.TextColumn("Message", width="medium"),
+            "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
+            "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
+            "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
+            "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
+            "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
+            "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
+            "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
+            "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
+        }
+    )
 
 
 def get_short_flow_name(flow_trigger):
@@ -731,15 +724,11 @@ def render_flows_tab():
         st.warning("Ingen måneder tilgængelige i data.")
         return
 
-    # Session state
-    if 'fl_selected_months' not in st.session_state:
-        st.session_state.fl_selected_months = [available_months[0]] if available_months else []
+    # Session state (kun for lande og flows - måneder styres af slider)
     if 'fl_selected_countries' not in st.session_state:
         st.session_state.fl_selected_countries = None
     if 'fl_selected_flows' not in st.session_state:
         st.session_state.fl_selected_flows = None
-    if 'fl_cb_reset_month' not in st.session_state:
-        st.session_state.fl_cb_reset_month = 0
     if 'fl_cb_reset_land' not in st.session_state:
         st.session_state.fl_cb_reset_land = 0
     if 'fl_cb_reset_flow' not in st.session_state:
@@ -765,37 +754,35 @@ def render_flows_tab():
 def render_overview_tab_content(df, available_months):
     """Render oversigt tab med filtre og indhold"""
     
+    # Sorter måneder kronologisk (ældste først for slider)
+    def month_to_tuple(m):
+        parts = m.split('-')
+        return (int(parts[0]), int(parts[1]))
+    
+    sorted_months = sorted(available_months, key=month_to_tuple)
+    
     # Layout - filters
-    col_month, col_land, col_flow, col_spacer = st.columns([1, 1, 1, 3])
+    col_month, col_land, col_flow, col_spacer = st.columns([2, 1, 1, 2])
 
-    # Måned vælger (dropdown med multiselect)
+    # Måned range slider
     with col_month:
-        with st.popover("Måned", use_container_width=True):
-            reset_month = st.session_state.fl_cb_reset_month
-            all_months_selected = set(st.session_state.fl_selected_months) == set(available_months)
-            select_all_months = st.checkbox("Vælg alle", value=all_months_selected, key=f"fl_sel_all_month_{reset_month}")
+        if len(sorted_months) > 1:
+            # Default til nyeste måned
+            default_end = sorted_months[-1]
+            default_start = sorted_months[-1]
             
-            new_selected_months = []
-            for month in available_months:
-                checked = month in st.session_state.fl_selected_months
-                if st.checkbox(month, value=checked, key=f"fl_cb_month_{month}_{reset_month}"):
-                    new_selected_months.append(month)
-            
-            if select_all_months and not all_months_selected:
-                st.session_state.fl_selected_months = list(available_months)
-                st.session_state.fl_cb_reset_month += 1
-                st.rerun()
-            elif not select_all_months and all_months_selected:
-                st.session_state.fl_selected_months = []
-                st.session_state.fl_cb_reset_month += 1
-                st.rerun()
-            elif set(new_selected_months) != set(st.session_state.fl_selected_months):
-                st.session_state.fl_selected_months = new_selected_months
-                st.session_state.fl_cb_reset_month += 1
-                st.rerun()
-
-    # Filtrer data efter valgte måneder
-    sel_months = st.session_state.fl_selected_months
+            month_range = st.select_slider(
+                "Periode",
+                options=sorted_months,
+                value=(default_start, default_end),
+                key="fl_month_range_overview"
+            )
+            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
+        else:
+            # Kun én måned tilgængelig
+            st.info(f"Måned: {sorted_months[0]}")
+            sel_months = sorted_months
+    
     if not sel_months:
         st.warning("Vælg mindst én måned.")
         return
@@ -903,37 +890,35 @@ def render_overview_tab_content(df, available_months):
 def render_single_flow_tab_content(df, flow_trigger, available_months):
     """Render enkelt flow tab med filtre og indhold"""
     
+    # Sorter måneder kronologisk (ældste først for slider)
+    def month_to_tuple(m):
+        parts = m.split('-')
+        return (int(parts[0]), int(parts[1]))
+    
+    sorted_months = sorted(available_months, key=month_to_tuple)
+    
     # Layout - filters
-    col_month, col_land, col_mail, col_spacer = st.columns([1, 1, 1, 3])
+    col_month, col_land, col_mail, col_spacer = st.columns([2, 1, 1, 2])
 
-    # Måned vælger
+    # Måned range slider
     with col_month:
-        with st.popover("Måned", use_container_width=True):
-            reset_month = st.session_state.fl_cb_reset_month
-            all_months_selected = set(st.session_state.fl_selected_months) == set(available_months)
-            select_all_months = st.checkbox("Vælg alle", value=all_months_selected, key=f"fl_sel_all_month_sf_{flow_trigger}_{reset_month}")
+        if len(sorted_months) > 1:
+            # Default til nyeste måned
+            default_end = sorted_months[-1]
+            default_start = sorted_months[-1]
             
-            new_selected_months = []
-            for month in available_months:
-                checked = month in st.session_state.fl_selected_months
-                if st.checkbox(month, value=checked, key=f"fl_cb_month_sf_{flow_trigger}_{month}_{reset_month}"):
-                    new_selected_months.append(month)
-            
-            if select_all_months and not all_months_selected:
-                st.session_state.fl_selected_months = list(available_months)
-                st.session_state.fl_cb_reset_month += 1
-                st.rerun()
-            elif not select_all_months and all_months_selected:
-                st.session_state.fl_selected_months = []
-                st.session_state.fl_cb_reset_month += 1
-                st.rerun()
-            elif set(new_selected_months) != set(st.session_state.fl_selected_months):
-                st.session_state.fl_selected_months = new_selected_months
-                st.session_state.fl_cb_reset_month += 1
-                st.rerun()
-
-    # Filtrer data efter valgte måneder
-    sel_months = st.session_state.fl_selected_months
+            month_range = st.select_slider(
+                "Periode",
+                options=sorted_months,
+                value=(default_start, default_end),
+                key=f"fl_month_range_{flow_trigger}"
+            )
+            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
+        else:
+            # Kun én måned tilgængelig
+            st.info(f"Måned: {sorted_months[0]}")
+            sel_months = sorted_months
+    
     if not sel_months:
         st.warning("Vælg mindst én måned.")
         return
