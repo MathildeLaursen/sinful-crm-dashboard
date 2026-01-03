@@ -60,6 +60,50 @@ st.markdown("""
             setTimeout(fixCheckboxColors, 50);
         });
         observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-checked'] });
+        
+        // Slider styling - Unicorn tema
+        function fixSliderColors() {
+            // Find all slider containers
+            document.querySelectorAll('[data-testid="stSlider"]').forEach(container => {
+                // Style the track (background)
+                const tracks = container.querySelectorAll('div[data-baseweb="slider"] > div > div');
+                tracks.forEach((track, idx) => {
+                    if (track.style.backgroundColor) {
+                        // Check if it's the unselected track (usually darker) or selected (usually accent color)
+                        const bg = track.style.backgroundColor;
+                        if (bg.includes('49, 51, 63') || bg.includes('14, 17, 23') || bg.includes('rgb(49') || bg.includes('rgb(14')) {
+                            // Unselected track - make light purple
+                            track.style.setProperty('background-color', '#E8D5FF', 'important');
+                        } else if (bg.includes('255,') || bg.includes('rgb(255')) {
+                            // Selected track - make purple
+                            track.style.setProperty('background-color', '#9B7EBD', 'important');
+                        }
+                        track.style.setProperty('height', '10px', 'important');
+                        track.style.setProperty('border-radius', '5px', 'important');
+                    }
+                });
+                
+                // Style the thumbs/handles
+                const thumbs = container.querySelectorAll('[role="slider"]');
+                thumbs.forEach(thumb => {
+                    thumb.style.setProperty('background-color', '#9B7EBD', 'important');
+                    thumb.style.setProperty('border', '3px solid white', 'important');
+                    thumb.style.setProperty('box-shadow', '0 2px 8px rgba(155, 126, 189, 0.5)', 'important');
+                    thumb.style.setProperty('width', '22px', 'important');
+                    thumb.style.setProperty('height', '22px', 'important');
+                });
+            });
+        }
+        
+        setTimeout(fixSliderColors, 200);
+        setTimeout(fixSliderColors, 500);
+        setTimeout(fixSliderColors, 1000);
+        setTimeout(fixSliderColors, 2000);
+        
+        const sliderObserver = new MutationObserver(() => {
+            setTimeout(fixSliderColors, 100);
+        });
+        sliderObserver.observe(document.body, { childList: true, subtree: true });
     </script>
 """, unsafe_allow_html=True)
 
