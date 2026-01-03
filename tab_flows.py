@@ -400,11 +400,16 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     # Formater måned til visning
     chart_df['Month_Label'] = chart_df['Year_Month'].apply(format_month_short)
     
-    # Sorter måneder kronologisk og få den korrekte rækkefølge
-    chart_df = chart_df.sort_values('Year_Month')
+    # Opret sorteringsnøgle (YYYYMM som tal for korrekt kronologisk sortering)
+    def month_sort_key(ym):
+        parts = ym.split('-')
+        return int(parts[0]) * 100 + int(parts[1])
+    
+    chart_df['Sort_Key'] = chart_df['Year_Month'].apply(month_sort_key)
+    chart_df = chart_df.sort_values('Sort_Key')
     
     # Få kronologisk sorterede måneder til x-aksen
-    months_sorted = chart_df.drop_duplicates('Year_Month').sort_values('Year_Month')['Month_Label'].tolist()
+    months_sorted = chart_df.drop_duplicates('Year_Month').sort_values('Sort_Key')['Month_Label'].tolist()
     
     # Få unikke flows sorteret efter nummer
     def chart_flow_sort_key(f):
@@ -416,7 +421,7 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     
     # Tilføj linje for hvert flow
     for flow in unique_flows:
-        flow_data = chart_df[chart_df['Flow_Trigger'] == flow].sort_values('Year_Month')
+        flow_data = chart_df[chart_df['Flow_Trigger'] == flow].sort_values('Sort_Key')
         short_name = get_short_flow_name(flow)
         
         # Hent farve for dette flow
