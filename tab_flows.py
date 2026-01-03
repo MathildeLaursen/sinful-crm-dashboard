@@ -845,8 +845,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         # chart_height er allerede beregnet ovenfor - brug minimum 350
         chart_height = max(350, chart_height)
         
-        # Fast top margin der inkluderer plads til legend (40px til legend + 20px padding)
-        top_margin = 60
+        # Fast top margin der inkluderer plads til legend
+        top_margin = 80
         
         # Layout med faste pixel-margins
         fig.update_layout(
@@ -855,8 +855,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             margin=dict(l=60, r=60, t=top_margin, b=40),
             legend=dict(
                 orientation="h", 
-                yanchor="top",  # Ankrer til top
-                y=1.0,  # Fast position i toppen af margin
+                yanchor="bottom",  # Ankrer bund af legend
+                y=1.02,  # Over plottet
                 xanchor="right", 
                 x=1,
                 bgcolor='rgba(0,0,0,0)'
