@@ -719,8 +719,9 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             else:
                 subplot_titles.append(str(mail))
         
-        # Beregn vertical spacing baseret på antal items (mere plads naar faerre)
-        v_spacing = 0.15 if num_items <= 3 else (0.12 if num_items <= 5 else 0.08)
+        # Beregn vertical spacing - max er 1/(rows-1), bruge 70% af max for plads til titler
+        max_spacing = 1.0 / (num_items - 1) if num_items > 1 else 0.1
+        v_spacing = min(0.15, max_spacing * 0.7)
         
         fig = make_subplots(
             rows=num_items, cols=1,
