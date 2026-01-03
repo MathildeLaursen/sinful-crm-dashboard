@@ -473,8 +473,16 @@ label[data-baseweb="checkbox"] svg path {
 [data-testid="stSlider"] div[data-baseweb="slider"] > div > div:first-child,
 [data-testid="stSlider"] div[data-baseweb="slider"] > div:first-child > div:first-child {
     background: #E8D5FF !important;
-    height: 12px !important;
-    border-radius: 6px !important;
+    height: 10px !important;
+    border-radius: 5px !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Fjern alle uønskede borders og shadows på slider */
+[data-testid="stSlider"] div[data-baseweb="slider"] div {
+    border-top: none !important;
+    border-bottom: none !important;
 }
 
 /* SELECTED RANGE - Det valgte lilla område */
@@ -482,7 +490,9 @@ label[data-baseweb="checkbox"] svg path {
 [data-testid="stSlider"] div[data-baseweb="slider"] [style*="background"][style*="rgb"] {
     background: #9B7EBD !important;
     background-color: #9B7EBD !important;
-    height: 12px !important;
+    height: 10px !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* THUMBS/HANDLES - Håndtagene */
