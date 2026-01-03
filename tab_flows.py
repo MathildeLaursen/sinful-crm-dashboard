@@ -1146,7 +1146,7 @@ def render_overview_tab_content(df, available_months):
     if not sel_countries:
         st.warning("Vælg mindst ét land.")
         return
-    
+
     if not sel_flows:
         st.warning("Vælg mindst ét flow.")
         return
@@ -1186,7 +1186,31 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     
     # Opret unikke Mail+Message kombinationer
     mail_combos = flow_data_all.groupby(['Mail', 'Message'], as_index=False).first()[['Mail', 'Message']]
-    all_mails = sorted([tuple(x) for x in mail_combos.values], key=mail_combo_sort_key)
+    all_mails_full = sorted([tuple(x) for x in mail_combos.values], key=mail_combo_sort_key)
+    
+    # Find aktive mails (sendt denne eller sidste måned)
+    current_month = get_current_year_month()
+    today = datetime.date.today()
+    if today.month == 1:
+        prev_month = f"{today.year - 1}-12"
+    else:
+        prev_month = f"{today.year}-{today.month - 1}"
+    
+    recent_months = [current_month, prev_month]
+    recent_data = flow_data_all[
+        (flow_data_all['Year_Month'].isin(recent_months)) & 
+        (flow_data_all['Received_Email'] > 0)
+    ]
+    active_mail_combos = recent_data.groupby(['Mail', 'Message'], as_index=False).first()[['Mail', 'Message']]
+    active_mails = set([tuple(x) for x in active_mail_combos.values])
+    
+    # Initialize ignore inactive state (per flow, default True)
+    ignore_inactive_key = f'fl_ignore_inactive_{flow_trigger}'
+    if ignore_inactive_key not in st.session_state:
+        st.session_state[ignore_inactive_key] = True
+    
+    # Filtrer mails baseret på ignore_inactive
+    all_mails = [m for m in all_mails_full if m in active_mails] if st.session_state[ignore_inactive_key] else all_mails_full
     
     # Funktion til at formatere mail+message til visning
     def format_mail_label(combo):
@@ -1215,8 +1239,8 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     if mail_reset_key not in st.session_state:
         st.session_state[mail_reset_key] = 0
 
-    # Layout - dropdowns og slider på samme linje
-    col_land, col_mail, col_slider = st.columns([1, 1, 4])
+    # Layout - dropdowns, checkbox og slider på samme linje
+    col_land, col_mail, col_inaktive, col_slider = st.columns([1, 1, 0.8, 3.2])
 
     # Land filter
     with col_land:
@@ -1276,6 +1300,21 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_state_key] = new_selected_mails
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
+
+    # Ignorer Inaktive checkbox
+    with col_inaktive:
+        ignore_inactive = st.checkbox(
+            "Ignorer Inaktive", 
+            value=st.session_state[ignore_inactive_key], 
+            key=f"fl_ignore_inactive_cb_{flow_trigger}"
+        )
+        if ignore_inactive != st.session_state[ignore_inactive_key]:
+            st.session_state[ignore_inactive_key] = ignore_inactive
+            # Reset mail selection når toggle ændres
+            new_all_mails = [m for m in all_mails_full if m in active_mails] if ignore_inactive else all_mails_full
+            st.session_state[mail_state_key] = list(new_all_mails)
+            st.session_state[mail_reset_key] += 1
+            st.rerun()
 
     # Periode slider (på samme linje som dropdowns)
     with col_slider:
