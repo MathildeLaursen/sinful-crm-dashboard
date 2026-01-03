@@ -377,20 +377,25 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
     # Chart - tidslinje: Antal sendt per flow over tid
-    # Unicorn farvepalette - en unik farve per flow
-    flow_colors = {
-        'Flow 4': '#9B7EBD',   # Lilla
-        'Flow 5': '#E8B4CB',   # Pink
-        'Flow 7': '#A8E6CF',   # Mint
-        'Flow 10': '#7EC8E3',  # Lyseblå
-        'Flow 16': '#F7DC6F',  # Gul
-        'Flow 20': '#BB8FCE',  # Violet
-        'Flow 21': '#F1948A',  # Koral
-        'Flow 22': '#85C1E9',  # Himmelblå
-        'Flow 23': '#82E0AA',  # Lysegrøn
-        'Flow 30': '#D7BDE2',  # Lavendel
-        'Flow 32': '#F5B7B1',  # Fersken
-    }
+    # Unicorn farvepalette - dynamisk tildeling til flows
+    # Farver gentages hvis der er flere flows end farver
+    UNICORN_COLORS = [
+        '#9B7EBD',   # Lilla
+        '#E8B4CB',   # Pink
+        '#A8E6CF',   # Mint
+        '#7EC8E3',   # Lyseblå
+        '#F7DC6F',   # Gul
+        '#BB8FCE',   # Violet
+        '#F1948A',   # Koral
+        '#85C1E9',   # Himmelblå
+        '#82E0AA',   # Lysegrøn
+        '#D7BDE2',   # Lavendel
+        '#F5B7B1',   # Fersken
+        '#FAD7A0',   # Abrikos
+        '#AED6F1',   # Isblå
+        '#D5F5E3',   # Mintgrøn
+        '#FADBD8',   # Lyserød
+    ]
     
     # Aggreger per flow og måned
     chart_df = display_df.groupby(['Year_Month', 'Flow_Trigger'], as_index=False).agg({
@@ -420,12 +425,12 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None):
     fig = go.Figure()
     
     # Tilføj linje for hvert flow
-    for flow in unique_flows:
+    for idx, flow in enumerate(unique_flows):
         flow_data = chart_df[chart_df['Flow_Trigger'] == flow].sort_values('Sort_Key')
         short_name = get_short_flow_name(flow)
         
-        # Hent farve for dette flow
-        color = flow_colors.get(short_name, '#9B7EBD')
+        # Hent farve dynamisk baseret på index (gentager hvis flere flows end farver)
+        color = UNICORN_COLORS[idx % len(UNICORN_COLORS)]
         
         fig.add_trace(
             go.Scatter(
