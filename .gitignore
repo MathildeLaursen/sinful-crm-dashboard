@@ -1,0 +1,26 @@
+# Lokale noter (ikke til git)
+STYLING_NOTES.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets (haandteres af Streamlit Cloud)
+.streamlit/secrets.toml
+
