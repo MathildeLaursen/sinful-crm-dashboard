@@ -543,9 +543,16 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         (raw_df['Country'].isin(sel_countries))
     ].copy()
     
-    # Filtrer også på valgte mails hvis angivet
-    if sel_mails is not None:
-        flow_data = flow_data[flow_data['Mail'].isin(sel_mails)]
+    # Filtrer ogsaa paa valgte mails hvis angivet (sel_mails er nu tuples af (Mail, Message))
+    if sel_mails is not None and len(sel_mails) > 0:
+        # Opret filter for hver (Mail, Message) kombination
+        mail_filter = pd.Series([False] * len(flow_data), index=flow_data.index)
+        for mail, msg in sel_mails:
+            if pd.notna(msg) and msg != '':
+                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'] == msg)
+            else:
+                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'].isna() | (flow_data['Message'] == ''))
+        flow_data = flow_data[mail_filter]
     
     if flow_data.empty:
         st.warning(f"Ingen data for {flow_trigger} med de valgte filtre.")
@@ -616,8 +623,15 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             (full_df['Flow_Trigger'] == flow_trigger) &
             (full_df['Country'].isin(sel_countries))
         )
-        if sel_mails is not None:
-            prev_filter = prev_filter & (full_df['Mail'].isin(sel_mails))
+        if sel_mails is not None and len(sel_mails) > 0:
+            # Opret filter for hver (Mail, Message) kombination
+            mail_filter_prev = pd.Series([False] * len(full_df), index=full_df.index)
+            for mail, msg in sel_mails:
+                if pd.notna(msg) and msg != '':
+                    mail_filter_prev |= (full_df['Mail'] == mail) & (full_df['Message'] == msg)
+                else:
+                    mail_filter_prev |= (full_df['Mail'] == mail) & (full_df['Message'].isna() | (full_df['Message'] == ''))
+            prev_filter = prev_filter & mail_filter_prev
         
         prev_data = full_df[prev_filter].copy()
         
@@ -685,8 +699,15 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
         (full_df['Flow_Trigger'] == flow_trigger) &
         (full_df['Country'].isin(sel_countries))
     ].copy()
-    if sel_mails is not None:
-        chart_base_df = chart_base_df[chart_base_df['Mail'].isin(sel_mails)]
+    if sel_mails is not None and len(sel_mails) > 0:
+        # Opret filter for hver (Mail, Message) kombination
+        mail_filter_chart = pd.Series([False] * len(chart_base_df), index=chart_base_df.index)
+        for mail, msg in sel_mails:
+            if pd.notna(msg) and msg != '':
+                mail_filter_chart |= (chart_base_df['Mail'] == mail) & (chart_base_df['Message'] == msg)
+            else:
+                mail_filter_chart |= (chart_base_df['Mail'] == mail) & (chart_base_df['Message'].isna() | (chart_base_df['Message'] == ''))
+        chart_base_df = chart_base_df[mail_filter_chart]
     
     # Formatér måneder til visning
     def format_month_label(m):
@@ -719,13 +740,13 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             else:
                 subplot_titles.append(str(mail))
         
-        # Beregn vertical spacing - max er 1/(rows-1), bruge 70% af max for plads til titler
+        # Beregn vertical spacing - max er 1/(rows-1), bruge 35% af max (50% mindre end foer)
         max_spacing = 1.0 / (num_items - 1) if num_items > 1 else 0.1
-        v_spacing = min(0.15, max_spacing * 0.7)
+        v_spacing = min(0.08, max_spacing * 0.35)
         
         fig = make_subplots(
             rows=num_items, cols=1,
-            shared_xaxes=True,
+            shared_xaxes=False,  # Vis x-akse labels paa alle grafer
             vertical_spacing=v_spacing,
             subplot_titles=subplot_titles,
             specs=[[{"secondary_y": True}] for _ in range(num_items)]
@@ -863,13 +884,20 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
     
-    # Sorter efter mail nummer
-    table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
-    table_df = table_df.sort_values('_mail_num', ascending=True)
-    table_df = table_df.drop(columns=['_mail_num'])
+    # Kombiner Mail og Message til én kolonne
+    table_df['Mail_Display'] = table_df.apply(
+        lambda x: f"{x['Mail']} - {x['Message']}" if pd.notna(x['Message']) and x['Message'] != '' else str(x['Mail']), 
+        axis=1
+    )
     
-    # Kolonner uden Year_Month
-    table_df = table_df[['Mail', 'Message', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
+    # Sorter efter mail nummer og message
+    table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
+    table_df['_msg'] = table_df['Message'].apply(lambda m: str(m) if pd.notna(m) else '')
+    table_df = table_df.sort_values(['_mail_num', '_msg'], ascending=True)
+    table_df = table_df.drop(columns=['_mail_num', '_msg', 'Mail', 'Message'])
+    
+    # Kolonner med kombineret Mail kolonne
+    table_df = table_df[['Mail_Display', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
     
     # Beregn hoejde saa alle raekker vises (35px per raekke + 38px header)
     table_height = (len(table_df) + 1) * 35 + 3
@@ -877,8 +905,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     st.dataframe(
         table_df, use_container_width=True, hide_index=True, height=table_height,
         column_config={
-            "Mail": st.column_config.TextColumn("Mail", width="small"),
-            "Message": st.column_config.TextColumn("Message", width="medium"),
+            "Mail_Display": st.column_config.TextColumn("Mail", width="medium"),
             "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
             "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
             "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
@@ -1117,11 +1144,24 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.warning(f"Ingen data for dette flow.")
         return
 
-    # Hent alle mails for dette flow
-    def mail_sort_key(m):
-        match = re.search(r'Mail\s*(\d+)', str(m))
-        return int(match.group(1)) if match else 999
-    all_mails = sorted(flow_data_all['Mail'].unique(), key=mail_sort_key)
+    # Hent alle mail+message kombinationer for dette flow
+    def mail_combo_sort_key(combo):
+        mail, msg = combo
+        match = re.search(r'Mail\s*(\d+)', str(mail))
+        mail_num = int(match.group(1)) if match else 999
+        msg_str = str(msg) if pd.notna(msg) else ''
+        return (mail_num, msg_str)
+    
+    # Opret unikke Mail+Message kombinationer
+    mail_combos = flow_data_all.groupby(['Mail', 'Message'], as_index=False).first()[['Mail', 'Message']]
+    all_mails = sorted([tuple(x) for x in mail_combos.values], key=mail_combo_sort_key)
+    
+    # Funktion til at formatere mail+message til visning
+    def format_mail_label(combo):
+        mail, msg = combo
+        if pd.notna(msg) and msg != '':
+            return f"{mail} - {msg}"
+        return str(mail)
 
     # Initialize country selection
     if st.session_state.fl_selected_countries is None:
@@ -1184,10 +1224,13 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
             select_all_mail = st.checkbox("Vælg alle", value=all_mail_selected, key=f"fl_sel_all_mail_{flow_trigger}_{reset_mail}")
             
             new_selected_mails = []
-            for mail in all_mails:
-                checked = mail in st.session_state[mail_state_key]
-                if st.checkbox(str(mail), value=checked, key=f"fl_cb_mail_{flow_trigger}_{mail}_{reset_mail}"):
-                    new_selected_mails.append(mail)
+            for mail_combo in all_mails:
+                checked = mail_combo in st.session_state[mail_state_key]
+                label = format_mail_label(mail_combo)
+                # Brug hash af combo til unik key
+                combo_key = f"{mail_combo[0]}_{mail_combo[1] if pd.notna(mail_combo[1]) else 'none'}"
+                if st.checkbox(label, value=checked, key=f"fl_cb_mail_{flow_trigger}_{combo_key}_{reset_mail}"):
+                    new_selected_mails.append(mail_combo)
             
             if select_all_mail and not all_mail_selected:
                 st.session_state[mail_state_key] = list(all_mails)
