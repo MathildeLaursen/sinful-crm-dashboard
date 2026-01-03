@@ -445,10 +445,9 @@ label[data-baseweb="checkbox"] svg path {
    POSITIV DELTA - Mint tema
    ========================================== */
 
-/* Metric kort med positiv delta - mint baggrund */
+/* Metric kort med positiv delta - mint baggrund (behold original ramme) */
 [data-testid="stMetric"]:has([data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Up"]) {
     background: rgba(168, 230, 207, 0.15) !important;
-    border: 1px solid rgba(168, 230, 207, 0.4) !important;
 }
 
 /* Positiv delta tekst - mørkere mint for læsbarhed */
@@ -460,10 +459,9 @@ label[data-baseweb="checkbox"] svg path {
    NEGATIV DELTA - Purple tema
    ========================================== */
 
-/* Metric kort med negativ delta - purple baggrund */
+/* Metric kort med negativ delta - purple baggrund (behold original ramme) */
 [data-testid="stMetric"]:has([data-testid="stMetricDelta"] svg[data-testid="stMetricDeltaIcon-Down"]) {
     background: rgba(155, 126, 189, 0.15) !important;
-    border: 1px solid rgba(155, 126, 189, 0.4) !important;
 }
 
 /* Negativ delta tekst - mørkere purple for læsbarhed */
