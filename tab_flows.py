@@ -863,12 +863,12 @@ def render_overview_tab_content(df, available_months):
                 options=sorted_months,
                 value=(default_start, default_end),
                 format_func=format_month_short,
-                key="fl_month_range_overview"
+                key="fl_month_range_overview",
+                label_visibility="collapsed"
             )
             sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
         else:
             # Kun én måned tilgængelig
-            st.info(f"Periode: {format_month_short(sorted_months[0])}")
             sel_months = sorted_months
     
     if not sel_months:
@@ -1016,12 +1016,12 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 options=sorted_months,
                 value=(default_start, default_end),
                 format_func=format_month_short,
-                key=f"fl_month_range_{flow_trigger}"
+                key=f"fl_month_range_{flow_trigger}",
+                label_visibility="collapsed"
             )
             sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
         else:
             # Kun én måned tilgængelig
-            st.info(f"Periode: {format_month_short(sorted_months[0])}")
             sel_months = sorted_months
     
     if not sel_months:
