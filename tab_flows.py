@@ -309,8 +309,11 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
     # Vælg og sorter kolonner
     table_df = table_df[['Flow_Trigger', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
     
+    # Beregn højde så alle rækker vises (35px per række + 38px header)
+    table_height = (len(table_df) + 1) * 35 + 3
+    
     st.dataframe(
-        table_df, use_container_width=True, hide_index=True,
+        table_df, use_container_width=True, hide_index=True, height=table_height,
         column_config={
             "Flow_Trigger": st.column_config.TextColumn("Flow", width="large"),
             "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
@@ -325,13 +328,17 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
     )
 
 
-def render_single_flow_content(raw_df, flow_trigger, sel_countries):
+def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=None):
     """Render indhold for et enkelt flow med mail-niveau breakdown"""
     # Filtrer til dette specifikke flow og valgte lande
     flow_data = raw_df[
         (raw_df['Flow_Trigger'] == flow_trigger) &
         (raw_df['Country'].isin(sel_countries))
     ].copy()
+    
+    # Filtrer også på valgte mails hvis angivet
+    if sel_mails is not None:
+        flow_data = flow_data[flow_data['Mail'].isin(sel_mails)]
     
     if flow_data.empty:
         st.warning(f"Ingen data for {flow_trigger} med de valgte filtre.")
@@ -452,7 +459,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries):
     table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
     table_df = table_df.sort_values(['_month_num', '_mail_num'], ascending=[False, True])
     table_df = table_df.drop(columns=['_month_num', '_mail_num'])
-    table_height = min((len(table_df) + 1) * 35 + 3, 600)
+    # Beregn højde så alle rækker vises (ingen max begrænsning)
+    table_height = (len(table_df) + 1) * 35 + 3
     
     st.dataframe(
         table_df, use_container_width=True, hide_index=True, height=table_height,
@@ -534,7 +542,7 @@ def render_overview_tab_content(df, available_months):
     """Render oversigt tab med filtre og indhold"""
     
     # Layout - filters
-    col_month, col_land, col_flow, col_spacer = st.columns([1.2, 1, 1.5, 2.3])
+    col_month, col_land, col_flow, col_spacer = st.columns([1, 1, 1, 3])
 
     # Måned vælger (dropdown med multiselect)
     with col_month:
@@ -669,7 +677,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     """Render enkelt flow tab med filtre og indhold"""
     
     # Layout - filters
-    col_month, col_land, col_spacer = st.columns([1.2, 1, 3.8])
+    col_month, col_land, col_mail, col_spacer = st.columns([1, 1, 1, 3])
 
     # Måned vælger
     with col_month:
@@ -713,6 +721,12 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.warning(f"Ingen data for dette flow i de valgte måneder.")
         return
 
+    # Hent alle mails for dette flow
+    def mail_sort_key(m):
+        match = re.search(r'Mail\s*(\d+)', str(m))
+        return int(match.group(1)) if match else 999
+    all_mails = sorted(flow_data['Mail'].unique(), key=mail_sort_key)
+
     # Initialize country selection
     if st.session_state.fl_selected_countries is None:
         st.session_state.fl_selected_countries = list(all_countries)
@@ -720,6 +734,18 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.session_state.fl_selected_countries = [c for c in st.session_state.fl_selected_countries if c in all_countries]
         if not st.session_state.fl_selected_countries:
             st.session_state.fl_selected_countries = list(all_countries)
+
+    # Initialize mail selection (per flow)
+    mail_state_key = f'fl_selected_mails_{flow_trigger}'
+    mail_reset_key = f'fl_cb_reset_mail_{flow_trigger}'
+    if mail_state_key not in st.session_state:
+        st.session_state[mail_state_key] = list(all_mails)
+    else:
+        st.session_state[mail_state_key] = [m for m in st.session_state[mail_state_key] if m in all_mails]
+        if not st.session_state[mail_state_key]:
+            st.session_state[mail_state_key] = list(all_mails)
+    if mail_reset_key not in st.session_state:
+        st.session_state[mail_reset_key] = 0
 
     # Land filter
     with col_land:
@@ -749,15 +775,48 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
 
+    # Mail filter
+    with col_mail:
+        mail_count = len(st.session_state[mail_state_key])
+        mail_label = f"Mail ({mail_count})" if mail_count < len(all_mails) else "Mail"
+        with st.popover(mail_label, use_container_width=True):
+            reset_mail = st.session_state[mail_reset_key]
+            all_mail_selected = len(st.session_state[mail_state_key]) == len(all_mails)
+            select_all_mail = st.checkbox("Vælg alle", value=all_mail_selected, key=f"fl_sel_all_mail_{flow_trigger}_{reset_mail}")
+            
+            new_selected_mails = []
+            for mail in all_mails:
+                checked = mail in st.session_state[mail_state_key]
+                if st.checkbox(str(mail), value=checked, key=f"fl_cb_mail_{flow_trigger}_{mail}_{reset_mail}"):
+                    new_selected_mails.append(mail)
+            
+            if select_all_mail and not all_mail_selected:
+                st.session_state[mail_state_key] = list(all_mails)
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+            elif not select_all_mail and all_mail_selected:
+                st.session_state[mail_state_key] = []
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+            elif set(new_selected_mails) != set(st.session_state[mail_state_key]):
+                st.session_state[mail_state_key] = new_selected_mails
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+
     # Check selections
     sel_countries = st.session_state.fl_selected_countries
+    sel_mails = st.session_state[mail_state_key]
 
     if not sel_countries:
         st.warning("Vælg mindst ét land.")
         return
+    
+    if not sel_mails:
+        st.warning("Vælg mindst én mail.")
+        return
 
     # Render indhold
-    render_single_flow_content(df_month_filtered, flow_trigger, sel_countries)
+    render_single_flow_content(df_month_filtered, flow_trigger, sel_countries, sel_mails)
 
     if st.button('Opdater Data', key=f"fl_refresh_{flow_trigger}"):
         st.rerun()
