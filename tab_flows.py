@@ -682,7 +682,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     show_metric(col5, "Click Rate", click_rate, prev_cr, is_percent=True)
     show_metric(col6, "Click Through Rate", ctr, prev_ctr, is_percent=True)
 
-    st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+    # Fast afstand mellem scorecards og grafer (30px)
+    st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
     # Chart - stacked grafer, en per mail (viser ALLE måneder, uanset slider)
     # Sorter måneder kronologisk
@@ -841,16 +842,25 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 clicks_range_max = max_clicks * 2.5  # Udvid range så max clicks er ved ca. 40%
                 fig.update_yaxes(range=[0, clicks_range_max], row=row, col=1, secondary_y=True)
         
-        # Beregn hoejde baseret på antal items (250px per item for god plads)
         # chart_height er allerede beregnet ovenfor - brug minimum 350
         chart_height = max(350, chart_height)
         
-        # Layout
+        # Fast top margin der inkluderer plads til legend (40px til legend + 20px padding)
+        top_margin = 60
+        
+        # Layout med faste pixel-margins
         fig.update_layout(
             showlegend=True,
-            height=chart_height,
-            margin=dict(l=60, r=60, t=50, b=40),
-            legend=dict(orientation="h", yanchor="bottom", y=1.03, xanchor="right", x=1),
+            height=chart_height + top_margin,  # Tilfoej top margin til total hoejde
+            margin=dict(l=60, r=60, t=top_margin, b=40),
+            legend=dict(
+                orientation="h", 
+                yanchor="top",  # Ankrer til top
+                y=1.0,  # Fast position i toppen af margin
+                xanchor="right", 
+                x=1,
+                bgcolor='rgba(0,0,0,0)'
+            ),
             plot_bgcolor='rgba(250,245,255,0.5)',
             paper_bgcolor='rgba(0,0,0,0)',
             hovermode='x unified'
