@@ -164,12 +164,24 @@ def aggregate_to_flow_level(df):
 
 
 def get_unique_flows(df):
-    """Hent unikke flows sorteret efter flow nummer"""
+    """Hent unikke flows sorteret efter flow nummer (ekskluderer ikke-aktive flows)"""
+    # Flows der ikke længere er aktive
+    INACTIVE_FLOWS = {0, 1, 2, 3, 9}
+    
     def flow_sort_key(f):
         match = re.search(r'Flow\s*(\d+)', f)
         return int(match.group(1)) if match else 999
+    
+    def is_active_flow(f):
+        match = re.search(r'Flow\s*(\d+)', f)
+        if match:
+            flow_num = int(match.group(1))
+            return flow_num not in INACTIVE_FLOWS
+        return True
+    
     flows = df['Flow_Trigger'].unique()
-    return sorted(flows, key=flow_sort_key)
+    active_flows = [f for f in flows if is_active_flow(f)]
+    return sorted(active_flows, key=flow_sort_key)
 
 
 def render_overview_content(flow_df, sel_countries, sel_flows):
@@ -275,27 +287,32 @@ def render_overview_content(flow_df, sel_countries, sel_flows):
 
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-    # Tabel
-    table_df = display_df[['Year_Month', 'Flow_Trigger', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']].copy()
+    # Tabel - aggregeret per flow (ikke per måned)
+    table_df = display_df.groupby('Flow_Trigger', as_index=False).agg({
+        'Received_Email': 'sum',
+        'Unique_Opens': 'sum',
+        'Unique_Clicks': 'sum',
+        'Unsubscribed': 'sum',
+        'Bounced': 'sum',
+    })
     
-    # Sorter: nyeste måned først, derefter laveste flow nummer
-    def month_to_sortable(m):
-        try:
-            parts = m.split('-')
-            return int(parts[0]) * 100 + int(parts[1])  # 2025-12 -> 202512
-        except:
-            return 0
-    table_df['_month_num'] = table_df['Year_Month'].apply(month_to_sortable)
+    # Genberegn rater efter aggregering
+    table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
+    
+    # Sorter efter flow nummer
     table_df['_flow_num'] = table_df['Flow_Trigger'].apply(lambda f: int(re.search(r'Flow\s*(\d+)', f).group(1)) if re.search(r'Flow\s*(\d+)', f) else 999)
-    table_df = table_df.sort_values(['_month_num', '_flow_num'], ascending=[False, True])
-    table_df = table_df.drop(columns=['_month_num', '_flow_num'])
-    table_height = min((len(table_df) + 1) * 35 + 3, 600)
+    table_df = table_df.sort_values('_flow_num', ascending=True)
+    table_df = table_df.drop(columns=['_flow_num'])
+    
+    # Vælg og sorter kolonner
+    table_df = table_df[['Flow_Trigger', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
     
     st.dataframe(
-        table_df, use_container_width=True, hide_index=True, height=table_height,
+        table_df, use_container_width=True, hide_index=True,
         column_config={
-            "Year_Month": st.column_config.TextColumn("Måned", width="small"),
-            "Flow_Trigger": st.column_config.TextColumn("Flow - Trigger", width="large"),
+            "Flow_Trigger": st.column_config.TextColumn("Flow", width="large"),
             "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
             "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
             "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
@@ -517,7 +534,7 @@ def render_overview_tab_content(df, available_months):
     """Render oversigt tab med filtre og indhold"""
     
     # Layout - filters
-    col_month, col_land, col_spacer = st.columns([1.2, 1, 3.8])
+    col_month, col_land, col_flow, col_spacer = st.columns([1.2, 1, 1.5, 2.3])
 
     # Måned vælger (dropdown med multiselect)
     with col_month:
@@ -599,12 +616,46 @@ def render_overview_tab_content(df, available_months):
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
 
+    # Flow filter
+    with col_flow:
+        flow_count = len(st.session_state.fl_selected_flows)
+        flow_label = f"Flow ({flow_count})" if flow_count < len(all_flows) else "Flow"
+        with st.popover(flow_label, use_container_width=True):
+            reset_flow = st.session_state.fl_cb_reset_flow
+            all_flow_selected = len(st.session_state.fl_selected_flows) == len(all_flows)
+            select_all_flow = st.checkbox("Vælg alle", value=all_flow_selected, key=f"fl_sel_all_flow_{reset_flow}")
+            
+            new_selected_flows = []
+            for flow in all_flows:
+                # Vis kun kort flow-navn i checkboxen
+                short_name = get_short_flow_name(flow)
+                checked = flow in st.session_state.fl_selected_flows
+                if st.checkbox(short_name, value=checked, key=f"fl_cb_flow_{flow}_{reset_flow}"):
+                    new_selected_flows.append(flow)
+            
+            if select_all_flow and not all_flow_selected:
+                st.session_state.fl_selected_flows = list(all_flows)
+                st.session_state.fl_cb_reset_flow += 1
+                st.rerun()
+            elif not select_all_flow and all_flow_selected:
+                st.session_state.fl_selected_flows = []
+                st.session_state.fl_cb_reset_flow += 1
+                st.rerun()
+            elif set(new_selected_flows) != set(st.session_state.fl_selected_flows):
+                st.session_state.fl_selected_flows = new_selected_flows
+                st.session_state.fl_cb_reset_flow += 1
+                st.rerun()
+
     # Check selections
     sel_countries = st.session_state.fl_selected_countries
     sel_flows = st.session_state.fl_selected_flows
 
     if not sel_countries:
         st.warning("Vælg mindst ét land.")
+        return
+    
+    if not sel_flows:
+        st.warning("Vælg mindst ét flow.")
         return
 
     # Render indhold
