@@ -842,9 +842,27 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             )
             
             # Smart skalering: Clicks max skal være 10% under laveste Opens værdi
-            max_clicks = max(clicks_values) if clicks_values else 0
-            max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
-            min_opens = min(opens_values) if opens_values else 0
+            # Ekskluder nuværende måned (har lave tal pga. ufuldendt måned)
+            current_month = get_current_year_month()
+            current_month_label = format_month_short(current_month)
+            
+            # Filtrer værdier - ekskluder nuværende måned
+            opens_for_calc = [v for v, lbl in zip(opens_values, x_labels) if lbl != current_month_label]
+            sent_for_calc = [v for v, lbl in zip(sent_values, x_labels) if lbl != current_month_label]
+            clicks_for_calc = [v for v, lbl in zip(clicks_values, x_labels) if lbl != current_month_label]
+            
+            max_clicks = max(clicks_for_calc) if clicks_for_calc else (max(clicks_values) if clicks_values else 0)
+            max_left = max(
+                max(sent_for_calc) if sent_for_calc else 0, 
+                max(opens_for_calc) if opens_for_calc else 0
+            )
+            min_opens = min(opens_for_calc) if opens_for_calc else 0
+            
+            # Fallback til alle værdier hvis ingen data efter filtrering
+            if max_left == 0:
+                max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
+            if min_opens == 0:
+                min_opens = min(opens_values) if opens_values else 0
             
             if max_clicks > 0 and min_opens > 0 and max_left > 0:
                 # Beregn clicks range så max_clicks visuelt er ved 90% af min_opens (10% under)
