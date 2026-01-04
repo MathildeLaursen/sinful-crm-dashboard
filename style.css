@@ -508,18 +508,20 @@ label[data-baseweb="checkbox"] svg path {
    REDUCER AFSTAND MELLEM CHECKBOX OG TABEL
    =========================================== */
 
-/* Target "Skjul inaktive" checkbox containere i flows */
+/* Target "Skjul inaktive" checkbox containere i flows og games */
 /* Brug negativ margin for at kompensere for stVerticalBlock gap (16px) */
-[class*="st-key-fl_ignore_inactive_cb_"] {
+[class*="st-key-fl_ignore_inactive_cb_"],
+[class*="st-key-gm_ignore_inactive_cb_"] {
     margin-bottom: -14.5px !important;
 }
 
 /* ===========================================
-   ONLY BUTTONS I DROPDOWNS
+   ONLY BUTTONS I DROPDOWNS (Flows + Games)
    =========================================== */
 
 /* Style ONLY buttons - smaller and subtle */
-[class*="st-key-fl_only_"] button {
+[class*="st-key-fl_only_"] button,
+[class*="st-key-gm_only_"] button {
     padding: 0px 8px !important;
     font-size: 10px !important;
     min-height: 24px !important;
@@ -532,7 +534,8 @@ label[data-baseweb="checkbox"] svg path {
     transition: all 0.2s ease !important;
 }
 
-[class*="st-key-fl_only_"] button:hover {
+[class*="st-key-fl_only_"] button:hover,
+[class*="st-key-gm_only_"] button:hover {
     background: #9B7EBD !important;
     border-color: #9B7EBD !important;
     color: white !important;
@@ -541,7 +544,8 @@ label[data-baseweb="checkbox"] svg path {
 }
 
 /* Align checkbox and ONLY button vertically */
-[class*="st-key-fl_only_"] {
+[class*="st-key-fl_only_"],
+[class*="st-key-gm_only_"] {
     display: flex !important;
     align-items: center !important;
     margin-top: -8px !important;
