@@ -1323,9 +1323,9 @@ def render_overview_tab_content(df, available_months):
             for country in all_countries:
                 cb_col, only_col = st.columns([4, 1])
                 with cb_col:
-                    checked = country in st.session_state.fl_selected_countries
-                    if st.checkbox(country, value=checked, key=f"fl_cb_land_{country}_{reset_land}"):
-                        new_selected.append(country)
+                checked = country in st.session_state.fl_selected_countries
+                if st.checkbox(country, value=checked, key=f"fl_cb_land_{country}_{reset_land}"):
+                    new_selected.append(country)
                 with only_col:
                     if st.button("Kun", key=f"fl_only_land_ov_{country}_{reset_land}", type="secondary"):
                         only_clicked_land = country
@@ -1364,7 +1364,7 @@ def render_overview_tab_content(df, available_months):
                 with cb_col:
                     # Vis kun kort flow-navn i checkboxen
                     short_name = get_short_flow_name(flow)
-                    checked = flow in st.session_state.fl_selected_flows
+                checked = flow in st.session_state.fl_selected_flows
                     if st.checkbox(short_name, value=checked, key=f"fl_cb_flow_{flow}_{reset_flow}"):
                         new_selected_flows.append(flow)
                 with only_col:
@@ -1648,8 +1648,8 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         else:
             sel_months = sorted_months
     
-    # === LINJE 2: Group + Mail ===
-    col_group, col_mail, col_empty = st.columns([1, 1, 4])
+    # === LINJE 2: Group + Mail + Message + A/B ===
+    col_group, col_mail, col_message, col_ab = st.columns([1, 1, 1, 1])
     
     # === Session state for Ignorer checkboxes ===
     ignore_group_key = f'fl_ignore_group_{flow_trigger}'
@@ -1748,9 +1748,6 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
     
-    # === LINJE 3: Message + A/B dropdowns ===
-    col_message, col_ab, col_empty2 = st.columns([1, 1, 4])
-    
     # === Message dropdown ===
     with col_message:
         message_count = len([m for m in st.session_state[message_state_key] if m in available_messages])
@@ -1831,8 +1828,8 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[ab_reset_key] += 1
                 st.rerun()
     
-    # === LINJE 4: Ignorer checkboxes ===
-    col_ig_group, col_ig_mail, col_ig_message, col_ig_ab, col_ig_empty = st.columns([1, 1, 1, 1, 2])
+    # === LINJE 3: Ignorer checkboxes ===
+    col_ig_group, col_ig_mail, col_ig_message, col_ig_ab = st.columns([1, 1, 1, 1])
     
     with col_ig_group:
         ignore_group = st.checkbox(
