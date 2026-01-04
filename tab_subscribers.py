@@ -635,7 +635,57 @@ def render_nye_subscribers_tab(events_df):
             agg_df = display_events.groupby(['Month', 'Master Source'])['Total'].sum().reset_index()
             agg_df = agg_df.sort_values('Month')
             
-            # Graf med tidslinje per Master Source
+            # --- SLIDER ---
+            available_months = sorted(agg_df['Month'].unique())
+            current_month = available_months[-1] if available_months else None
+            
+            def format_month_short_kilder(m):
+                return m.strftime('%b %y') if hasattr(m, 'strftime') else str(m)
+            
+            if len(available_months) > 1:
+                month_range = st.select_slider(
+                    "Periode",
+                    options=available_months,
+                    value=(current_month, current_month),
+                    format_func=format_month_short_kilder,
+                    key="kilder_oversigt_period",
+                    label_visibility="collapsed"
+                )
+                start_month, end_month = month_range
+            else:
+                start_month = available_months[0] if available_months else None
+                end_month = start_month
+            
+            # Filtrer data til valgt periode
+            period_df = agg_df[(agg_df['Month'] >= start_month) & (agg_df['Month'] <= end_month)]
+            
+            # --- SCORECARDS ---
+            num_sources = len(master_sources)
+            cols = st.columns(num_sources)
+            
+            for i, master in enumerate(master_sources):
+                master_total = period_df[period_df['Master Source'] == master]['Total'].sum()
+                
+                # Find forrige periode til sammenligning
+                if start_month and len(available_months) > 1:
+                    start_idx = available_months.index(start_month)
+                    if start_idx > 0:
+                        prev_month = available_months[start_idx - 1]
+                        prev_total = agg_df[(agg_df['Month'] == prev_month) & (agg_df['Master Source'] == master)]['Total'].sum()
+                        if prev_total > 0:
+                            pct = ((master_total - prev_total) / prev_total * 100)
+                            growth_str = f"+{int(master_total - prev_total):,}" if master_total >= prev_total else f"{int(master_total - prev_total):,}"
+                            cols[i].metric(master, format_number(master_total), delta=f"{pct:+.1f}% ({growth_str})")
+                        else:
+                            cols[i].metric(master, format_number(master_total))
+                    else:
+                        cols[i].metric(master, format_number(master_total))
+                else:
+                    cols[i].metric(master, format_number(master_total))
+            
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+            
+            # --- GRAF ---
             fig = go.Figure()
             for master in master_sources:
                 master_data = agg_df[agg_df['Master Source'] == master]
