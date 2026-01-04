@@ -464,53 +464,170 @@ def render_newsletters_tab():
         
         st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
         
-        # Chart
+        # Chart data
         chart_df = current_df.groupby(['Date', 'Email_Message'], as_index=False).agg({
             'Total_Received': 'sum', 'Unique_Opens': 'sum', 'Unique_Clicks': 'sum'
         })
         chart_df['Open Rate'] = (chart_df['Unique_Opens'] / chart_df['Total_Received'] * 100).round(1)
         chart_df['Click Rate'] = (chart_df['Unique_Clicks'] / chart_df['Total_Received'] * 100).round(2)
+        chart_df['CTR'] = (chart_df['Unique_Clicks'] / chart_df['Unique_Opens'] * 100).round(1)
+        chart_df['CTR'] = chart_df['CTR'].fillna(0)
         chart_df = chart_df.sort_values('Date')
         chart_df['Email_Short'] = chart_df['Email_Message'].apply(lambda x: x.split(' - ')[-1] if ' - ' in str(x) else str(x))
         
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        # === DOT PLOT ===
+        st.markdown("### <span style='color:#9B7EBD;'>Dot Plot</span>", unsafe_allow_html=True)
         
-        fig.add_trace(
-            go.Bar(
-                x=chart_df['Email_Short'], y=chart_df['Open Rate'],
-                name='Open Rate', marker_color='#9B7EBD',
-                text=chart_df['Open Rate'].apply(lambda x: f'{x:.1f}%'),
-                textposition='outside', textfont=dict(size=14), offsetgroup=0
-            ),
-            secondary_y=False
+        fig_dot = go.Figure()
+        
+        # Open Rate dots (lilla)
+        fig_dot.add_trace(
+            go.Scatter(
+                x=chart_df['Open Rate'],
+                y=chart_df['Email_Short'],
+                mode='markers',
+                name='Open Rate',
+                marker=dict(color='#9B7EBD', size=14, symbol='circle'),
+                hovertemplate='<b>%{y}</b><br>Open Rate: %{x:.1f}%<extra></extra>'
+            )
         )
         
-        fig.add_trace(
-            go.Bar(
-                x=chart_df['Email_Short'], y=chart_df['Click Rate'],
-                name='Click Rate', marker_color='#E8B4CB',
-                text=chart_df['Click Rate'].apply(lambda x: f'{x:.1f}%'),
-                textposition='outside', textfont=dict(size=12), offsetgroup=1
-            ),
-            secondary_y=True
+        # Click Rate dots (rosa)
+        fig_dot.add_trace(
+            go.Scatter(
+                x=chart_df['Click Rate'],
+                y=chart_df['Email_Short'],
+                mode='markers',
+                name='Click Rate',
+                marker=dict(color='#E8B4CB', size=14, symbol='diamond'),
+                hovertemplate='<b>%{y}</b><br>Click Rate: %{x:.1f}%<extra></extra>'
+            )
         )
         
-        fig.update_layout(
-            title="", showlegend=True, height=455,
-            margin=dict(l=50, r=50, t=50, b=80),
+        # CTR dots (grøn)
+        fig_dot.add_trace(
+            go.Scatter(
+                x=chart_df['CTR'],
+                y=chart_df['Email_Short'],
+                mode='markers',
+                name='CTR',
+                marker=dict(color='#A8E6CF', size=14, symbol='square'),
+                hovertemplate='<b>%{y}</b><br>CTR: %{x:.1f}%<extra></extra>'
+            )
+        )
+        
+        # Tilføj forbindelseslinjer mellem dots for hver email
+        for idx, row in chart_df.iterrows():
+            min_val = min(row['Click Rate'], row['CTR'])
+            max_val = row['Open Rate']
+            fig_dot.add_trace(
+                go.Scatter(
+                    x=[min_val, max_val],
+                    y=[row['Email_Short'], row['Email_Short']],
+                    mode='lines',
+                    line=dict(color='rgba(155, 126, 189, 0.2)', width=2),
+                    showlegend=False,
+                    hoverinfo='skip'
+                )
+            )
+        
+        chart_height_dot = max(400, len(chart_df) * 35)
+        
+        fig_dot.update_layout(
+            title="",
+            showlegend=True,
+            height=chart_height_dot,
+            margin=dict(l=200, r=50, t=50, b=50),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='x unified', barmode='group', bargap=0.3, bargroupgap=0.1
+            plot_bgcolor='rgba(250,245,255,0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='closest',
+            xaxis=dict(
+                title="Procent (%)",
+                gridcolor='rgba(212,191,255,0.3)',
+                ticksuffix='%',
+                zeroline=True,
+                zerolinecolor='rgba(212,191,255,0.5)'
+            ),
+            yaxis=dict(
+                title="",
+                gridcolor='rgba(212,191,255,0.2)',
+                categoryorder='array',
+                categoryarray=chart_df['Email_Short'].tolist()[::-1]
+            )
         )
         
-        max_open = chart_df['Open Rate'].max() if not chart_df.empty else 50
-        max_click = chart_df['Click Rate'].max() if not chart_df.empty else 5
+        st.plotly_chart(fig_dot, use_container_width=True, config={'displayModeBar': False})
         
-        fig.update_yaxes(title_text="Open Rate %", secondary_y=False, gridcolor='rgba(212,191,255,0.3)', ticksuffix='%', range=[0, max_open * 1.2])
-        fig.update_yaxes(title_text="Click Rate %", secondary_y=True, gridcolor='rgba(232,180,203,0.3)', ticksuffix='%', showgrid=False, range=[0, max_click * 1.2])
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickangle=-45, type='category', tickfont=dict(size=14))
+        st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
         
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        # === BUBBLE CHART ===
+        st.markdown("### <span style='color:#9B7EBD;'>Bubble Chart</span>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 0.85em; color: #666;'>Størrelse = antal sendt, X = Open Rate, Y = Click Rate, Farve = CTR</p>", unsafe_allow_html=True)
+        
+        # Normaliser bubble størrelse
+        max_sent = chart_df['Total_Received'].max()
+        min_sent = chart_df['Total_Received'].min()
+        size_range = max_sent - min_sent if max_sent != min_sent else 1
+        chart_df['Bubble_Size'] = 15 + ((chart_df['Total_Received'] - min_sent) / size_range) * 40
+        
+        fig_bubble = go.Figure()
+        
+        fig_bubble.add_trace(
+            go.Scatter(
+                x=chart_df['Open Rate'],
+                y=chart_df['Click Rate'],
+                mode='markers+text',
+                text=chart_df['Email_Short'],
+                textposition='top center',
+                textfont=dict(size=9, color='#4A3F55'),
+                marker=dict(
+                    size=chart_df['Bubble_Size'],
+                    color=chart_df['CTR'],
+                    colorscale=[
+                        [0, '#E8B4CB'],      # Lav CTR - rosa
+                        [0.5, '#9B7EBD'],    # Medium CTR - lilla
+                        [1, '#A8E6CF']       # Høj CTR - grøn
+                    ],
+                    colorbar=dict(
+                        title="CTR %",
+                        ticksuffix='%'
+                    ),
+                    line=dict(width=1, color='white'),
+                    opacity=0.8
+                ),
+                hovertemplate='<b>%{text}</b><br>' +
+                              'Open Rate: %{x:.1f}%<br>' +
+                              'Click Rate: %{y:.1f}%<br>' +
+                              'CTR: %{marker.color:.1f}%<br>' +
+                              'Sendt: %{customdata:,}<extra></extra>',
+                customdata=chart_df['Total_Received']
+            )
+        )
+        
+        fig_bubble.update_layout(
+            title="",
+            showlegend=False,
+            height=500,
+            margin=dict(l=60, r=100, t=50, b=60),
+            plot_bgcolor='rgba(250,245,255,0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='closest',
+            xaxis=dict(
+                title="Open Rate %",
+                gridcolor='rgba(212,191,255,0.3)',
+                ticksuffix='%',
+                zeroline=False
+            ),
+            yaxis=dict(
+                title="Click Rate %",
+                gridcolor='rgba(212,191,255,0.3)',
+                ticksuffix='%',
+                zeroline=False
+            )
+        )
+        
+        st.plotly_chart(fig_bubble, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
