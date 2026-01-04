@@ -68,7 +68,13 @@ def render_overview_tab(full_df, light_df):
         light_df = light_df.sort_values('Month', ascending=False)
     
     # --- FILTRE: Land og Periode ---
-    country_options = ['Total', 'DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    all_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    
+    # Session state for land selection
+    if 'sub_selected_countries' not in st.session_state:
+        st.session_state.sub_selected_countries = list(all_countries)
+    if 'sub_cb_reset_land' not in st.session_state:
+        st.session_state.sub_cb_reset_land = 0
     
     # Find tilgængelige måneder fra data
     all_months = set()
@@ -92,14 +98,46 @@ def render_overview_tab(full_df, light_df):
     # Filter row
     col_land, col_slider = st.columns([1, 5])
     
+    # Land filter med popover
     with col_land:
-        selected_country = st.selectbox(
-            "Land",
-            options=country_options,
-            index=0,
-            key="sub_overview_country",
-            label_visibility="collapsed"
-        )
+        land_count = len(st.session_state.sub_selected_countries)
+        land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
+        with st.popover(land_label, use_container_width=True):
+            reset_land = st.session_state.sub_cb_reset_land
+            all_land_selected = len(st.session_state.sub_selected_countries) == len(all_countries)
+            select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"sub_sel_all_land_{reset_land}")
+            
+            new_selected = []
+            only_clicked_land = None
+            for country in all_countries:
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = country in st.session_state.sub_selected_countries
+                    if st.checkbox(country, value=checked, key=f"sub_cb_land_{country}_{reset_land}"):
+                        new_selected.append(country)
+                with only_col:
+                    if st.button("Kun", key=f"sub_only_{country}_{reset_land}"):
+                        only_clicked_land = country
+            
+            # Handle Kun button click first
+            if only_clicked_land:
+                st.session_state.sub_selected_countries = [only_clicked_land]
+                st.session_state.sub_cb_reset_land += 1
+                st.rerun()
+            elif select_all_land and not all_land_selected:
+                st.session_state.sub_selected_countries = list(all_countries)
+                st.session_state.sub_cb_reset_land += 1
+                st.rerun()
+            elif not select_all_land and all_land_selected:
+                st.session_state.sub_selected_countries = []
+                st.session_state.sub_cb_reset_land += 1
+                st.rerun()
+            elif set(new_selected) != set(st.session_state.sub_selected_countries):
+                st.session_state.sub_selected_countries = new_selected
+                st.session_state.sub_cb_reset_land += 1
+                st.rerun()
+    
+    selected_countries = st.session_state.sub_selected_countries
     
     with col_slider:
         if len(available_months) > 1:
@@ -121,17 +159,22 @@ def render_overview_tab(full_df, light_df):
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
+    # Check at mindst ét land er valgt
+    if not selected_countries:
+        st.warning("Vælg mindst ét land.")
+        return
+
     # --- KPI CARDS ---
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     
-    # Hent data for valgt måned og land
+    # Hent data for valgt måned og summér over valgte lande
     if not full_df.empty:
         current_full_row = full_df[full_df['Month'] == selected_month]
-        current_full = current_full_row[selected_country].values[0] if not current_full_row.empty else 0
+        current_full = current_full_row[selected_countries].sum(axis=1).values[0] if not current_full_row.empty else 0
         
         if prev_month is not None:
             prev_full_row = full_df[full_df['Month'] == prev_month]
-            prev_full = prev_full_row[selected_country].values[0] if not prev_full_row.empty else None
+            prev_full = prev_full_row[selected_countries].sum(axis=1).values[0] if not prev_full_row.empty else None
         else:
             prev_full = None
         
@@ -143,11 +186,11 @@ def render_overview_tab(full_df, light_df):
 
     if not light_df.empty:
         current_light_row = light_df[light_df['Month'] == selected_month]
-        current_light = current_light_row[selected_country].values[0] if not current_light_row.empty else 0
+        current_light = current_light_row[selected_countries].sum(axis=1).values[0] if not current_light_row.empty else 0
         
         if prev_month is not None:
             prev_light_row = light_df[light_df['Month'] == prev_month]
-            prev_light = prev_light_row[selected_country].values[0] if not prev_light_row.empty else None
+            prev_light = prev_light_row[selected_countries].sum(axis=1).values[0] if not prev_light_row.empty else None
         else:
             prev_light = None
         
@@ -175,12 +218,13 @@ def render_overview_tab(full_df, light_df):
     if not full_df.empty or not light_df.empty:
         fig = make_subplots(specs=[[{"secondary_y": False}]])
         
-        # Sorter kronologisk for graf
+        # Sorter kronologisk for graf og summér over valgte lande
         if not full_df.empty:
-            full_chart = full_df.sort_values('Month')
+            full_chart = full_df.sort_values('Month').copy()
+            full_chart['Selected_Total'] = full_chart[selected_countries].sum(axis=1)
             fig.add_trace(
                 go.Scatter(
-                    x=full_chart['Month'], y=full_chart[selected_country],
+                    x=full_chart['Month'], y=full_chart['Selected_Total'],
                     name='Full Subscribers', mode='lines+markers',
                     line=dict(color='#9B7EBD', width=3),
                     marker=dict(size=8)
@@ -188,10 +232,11 @@ def render_overview_tab(full_df, light_df):
             )
         
         if not light_df.empty:
-            light_chart = light_df.sort_values('Month')
+            light_chart = light_df.sort_values('Month').copy()
+            light_chart['Selected_Total'] = light_chart[selected_countries].sum(axis=1)
             fig.add_trace(
                 go.Scatter(
-                    x=light_chart['Month'], y=light_chart[selected_country],
+                    x=light_chart['Month'], y=light_chart['Selected_Total'],
                     name='Light Subscribers', mode='lines+markers',
                     line=dict(color='#E8B4CB', width=3),
                     marker=dict(size=8)
