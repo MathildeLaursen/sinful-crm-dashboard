@@ -6,7 +6,7 @@ import pandas as pd
 import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from shared import get_gspread_client, show_metric, format_number, style_graph, COUNTRY_ORDER
+from shared import get_gspread_client, show_metric, format_number, style_graph, COUNTRY_ORDER, get_colors_for_categories
 
 
 @st.cache_data(ttl=300, show_spinner=False)  # Cache i 5 minutter
@@ -287,11 +287,8 @@ def render_full_subscribers_tab(full_df):
     country_cols = COUNTRY_ORDER
     
     # Farver per land
-    country_colors = {
-        'DK': '#9B7EBD', 'SE': '#E8B4CB', 'NO': '#A8E6CF', 'FI': '#FFD3B6',
-        'FR': '#D4BFFF', 'UK': '#F0B4D4', 'DE': '#B4E0F0', 'AT': '#E0D4B4',
-        'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0'
-    }
+    # Generer farver dynamisk for lande
+    country_colors = get_colors_for_categories(country_cols)
     
     if not full_df.empty:
         # Find tilgængelige måneder
@@ -425,11 +422,8 @@ def render_light_subscribers_tab(light_df):
     country_cols = COUNTRY_ORDER
     
     # Farver per land
-    country_colors = {
-        'DK': '#9B7EBD', 'SE': '#E8B4CB', 'NO': '#A8E6CF', 'FI': '#FFD3B6',
-        'FR': '#D4BFFF', 'UK': '#F0B4D4', 'DE': '#B4E0F0', 'AT': '#E0D4B4',
-        'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0'
-    }
+    # Generer farver dynamisk for lande
+    country_colors = get_colors_for_categories(country_cols)
     
     if not light_df.empty:
         # Find tilgængelige måneder

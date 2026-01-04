@@ -130,3 +130,80 @@ def style_graph(fig, height=400, show_legend=True, legend_position='right',
 
 # Standard lande rækkefølge for dropdowns
 COUNTRY_ORDER = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+
+
+# ===========================================
+# DYNAMISK FARVEPALETTE
+# ===========================================
+
+# Unicorn-tema farvepalette (udvidet)
+COLOR_PALETTE = [
+    '#9B7EBD',  # Lilla (primary)
+    '#E8B4CB',  # Pink
+    '#A8E6CF',  # Mint
+    '#FFD3B6',  # Fersken
+    '#87CEEB',  # Lyseblå
+    '#F0E68C',  # Gul
+    '#DDA0DD',  # Plum
+    '#4ECDC4',  # Turkis
+    '#FF6B6B',  # Koral
+    '#45B7D1',  # Blå
+    '#96CEB4',  # Sage
+    '#F7DC6F',  # Guld
+    '#D4BFFF',  # Lavendel
+    '#F0B4D4',  # Lys pink
+    '#B4E0F0',  # Lys blå
+    '#E0D4B4',  # Beige
+    '#F0D4B4',  # Lys fersken
+    '#D4F0B4',  # Lys grøn
+    '#B4D4F0',  # Himmelblå
+    '#E8D5FF',  # Lys lilla
+]
+
+# Speciel farve for "Total" (mørk for at skille sig ud)
+TOTAL_COLOR = '#4A3F55'
+
+
+def get_color_for_category(category: str, categories: list = None) -> str:
+    """
+    Hent en konsistent farve for en kategori.
+    
+    Samme kategori får altid samme farve baseret på dens position i listen
+    eller et hash af navnet hvis ingen liste er givet.
+    
+    Args:
+        category: Kategorinavnet (f.eks. 'Game', 'On Site', 'DK')
+        categories: Optional liste af alle kategorier for konsistent rækkefølge
+    
+    Returns:
+        Hex farve streng
+    """
+    # Total får altid sin specielle mørke farve
+    if category == 'Total':
+        return TOTAL_COLOR
+    
+    if categories:
+        # Brug position i listen for konsistent farve
+        try:
+            idx = categories.index(category)
+        except ValueError:
+            # Fallback til hash hvis ikke i listen
+            idx = hash(category)
+    else:
+        # Brug hash af kategorinavn for konsistent farve
+        idx = hash(category)
+    
+    return COLOR_PALETTE[idx % len(COLOR_PALETTE)]
+
+
+def get_colors_for_categories(categories: list) -> dict:
+    """
+    Generer et farve-dictionary for en liste af kategorier.
+    
+    Args:
+        categories: Liste af kategorinavne
+    
+    Returns:
+        Dict med {kategori: farve}
+    """
+    return {cat: get_color_for_category(cat, categories) for cat in categories}

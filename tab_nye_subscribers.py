@@ -6,7 +6,7 @@ import pandas as pd
 import datetime
 import calendar
 import plotly.graph_objects as go
-from shared import get_gspread_client, format_number, style_graph, COUNTRY_ORDER
+from shared import get_gspread_client, format_number, style_graph, COUNTRY_ORDER, get_colors_for_categories, get_color_for_category
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -65,22 +65,6 @@ def render_nye_subscribers_content(events_df):
     """Render Nye Subscribers per Kilde indhold med underfaner per Master Source"""
     country_cols = COUNTRY_ORDER + ['Total']
     
-    # Farver for Master Sources
-    master_colors = {
-        'Game': '#9B7EBD',
-        'Lead Ad': '#E8B4CB',
-        'LightPermission': '#A8E6CF',
-        'On Site': '#FFD3B6',
-        'Other': '#F0E68C',
-        'Sleeknote': '#87CEEB',
-        'Paid': '#FF6B6B',
-        'Organic': '#4ECDC4',
-        'Referral': '#45B7D1',
-        'Direct': '#96CEB4',
-        'Social': '#DDA0DD',
-        'Email': '#F7DC6F',
-    }
-    
     if not events_df.empty:
         display_events = events_df.copy()
         display_events['Month'] = pd.to_datetime(display_events['Month'])
@@ -92,6 +76,9 @@ def render_nye_subscribers_content(events_df):
         master_source_order = ['On Site', 'Game', 'Lead Ad', 'Sleeknote', 'Other']
         available_sources = display_events['Master Source'].unique().tolist()
         master_sources = [ms for ms in master_source_order if ms in available_sources]
+        
+        # Generer farver dynamisk for Master Sources
+        master_colors = get_colors_for_categories(master_sources)
         
         # Opret sub-tabs: Oversigt + en per Master Source
         tab_names = ["Oversigt"] + master_sources
@@ -288,11 +275,8 @@ def render_nye_subscribers_content(events_df):
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # --- MASTER SOURCE TABS ---
-        country_colors = {
-            'DK': '#9B7EBD', 'SE': '#E8B4CB', 'NO': '#A8E6CF', 'FI': '#FFD3B6',
-            'FR': '#D4BFFF', 'UK': '#F0B4D4', 'DE': '#B4E0F0', 'AT': '#E0D4B4',
-            'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0', 'Total': '#4A3F55'
-        }
+        # Generer farver dynamisk for lande
+        country_colors = get_colors_for_categories(country_cols)
         
         masters_with_source_tabs = ['On Site', 'Game', 'Lead Ad']
         
