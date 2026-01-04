@@ -845,9 +845,9 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
             max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
             max_clicks = max(clicks_values) if clicks_values else 0
             
-            # Skaler højre y-akse så clicks vises i nederste del (ca. 40% af plottet)
+            # Skaler højre y-akse så clicks vises i nederste del (ca. 25% af plottet)
             if max_clicks > 0 and max_left > 0:
-                clicks_range_max = max_clicks * 2.5  # Udvid range så max clicks er ved ca. 40%
+                clicks_range_max = max_clicks * 4  # Udvid range så max clicks er ved ca. 25%
                 fig.update_yaxes(range=[0, clicks_range_max], row=row, col=1, secondary_y=True)
         
         # chart_height er allerede beregnet ovenfor - brug minimum 350
