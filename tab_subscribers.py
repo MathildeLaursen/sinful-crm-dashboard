@@ -70,13 +70,13 @@ def format_month_short(month_dt):
 
 def render_overview_tab(full_df, light_df):
     """Render Oversigt sub-tab med scorecards og graf"""
-    
+
     # Sorter efter dato
     if not full_df.empty:
         full_df = full_df.sort_values('Month', ascending=False)
     if not light_df.empty:
         light_df = light_df.sort_values('Month', ascending=False)
-    
+
     # --- FILTRE: Land og Periode ---
     all_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
     
@@ -260,7 +260,7 @@ def render_overview_tab(full_df, light_df):
         col1.metric("Full Subscribers", format_number(current_full), delta=f"{full_pct:+.1f}% ({full_growth_str})")
     else:
         col1.metric("Full Subscribers", format_number(current_full))
-    
+
     # Light Subscribers med % og absolut
     if prev_light > 0:
         light_growth = current_light - prev_light
@@ -487,7 +487,7 @@ def render_full_subscribers_tab(full_df):
         )
     else:
         st.info("Ingen Full Subscribers data.")
-
+    
 
 def render_light_subscribers_tab(light_df):
     """Render Light Subscribers sub-tab med scorecards, graf og tabel"""
@@ -675,145 +675,207 @@ def render_nye_subscribers_tab(events_df):
         with source_tabs[0]:
             st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
             
-            # Aggregér data per måned og Master Source (sum Total)
-            agg_df = display_events.groupby(['Month', 'Master Source'])['Total'].sum().reset_index()
-            agg_df = agg_df.sort_values('Month')
+            # --- FILTRE: Land og Periode ---
+            all_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
             
-            # --- SLIDER ---
-            available_months = sorted(agg_df['Month'].unique())
+            # Session state for land selection
+            if 'kilder_selected_countries' not in st.session_state:
+                st.session_state.kilder_selected_countries = list(all_countries)
+            if 'kilder_cb_reset_land' not in st.session_state:
+                st.session_state.kilder_cb_reset_land = 0
+            
+            # Find tilgængelige måneder
+            available_months = sorted(display_events['Month'].unique())
             current_month = available_months[-1] if available_months else None
             
             def format_month_short_kilder(m):
                 return m.strftime('%b %y') if hasattr(m, 'strftime') else str(m)
             
-            if len(available_months) > 1:
-                month_range = st.select_slider(
-                    "Periode",
-                    options=available_months,
-                    value=(current_month, current_month),
-                    format_func=format_month_short_kilder,
-                    key="kilder_oversigt_period",
-                    label_visibility="collapsed"
-                )
-                start_month, end_month = month_range
-            else:
-                start_month = available_months[0] if available_months else None
-                end_month = start_month
+            # Filter row: Land + Slider
+            col_land, col_slider = st.columns([1, 5])
             
-            # Filtrer data til valgt periode
-            period_df = agg_df[(agg_df['Month'] >= start_month) & (agg_df['Month'] <= end_month)]
+            # Land filter med popover
+            with col_land:
+                land_count = len(st.session_state.kilder_selected_countries)
+                land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
+                with st.popover(land_label, use_container_width=True):
+                    reset_land = st.session_state.kilder_cb_reset_land
+                    all_land_selected = len(st.session_state.kilder_selected_countries) == len(all_countries)
+                    select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"kilder_sel_all_land_{reset_land}")
+                    
+                    new_selected = []
+                    only_clicked_land = None
+                    for country in all_countries:
+                        cb_col, only_col = st.columns([4, 1])
+                        with cb_col:
+                            checked = country in st.session_state.kilder_selected_countries
+                            if st.checkbox(country, value=checked, key=f"kilder_cb_land_{country}_{reset_land}"):
+                                new_selected.append(country)
+                        with only_col:
+                            if st.button("Kun", key=f"kilder_only_{country}_{reset_land}"):
+                                only_clicked_land = country
+                    
+                    # Handle selections
+                    if only_clicked_land:
+                        st.session_state.kilder_selected_countries = [only_clicked_land]
+                        st.session_state.kilder_cb_reset_land += 1
+                        st.rerun()
+                    elif select_all_land and not all_land_selected:
+                        st.session_state.kilder_selected_countries = list(all_countries)
+                        st.session_state.kilder_cb_reset_land += 1
+                        st.rerun()
+                    elif not select_all_land and all_land_selected:
+                        st.session_state.kilder_selected_countries = []
+                        st.session_state.kilder_cb_reset_land += 1
+                        st.rerun()
+                    elif set(new_selected) != set(st.session_state.kilder_selected_countries):
+                        st.session_state.kilder_selected_countries = new_selected
+                        st.session_state.kilder_cb_reset_land += 1
+                        st.rerun()
             
-            # Find valgte måneder
-            selected_months = sorted(period_df['Month'].unique().tolist())
-            num_months = len(selected_months)
+            selected_countries = st.session_state.kilder_selected_countries
             
-            # Beregn måned progress (hvor langt vi er i nuværende måned)
-            import calendar
-            today = datetime.date.today()
-            yesterday = today - datetime.timedelta(days=1)
-            days_with_data = yesterday.day
-            total_days_in_month = calendar.monthrange(today.year, today.month)[1]
-            month_progress = days_with_data / total_days_in_month
-            
-            # Tjek om nuværende måned er valgt
-            current_month_dt = pd.Timestamp(today.year, today.month, 1)
-            current_month_selected = any(
-                m.year == current_month_dt.year and m.month == current_month_dt.month 
-                for m in selected_months
-            )
-            
-            # Find sammenligningsperiode: N måneder FØR den ældste valgte måned
-            if selected_months and num_months > 0:
-                oldest_selected = selected_months[0]
-                oldest_idx = available_months.index(oldest_selected) if oldest_selected in available_months else -1
-                
-                # Find N måneder før oldest_selected
-                prev_months = []
-                for i in range(num_months):
-                    prev_idx = oldest_idx - 1 - i
-                    if prev_idx >= 0:
-                        prev_months.append(available_months[prev_idx])
-                
-                # Den ældste sammenligningsmåned (skal skaleres hvis current month er valgt)
-                oldest_prev_month = min(prev_months) if prev_months else None
-            else:
-                prev_months = []
-                oldest_prev_month = None
-            
-            # --- SCORECARDS ---
-            num_sources = len(master_sources)
-            cols = st.columns(num_sources + 1)  # +1 for Total
-            
-            # Total for alle Master Sources
-            grand_total = 0
-            grand_prev_total = 0
-            
-            for i, master in enumerate(master_sources):
-                master_total = period_df[period_df['Master Source'] == master]['Total'].sum()
-                grand_total += master_total
-                
-                # Beregn sammenligning med forrige periode (N måneder)
-                prev_total = 0
-                if prev_months:
-                    for pm in prev_months:
-                        pm_total = agg_df[(agg_df['Month'] == pm) & (agg_df['Master Source'] == master)]['Total'].sum()
-                        
-                        # Skaler kun den ældste sammenligningsmåned hvis nuværende måned er valgt
-                        if pm == oldest_prev_month and current_month_selected:
-                            prev_total += pm_total * month_progress
-                        else:
-                            prev_total += pm_total
-                
-                grand_prev_total += prev_total
-                
-                if prev_total > 0:
-                    pct = ((master_total - prev_total) / prev_total * 100)
-                    growth = int(master_total - prev_total)
-                    growth_str = f"+{growth:,}" if growth >= 0 else f"{growth:,}"
-                    cols[i].metric(master, format_number(master_total), delta=f"{pct:+.1f}% ({growth_str})")
-                else:
-                    cols[i].metric(master, format_number(master_total))
-            
-            # Total scorecard
-            if grand_prev_total > 0:
-                grand_pct = ((grand_total - grand_prev_total) / grand_prev_total * 100)
-                grand_growth = int(grand_total - grand_prev_total)
-                grand_growth_str = f"+{grand_growth:,}" if grand_growth >= 0 else f"{grand_growth:,}"
-                cols[num_sources].metric("Total", format_number(grand_total), delta=f"{grand_pct:+.1f}% ({grand_growth_str})")
-            else:
-                cols[num_sources].metric("Total", format_number(grand_total))
-            
-            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-            
-            # --- GRAF ---
-            fig = go.Figure()
-            for master in master_sources:
-                master_data = agg_df[agg_df['Master Source'] == master]
-                fig.add_trace(
-                    go.Scatter(
-                        x=master_data['Month'],
-                        y=master_data['Total'],
-                        name=master,
-                        mode='lines+markers',
-                        line=dict(color=master_colors.get(master, '#9B7EBD'), width=2),
-                        marker=dict(size=6)
+            # Slider
+            with col_slider:
+                if len(available_months) > 1:
+                    month_range = st.select_slider(
+                        "Periode",
+                        options=available_months,
+                        value=(current_month, current_month),
+                        format_func=format_month_short_kilder,
+                        key="kilder_oversigt_period",
+                        label_visibility="collapsed"
                     )
+                    start_month, end_month = month_range
+                else:
+                    start_month = available_months[0] if available_months else None
+                    end_month = start_month
+            
+            # Check at mindst ét land er valgt
+            if not selected_countries:
+                st.warning("Vælg mindst ét land.")
+            else:
+                # Aggregér data per måned og Master Source (sum over valgte lande)
+                filtered_events = display_events.copy()
+                filtered_events['Selected_Total'] = filtered_events[selected_countries].sum(axis=1)
+                agg_df = filtered_events.groupby(['Month', 'Master Source'])['Selected_Total'].sum().reset_index()
+                agg_df = agg_df.rename(columns={'Selected_Total': 'Total'})
+                agg_df = agg_df.sort_values('Month')
+                
+                # Filtrer data til valgt periode
+                period_df = agg_df[(agg_df['Month'] >= start_month) & (agg_df['Month'] <= end_month)]
+                
+                # Find valgte måneder
+                selected_months = sorted(period_df['Month'].unique().tolist())
+                num_months = len(selected_months)
+                
+                # Beregn måned progress (hvor langt vi er i nuværende måned)
+                import calendar
+                today = datetime.date.today()
+                yesterday = today - datetime.timedelta(days=1)
+                days_with_data = yesterday.day
+                total_days_in_month = calendar.monthrange(today.year, today.month)[1]
+                month_progress = days_with_data / total_days_in_month
+                
+                # Tjek om nuværende måned er valgt
+                current_month_dt = pd.Timestamp(today.year, today.month, 1)
+                current_month_selected = any(
+                    m.year == current_month_dt.year and m.month == current_month_dt.month 
+                    for m in selected_months
                 )
-            
-            fig.update_layout(
-                title="",
-                showlegend=True,
-                height=500,
-                margin=dict(l=50, r=50, t=30, b=50),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-                plot_bgcolor='rgba(250,245,255,0.5)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                hovermode='x unified'
-            )
-            fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
-            fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
-            
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                
+                # Find sammenligningsperiode: N måneder FØR den ældste valgte måned
+                if selected_months and num_months > 0:
+                    oldest_selected = selected_months[0]
+                    oldest_idx = available_months.index(oldest_selected) if oldest_selected in available_months else -1
+                    
+                    # Find N måneder før oldest_selected
+                    prev_months = []
+                    for i in range(num_months):
+                        prev_idx = oldest_idx - 1 - i
+                        if prev_idx >= 0:
+                            prev_months.append(available_months[prev_idx])
+                    
+                    # Den ældste sammenligningsmåned (skal skaleres hvis current month er valgt)
+                    oldest_prev_month = min(prev_months) if prev_months else None
+                else:
+                    prev_months = []
+                    oldest_prev_month = None
+                
+                # --- SCORECARDS ---
+                num_sources = len(master_sources)
+                cols = st.columns(num_sources + 1)  # +1 for Total
+                
+                # Total for alle Master Sources
+                grand_total = 0
+                grand_prev_total = 0
+                
+                for i, master in enumerate(master_sources):
+                    master_total = period_df[period_df['Master Source'] == master]['Total'].sum()
+                    grand_total += master_total
+                    
+                    # Beregn sammenligning med forrige periode (N måneder)
+                    prev_total = 0
+                    if prev_months:
+                        for pm in prev_months:
+                            pm_total = agg_df[(agg_df['Month'] == pm) & (agg_df['Master Source'] == master)]['Total'].sum()
+                            
+                            # Skaler kun den ældste sammenligningsmåned hvis nuværende måned er valgt
+                            if pm == oldest_prev_month and current_month_selected:
+                                prev_total += pm_total * month_progress
+                            else:
+                                prev_total += pm_total
+                    
+                    grand_prev_total += prev_total
+                    
+                    if prev_total > 0:
+                        pct = ((master_total - prev_total) / prev_total * 100)
+                        growth = int(master_total - prev_total)
+                        growth_str = f"+{growth:,}" if growth >= 0 else f"{growth:,}"
+                        cols[i].metric(master, format_number(master_total), delta=f"{pct:+.1f}% ({growth_str})")
+                    else:
+                        cols[i].metric(master, format_number(master_total))
+                
+                # Total scorecard
+                if grand_prev_total > 0:
+                    grand_pct = ((grand_total - grand_prev_total) / grand_prev_total * 100)
+                    grand_growth = int(grand_total - grand_prev_total)
+                    grand_growth_str = f"+{grand_growth:,}" if grand_growth >= 0 else f"{grand_growth:,}"
+                    cols[num_sources].metric("Total", format_number(grand_total), delta=f"{grand_pct:+.1f}% ({grand_growth_str})")
+                else:
+                    cols[num_sources].metric("Total", format_number(grand_total))
+                
+                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+                
+                # --- GRAF ---
+                fig = go.Figure()
+                for master in master_sources:
+                    master_data = agg_df[agg_df['Master Source'] == master]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=master_data['Month'],
+                            y=master_data['Total'],
+                            name=master,
+                            mode='lines+markers',
+                            line=dict(color=master_colors.get(master, '#9B7EBD'), width=2),
+                            marker=dict(size=6)
+                        )
+                    )
+                
+                fig.update_layout(
+                    title="",
+                    showlegend=True,
+                    height=500,
+                    margin=dict(l=50, r=50, t=30, b=50),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                    plot_bgcolor='rgba(250,245,255,0.5)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    hovermode='x unified'
+                )
+                fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
+                fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+                
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # --- MASTER SOURCE TABS ---
         # Farver per land (Total får en mørk farve der skiller sig ud)
