@@ -475,9 +475,7 @@ def render_newsletters_tab():
         chart_df = chart_df.sort_values('Date')
         chart_df['Email_Short'] = chart_df['Email_Message'].apply(lambda x: x.split(' - ')[-1] if ' - ' in str(x) else str(x))
         
-        # === DOT PLOT ===
-        st.markdown("### <span style='color:#9B7EBD;'>Dot Plot</span>", unsafe_allow_html=True)
-        
+        # Dot Plot
         fig_dot = go.Figure()
         
         # Open Rate dots (lilla)
@@ -558,76 +556,6 @@ def render_newsletters_tab():
         )
         
         st.plotly_chart(fig_dot, use_container_width=True, config={'displayModeBar': False})
-        
-        st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
-        
-        # === BUBBLE CHART ===
-        st.markdown("### <span style='color:#9B7EBD;'>Bubble Chart</span>", unsafe_allow_html=True)
-        st.markdown("<p style='font-size: 0.85em; color: #666;'>Størrelse = antal sendt, X = Open Rate, Y = Click Rate, Farve = CTR</p>", unsafe_allow_html=True)
-        
-        # Normaliser bubble størrelse
-        max_sent = chart_df['Total_Received'].max()
-        min_sent = chart_df['Total_Received'].min()
-        size_range = max_sent - min_sent if max_sent != min_sent else 1
-        chart_df['Bubble_Size'] = 15 + ((chart_df['Total_Received'] - min_sent) / size_range) * 40
-        
-        fig_bubble = go.Figure()
-        
-        fig_bubble.add_trace(
-            go.Scatter(
-                x=chart_df['Open Rate'],
-                y=chart_df['Click Rate'],
-                mode='markers+text',
-                text=chart_df['Email_Short'],
-                textposition='top center',
-                textfont=dict(size=9, color='#4A3F55'),
-                marker=dict(
-                    size=chart_df['Bubble_Size'],
-                    color=chart_df['CTR'],
-                    colorscale=[
-                        [0, '#E8B4CB'],      # Lav CTR - rosa
-                        [0.5, '#9B7EBD'],    # Medium CTR - lilla
-                        [1, '#A8E6CF']       # Høj CTR - grøn
-                    ],
-                    colorbar=dict(
-                        title="CTR %",
-                        ticksuffix='%'
-                    ),
-                    line=dict(width=1, color='white'),
-                    opacity=0.8
-                ),
-                hovertemplate='<b>%{text}</b><br>' +
-                              'Open Rate: %{x:.1f}%<br>' +
-                              'Click Rate: %{y:.1f}%<br>' +
-                              'CTR: %{marker.color:.1f}%<br>' +
-                              'Sendt: %{customdata:,}<extra></extra>',
-                customdata=chart_df['Total_Received']
-            )
-        )
-        
-        fig_bubble.update_layout(
-            title="",
-            showlegend=False,
-            height=500,
-            margin=dict(l=60, r=100, t=50, b=60),
-            plot_bgcolor='rgba(250,245,255,0.5)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='closest',
-            xaxis=dict(
-                title="Open Rate %",
-                gridcolor='rgba(212,191,255,0.3)',
-                ticksuffix='%',
-                zeroline=False
-            ),
-            yaxis=dict(
-                title="Click Rate %",
-                gridcolor='rgba(212,191,255,0.3)',
-                ticksuffix='%',
-                zeroline=False
-            )
-        )
-        
-        st.plotly_chart(fig_bubble, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
