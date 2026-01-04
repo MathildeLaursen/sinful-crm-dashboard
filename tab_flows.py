@@ -717,7 +717,15 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     # === SKJUL INAKTIVE CHECKBOX (mellem scorecards og tabel) ===
     if filter_config is not None and '_ignore_inactive_key' in filter_config:
         ignore_inactive_key = filter_config['_ignore_inactive_key']
-        st.markdown('<div style="font-size: 0.85em; margin-top: 10px; margin-bottom: 1px;">', unsafe_allow_html=True)
+        # CSS til at reducere margin under checkbox
+        st.markdown('''
+            <style>
+                div[data-testid="stCheckbox"]:has(label:contains("Skjul inaktive")) {
+                    margin-bottom: -15px !important;
+                }
+            </style>
+        ''', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 0.85em; margin-top: 5px;">', unsafe_allow_html=True)
         ignore_inactive_new = st.checkbox(
             "Skjul inaktive mails fra tabel og grafer", 
             value=st.session_state[ignore_inactive_key], 
@@ -727,12 +735,22 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         
         if ignore_inactive_new != st.session_state[ignore_inactive_key]:
             st.session_state[ignore_inactive_key] = ignore_inactive_new
-            # Genberegn filtrerede mails
+            # Genberegn filtrerede groups og mails
+            all_groups = filter_config.get('_all_groups', [])
+            active_groups = filter_config.get('_active_groups', set())
+            group_state_key = filter_config.get('_group_state_key')
+            group_reset_key = filter_config.get('_group_reset_key')
             all_mails_raw = filter_config.get('_all_mails_raw', [])
             active_mails = filter_config.get('_active_mails', set())
             mail_state_key = filter_config.get('_mail_state_key')
             mail_reset_key = filter_config.get('_mail_reset_key')
+            
+            new_available_groups = [g for g in all_groups if g in active_groups] if ignore_inactive_new else all_groups
             new_available_mails = [m for m in all_mails_raw if m in active_mails] if ignore_inactive_new else all_mails_raw
+            
+            if group_state_key:
+                st.session_state[group_state_key] = list(new_available_groups)
+                st.session_state[group_reset_key] += 1
             st.session_state[mail_state_key] = list(new_available_mails)
             st.session_state[mail_reset_key] += 1
             st.rerun()
@@ -1392,9 +1410,12 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         (flow_data_all['Received_Email'] > 0)
     ]
     active_mails = set(recent_data['Mail'].unique())
+    active_groups = set(recent_data['Group'].unique())
     
-    # === SESSION STATE KEYS (SIMPLIFIED) ===
+    # === SESSION STATE KEYS ===
     ignore_inactive_key = f'fl_ignore_inactive_{flow_trigger}'
+    group_state_key = f'fl_selected_groups_{flow_trigger}'
+    group_reset_key = f'fl_cb_reset_group_{flow_trigger}'
     mail_state_key = f'fl_selected_mails_{flow_trigger}'
     mail_reset_key = f'fl_cb_reset_mail_{flow_trigger}'
     
@@ -1403,13 +1424,17 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.session_state[ignore_inactive_key] = True
     
     # Initialize reset keys
+    if group_reset_key not in st.session_state:
+        st.session_state[group_reset_key] = 0
     if mail_reset_key not in st.session_state:
         st.session_state[mail_reset_key] = 0
     
-    # Filtrer mails baseret på ignore_inactive
+    # Filtrer groups og mails baseret på ignore_inactive
     if st.session_state[ignore_inactive_key]:
+        available_groups = [g for g in all_groups if g in active_groups]
         available_mails = [m for m in all_mails_raw if m in active_mails]
     else:
+        available_groups = all_groups
         available_mails = all_mails_raw
     
     # Initialize selections (alle valgt som default)
@@ -1420,14 +1445,16 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         if not st.session_state.fl_selected_countries:
             st.session_state.fl_selected_countries = list(all_countries)
     
+    if group_state_key not in st.session_state:
+        st.session_state[group_state_key] = list(available_groups)
     if mail_state_key not in st.session_state:
         st.session_state[mail_state_key] = list(available_mails)
 
-    # === LAYOUT (SIMPLIFIED) ===
-    # Linje 1: Land + Mail + Slider
-    col_land, col_mail, col_slider = st.columns([1, 1, 4])
+    # === LAYOUT ===
+    # Linje 1: Land + Slider
+    col_land, col_slider = st.columns([1, 5])
 
-    # === LINJE 1: Land + Mail + Slider ===
+    # === LINJE 1: Land + Slider ===
     with col_land:
         land_count = len(st.session_state.fl_selected_countries)
         land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
@@ -1453,35 +1480,6 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
             elif set(new_selected) != set(st.session_state.fl_selected_countries):
                 st.session_state.fl_selected_countries = new_selected
                 st.session_state.fl_cb_reset_land += 1
-                st.rerun()
-
-    # === Mail dropdown (SIMPLIFIED) ===
-    with col_mail:
-        mail_count = len([m for m in st.session_state[mail_state_key] if m in available_mails])
-        mail_label = f"Mail ({mail_count})" if mail_count < len(available_mails) else "Mail"
-        with st.popover(mail_label, use_container_width=True):
-            reset_mail = st.session_state[mail_reset_key]
-            current_sel = [m for m in st.session_state[mail_state_key] if m in available_mails]
-            all_mail_selected = len(current_sel) == len(available_mails)
-            select_all_mail = st.checkbox("Vælg alle", value=all_mail_selected, key=f"fl_sel_all_mail_{flow_trigger}_{reset_mail}")
-            
-            new_selected_mails = []
-            for mail in available_mails:
-                checked = mail in st.session_state[mail_state_key]
-                if st.checkbox(str(mail), value=checked, key=f"fl_cb_mail_{flow_trigger}_{mail}_{reset_mail}"):
-                    new_selected_mails.append(mail)
-            
-            if select_all_mail and not all_mail_selected:
-                st.session_state[mail_state_key] = list(available_mails)
-                st.session_state[mail_reset_key] += 1
-                st.rerun()
-            elif not select_all_mail and all_mail_selected:
-                st.session_state[mail_state_key] = []
-                st.session_state[mail_reset_key] += 1
-                st.rerun()
-            elif set(new_selected_mails) != set([m for m in st.session_state[mail_state_key] if m in available_mails]):
-                st.session_state[mail_state_key] = new_selected_mails
-                st.session_state[mail_reset_key] += 1
                 st.rerun()
 
     # === Periode slider ===
@@ -1515,24 +1513,89 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         else:
             sel_months = sorted_months
     
+    # === LINJE 2: Group + Mail ===
+    col_group, col_mail = st.columns([1, 1])
+    
+    # === Group dropdown ===
+    with col_group:
+        group_count = len([g for g in st.session_state[group_state_key] if g in available_groups])
+        group_label = f"Group ({group_count})" if group_count < len(available_groups) else "Group"
+        with st.popover(group_label, use_container_width=True):
+            reset_group = st.session_state[group_reset_key]
+            current_sel_groups = [g for g in st.session_state[group_state_key] if g in available_groups]
+            all_group_selected = len(current_sel_groups) == len(available_groups)
+            select_all_group = st.checkbox("Vælg alle", value=all_group_selected, key=f"fl_sel_all_group_{flow_trigger}_{reset_group}")
+            
+            new_selected_groups = []
+            for group in available_groups:
+                checked = group in st.session_state[group_state_key]
+                if st.checkbox(str(group), value=checked, key=f"fl_cb_group_{flow_trigger}_{group}_{reset_group}"):
+                    new_selected_groups.append(group)
+            
+            if select_all_group and not all_group_selected:
+                st.session_state[group_state_key] = list(available_groups)
+                st.session_state[group_reset_key] += 1
+                st.rerun()
+            elif not select_all_group and all_group_selected:
+                st.session_state[group_state_key] = []
+                st.session_state[group_reset_key] += 1
+                st.rerun()
+            elif set(new_selected_groups) != set([g for g in st.session_state[group_state_key] if g in available_groups]):
+                st.session_state[group_state_key] = new_selected_groups
+                st.session_state[group_reset_key] += 1
+                st.rerun()
+    
+    # === Mail dropdown ===
+    with col_mail:
+        mail_count = len([m for m in st.session_state[mail_state_key] if m in available_mails])
+        mail_label = f"Mail ({mail_count})" if mail_count < len(available_mails) else "Mail"
+        with st.popover(mail_label, use_container_width=True):
+            reset_mail = st.session_state[mail_reset_key]
+            current_sel = [m for m in st.session_state[mail_state_key] if m in available_mails]
+            all_mail_selected = len(current_sel) == len(available_mails)
+            select_all_mail = st.checkbox("Vælg alle", value=all_mail_selected, key=f"fl_sel_all_mail_{flow_trigger}_{reset_mail}")
+            
+            new_selected_mails = []
+            for mail in available_mails:
+                checked = mail in st.session_state[mail_state_key]
+                if st.checkbox(str(mail), value=checked, key=f"fl_cb_mail_{flow_trigger}_{mail}_{reset_mail}"):
+                    new_selected_mails.append(mail)
+            
+            if select_all_mail and not all_mail_selected:
+                st.session_state[mail_state_key] = list(available_mails)
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+            elif not select_all_mail and all_mail_selected:
+                st.session_state[mail_state_key] = []
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+            elif set(new_selected_mails) != set([m for m in st.session_state[mail_state_key] if m in available_mails]):
+                st.session_state[mail_state_key] = new_selected_mails
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+    
     if not sel_months:
         st.warning("Vælg mindst én måned.")
         return
 
-    # === BYGG FILTER DICT (SIMPLIFIED) ===
+    # === BYGG FILTER DICT ===
     sel_countries = st.session_state.fl_selected_countries
     if not sel_countries:
         st.warning("Vælg mindst ét land.")
         return
 
-    # Hent valgte mails (filtreret for aktive hvis ignore_inactive er ON)
+    # Hent valgte groups og mails (filtreret for aktive hvis ignore_inactive er ON)
+    selected_groups = [g for g in st.session_state[group_state_key] if g in available_groups]
+    if not selected_groups:
+        selected_groups = available_groups
+    
     selected_mails = [m for m in st.session_state[mail_state_key] if m in available_mails]
     if not selected_mails:
         selected_mails = available_mails
     
     filter_config = {
         'mails': selected_mails,
-        'groups': None,
+        'groups': selected_groups,
         'messages': None,
         'ab': None,
         'ignore_inactive': st.session_state[ignore_inactive_key],
@@ -1546,9 +1609,13 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
 
     # Tilføj session state keys til filter_config så render funktionen kan bruge dem
     filter_config['_ignore_inactive_key'] = ignore_inactive_key
+    filter_config['_group_state_key'] = group_state_key
+    filter_config['_group_reset_key'] = group_reset_key
     filter_config['_mail_state_key'] = mail_state_key
     filter_config['_mail_reset_key'] = mail_reset_key
+    filter_config['_all_groups'] = all_groups
     filter_config['_all_mails_raw'] = all_mails_raw
+    filter_config['_active_groups'] = active_groups
     filter_config['_active_mails'] = active_mails
 
     # Render indhold med filter config
