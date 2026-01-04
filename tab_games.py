@@ -771,24 +771,6 @@ def render_single_game_content(raw_df, game_trigger, sel_countries, filter_confi
         
         if ignore_inactive_new != st.session_state[ignore_inactive_key]:
             st.session_state[ignore_inactive_key] = ignore_inactive_new
-            # Genberegn filtrerede groups og mails
-            all_groups = filter_config.get('_all_groups', [])
-            active_groups = filter_config.get('_active_groups', set())
-            group_state_key = filter_config.get('_group_state_key')
-            group_reset_key = filter_config.get('_group_reset_key')
-            all_mails_raw = filter_config.get('_all_mails_raw', [])
-            active_mails = filter_config.get('_active_mails', set())
-            mail_state_key = filter_config.get('_mail_state_key')
-            mail_reset_key = filter_config.get('_mail_reset_key')
-            
-            new_available_groups = [g for g in all_groups if g in active_groups] if ignore_inactive_new else all_groups
-            new_available_mails = [m for m in all_mails_raw if m in active_mails] if ignore_inactive_new else all_mails_raw
-            
-            if group_state_key:
-                st.session_state[group_state_key] = list(new_available_groups)
-                st.session_state[group_reset_key] += 1
-            st.session_state[mail_state_key] = list(new_available_mails)
-            st.session_state[mail_reset_key] += 1
             st.rerun()
 
     # === TABEL (OVER GRAFERNE) - Vis rå data uden aggregering ===
@@ -1637,17 +1619,11 @@ def render_single_game_tab_content(df, game_trigger, available_months):
     if ab_reset_key not in st.session_state:
         st.session_state[ab_reset_key] = 0
     
-    # Filtrer groups, mails, messages og ab baseret på ignore_inactive
-    if st.session_state[ignore_inactive_key]:
-        available_groups = [g for g in all_groups if g in active_groups]
-        available_mails = [m for m in all_mails_raw if m in active_mails]
-        available_messages = [m for m in all_messages if m in active_messages]
-        available_ab = [a for a in all_ab if a in active_ab]
-    else:
-        available_groups = all_groups
-        available_mails = all_mails_raw
-        available_messages = all_messages
-        available_ab = all_ab
+    # Dropdowns viser ALTID alle muligheder (ignore_inactive påvirker kun tabel/grafer, ikke scorecards)
+    available_groups = all_groups
+    available_mails = all_mails_raw
+    available_messages = all_messages
+    available_ab = all_ab
     
     # Initialize selections (alle valgt som default)
     if st.session_state.gm_selected_countries is None:
