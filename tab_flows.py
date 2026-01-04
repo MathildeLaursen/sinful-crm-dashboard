@@ -1389,7 +1389,9 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         )
         if ignore_inactive != st.session_state[ignore_inactive_key]:
             st.session_state[ignore_inactive_key] = ignore_inactive
-            st.session_state[mail_state_key] = list(available_mails) if ignore_inactive else list(all_mails_raw)
+            # Genberegn filtrerede mails baseret på DEN NYE toggle værdi
+            new_available_mails = [m for m in all_mails_raw if m in active_mails] if ignore_inactive else all_mails_raw
+            st.session_state[mail_state_key] = list(new_available_mails)
             st.session_state[mail_reset_key] += 1
             st.rerun()
 
