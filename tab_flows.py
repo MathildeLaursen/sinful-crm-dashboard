@@ -1458,8 +1458,8 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.session_state[mail_state_key] = list(available_mails)
 
     # === LAYOUT ===
-    # Alle dropdowns på én linje med samme bredde som scorecards (1/6 hver)
-    col_land, col_group, col_mail, col_slider = st.columns([1, 1, 1, 3])
+    # Linje 1: Land + Slider
+    col_land, col_slider = st.columns([1, 5])
 
     # === Land dropdown ===
     with col_land:
@@ -1489,6 +1489,40 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
 
+    # === Periode slider ===
+    with col_slider:
+        if len(sorted_months) > 1:
+            default_end = sorted_months[-1]
+            default_start_idx = max(0, len(sorted_months) - 3)
+            default_start = sorted_months[default_start_idx]
+            
+            saved_key = f"fl_month_range_{flow_trigger}_saved"
+            if saved_key not in st.session_state:
+                st.session_state[saved_key] = (default_start, default_end)
+            
+            saved_range = st.session_state[saved_key]
+            if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
+                initial_value = saved_range
+            else:
+                initial_value = (default_start, default_end)
+                st.session_state[saved_key] = initial_value
+            
+            month_range = st.select_slider(
+                "Periode",
+                options=sorted_months,
+                value=initial_value,
+                format_func=format_month_short,
+                key=f"fl_month_range_{flow_trigger}",
+                label_visibility="collapsed"
+            )
+            st.session_state[saved_key] = month_range
+            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
+        else:
+            sel_months = sorted_months
+    
+    # === LINJE 2: Group + Mail ===
+    col_group, col_mail, col_empty = st.columns([1, 1, 4])
+    
     # === Group dropdown ===
     with col_group:
         group_count = len([g for g in st.session_state[group_state_key] if g in available_groups])
@@ -1546,37 +1580,6 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_state_key] = new_selected_mails
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
-    
-    # === Periode slider ===
-    with col_slider:
-        if len(sorted_months) > 1:
-            default_end = sorted_months[-1]
-            default_start_idx = max(0, len(sorted_months) - 3)
-            default_start = sorted_months[default_start_idx]
-            
-            saved_key = f"fl_month_range_{flow_trigger}_saved"
-            if saved_key not in st.session_state:
-                st.session_state[saved_key] = (default_start, default_end)
-            
-            saved_range = st.session_state[saved_key]
-            if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
-                initial_value = saved_range
-            else:
-                initial_value = (default_start, default_end)
-                st.session_state[saved_key] = initial_value
-            
-            month_range = st.select_slider(
-                "Periode",
-                options=sorted_months,
-                value=initial_value,
-                format_func=format_month_short,
-                key=f"fl_month_range_{flow_trigger}",
-                label_visibility="collapsed"
-            )
-            st.session_state[saved_key] = month_range
-            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
-        else:
-            sel_months = sorted_months
     
     if not sel_months:
         st.warning("Vælg mindst én måned.")
