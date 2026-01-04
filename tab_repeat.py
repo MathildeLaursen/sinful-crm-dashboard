@@ -497,6 +497,204 @@ def render_overview_content(repeat_df, sel_countries, sel_repeats, full_df=None,
         }
     )
 
+    # === GRAFER PER REPEAT (UNDER TABELLEN) ===
+    st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+    
+    # Hent alle måneder til grafen
+    all_months_for_chart = all_months_df['Year_Month'].unique() if all_months_df is not None else display_df['Year_Month'].unique()
+    
+    def month_to_sortkey(m):
+        parts = m.split('-')
+        return int(parts[0]) * 100 + int(parts[1])
+    
+    sorted_chart_months = sorted(all_months_for_chart, key=month_to_sortkey)
+    
+    # Hent data til grafen
+    chart_base_df = all_months_df if all_months_df is not None else repeat_df
+    chart_base_df = chart_base_df[
+        (chart_base_df['Country'].isin(sel_countries)) &
+        (chart_base_df['Repeat'].isin(sel_repeats))
+    ].copy()
+    
+    if ignore_inactive and active_repeats is not None:
+        chart_base_df = chart_base_df[chart_base_df['Repeat'].isin(active_repeats)]
+    
+    # Aggreger per repeat og måned
+    chart_agg_df = chart_base_df.groupby(['Year_Month', 'Repeat'], as_index=False).agg({
+        'Received_Email': 'sum',
+        'Unique_Opens': 'sum',
+        'Unique_Clicks': 'sum',
+    })
+    
+    # Formater måneder til visning
+    def format_month_label(m):
+        parts = m.split('-')
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+        return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
+    
+    # Hent unikke repeats sorteret efter nummer
+    def repeat_sort_key(r):
+        match = re.search(r'Repeat\s*(\d+)', str(r))
+        return int(match.group(1)) if match else 999
+    
+    repeats_for_charts = sorted(chart_agg_df['Repeat'].unique(), key=repeat_sort_key)
+    
+    if len(sorted_chart_months) > 0 and len(repeats_for_charts) > 0:
+        num_repeats = len(repeats_for_charts)
+        
+        height_per_chart = 150
+        gap_pixels = 70
+        chart_height = num_repeats * height_per_chart + (num_repeats - 1) * gap_pixels
+        
+        v_spacing = gap_pixels / chart_height if num_repeats > 1 else 0.1
+        max_allowed = 1.0 / (num_repeats - 1) if num_repeats > 1 else 0.5
+        v_spacing = min(v_spacing, max_allowed * 0.95)
+        
+        fig = make_subplots(
+            rows=num_repeats, cols=1,
+            shared_xaxes=False,
+            vertical_spacing=v_spacing,
+            subplot_titles=[get_short_repeat_name(r) for r in repeats_for_charts],
+            specs=[[{"secondary_y": True}] for _ in range(num_repeats)]
+        )
+        
+        for i, repeat in enumerate(repeats_for_charts):
+            row = i + 1
+            repeat_chart_data = chart_agg_df[chart_agg_df['Repeat'] == repeat]
+            
+            sent_values = []
+            opens_values = []
+            clicks_values = []
+            for month in sorted_chart_months:
+                month_data = repeat_chart_data[repeat_chart_data['Year_Month'] == month]
+                if not month_data.empty:
+                    sent_values.append(month_data['Received_Email'].sum())
+                    opens_values.append(month_data['Unique_Opens'].sum())
+                    clicks_values.append(month_data['Unique_Clicks'].sum())
+                else:
+                    sent_values.append(0)
+                    opens_values.append(0)
+                    clicks_values.append(0)
+            
+            x_labels = [format_month_label(m) for m in sorted_chart_months]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=sent_values,
+                    name='Sendt',
+                    mode='lines+markers',
+                    line=dict(color='#9B7EBD', width=2),
+                    marker=dict(size=6, color='#9B7EBD'),
+                    showlegend=(i == 0),
+                    legendgroup='sendt'
+                ),
+                row=row, col=1, secondary_y=False
+            )
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=opens_values,
+                    name='Opens',
+                    mode='lines+markers',
+                    line=dict(color='#A8E6CF', width=2),
+                    marker=dict(size=6, color='#A8E6CF'),
+                    showlegend=(i == 0),
+                    legendgroup='opens'
+                ),
+                row=row, col=1, secondary_y=False
+            )
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=clicks_values,
+                    name='Clicks',
+                    mode='lines+markers',
+                    line=dict(color='#E8B4CB', width=2),
+                    marker=dict(size=6, color='#E8B4CB'),
+                    showlegend=(i == 0),
+                    legendgroup='clicks'
+                ),
+                row=row, col=1, secondary_y=True
+            )
+            
+            # Smart skalering for clicks y-akse
+            current_month = get_current_year_month()
+            current_month_label = format_month_short(current_month)
+            
+            opens_for_calc = [v for v, lbl in zip(opens_values, x_labels) if lbl != current_month_label]
+            sent_for_calc = [v for v, lbl in zip(sent_values, x_labels) if lbl != current_month_label]
+            clicks_for_calc = [v for v, lbl in zip(clicks_values, x_labels) if lbl != current_month_label]
+            
+            max_clicks = max(clicks_for_calc) if clicks_for_calc else (max(clicks_values) if clicks_values else 0)
+            max_left = max(
+                max(sent_for_calc) if sent_for_calc else 0, 
+                max(opens_for_calc) if opens_for_calc else 0
+            )
+            min_opens = min(opens_for_calc) if opens_for_calc else 0
+            
+            if max_left == 0:
+                max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
+            if min_opens == 0:
+                min_opens = min(opens_values) if opens_values else 0
+            
+            if max_clicks > 0 and min_opens > 0 and max_left > 0:
+                target_visual_height = min_opens * 0.9
+                clicks_range = max_clicks * max_left / target_visual_height
+                fig.update_yaxes(range=[0, clicks_range], row=row, col=1, secondary_y=True)
+            elif max_clicks > 0:
+                fig.update_yaxes(range=[0, max_clicks * 2], row=row, col=1, secondary_y=True)
+        
+        chart_height = max(350, chart_height)
+        top_margin = 80
+        
+        fig.update_layout(
+            showlegend=True,
+            height=chart_height + top_margin,
+            margin=dict(l=60, r=60, t=top_margin, b=40),
+            legend=dict(
+                orientation="h", 
+                yanchor="bottom", y=1.02, 
+                xanchor="right", x=1,
+                bgcolor='rgba(0,0,0,0)'
+            ),
+            plot_bgcolor='rgba(250,245,255,0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='x unified'
+        )
+        
+        for annotation in fig['layout']['annotations']:
+            annotation['font'] = dict(size=13, color='#7B5EA5', family='sans-serif')
+            annotation['xanchor'] = 'left'
+            annotation['x'] = 0
+            annotation['yanchor'] = 'bottom'
+            annotation['yshift'] = 10
+        
+        for i in range(num_repeats):
+            fig.update_yaxes(
+                title_text="Sendt / Opens",
+                title_font=dict(size=10, color='#4A3F55'),
+                gridcolor='rgba(212,191,255,0.3)',
+                tickformat=',d',
+                rangemode='tozero',
+                row=i+1, col=1, secondary_y=False
+            )
+            fig.update_yaxes(
+                title_text="Clicks",
+                title_font=dict(size=10, color='#4A3F55'),
+                gridcolor='rgba(232,180,203,0.2)',
+                showgrid=False,
+                tickformat=',d',
+                rangemode='tozero',
+                row=i+1, col=1, secondary_y=True
+            )
+        
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
 
 def render_group_overview_content(df, repeat_name, sel_countries, sel_groups, full_df=None, all_months_df=None, ignore_inactive=True, active_groups=None):
     """Render oversigt over groups for en specifik repeat"""
@@ -710,6 +908,204 @@ def render_group_overview_content(df, repeat_name, sel_countries, sel_groups, fu
             "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
         }
     )
+
+    # === GRAFER PER GROUP (UNDER TABELLEN) ===
+    st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+    
+    # Hent alle måneder til grafen
+    all_months_for_chart = all_months_df['Year_Month'].unique() if all_months_df is not None else df['Year_Month'].unique()
+    
+    def month_to_sortkey(m):
+        parts = m.split('-')
+        return int(parts[0]) * 100 + int(parts[1])
+    
+    sorted_chart_months = sorted(all_months_for_chart, key=month_to_sortkey)
+    
+    # Hent data til grafen
+    chart_base_df = all_months_df if all_months_df is not None else df
+    chart_base_df = chart_base_df[
+        (chart_base_df['Repeat'] == repeat_name) &
+        (chart_base_df['Country'].isin(sel_countries)) &
+        (chart_base_df['Group'].isin(sel_groups))
+    ].copy()
+    
+    if ignore_inactive and active_groups is not None:
+        chart_base_df = chart_base_df[chart_base_df['Group'].isin(active_groups)]
+    
+    # Aggreger per group og måned
+    chart_agg_df = chart_base_df.groupby(['Year_Month', 'Group'], as_index=False).agg({
+        'Received_Email': 'sum',
+        'Unique_Opens': 'sum',
+        'Unique_Clicks': 'sum',
+    })
+    
+    # Formater måneder til visning
+    def format_month_label(m):
+        parts = m.split('-')
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+        return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
+    
+    # Hent unikke groups sorteret
+    groups_for_charts = sorted(chart_agg_df['Group'].unique())
+    
+    if len(sorted_chart_months) > 0 and len(groups_for_charts) > 0:
+        num_groups = len(groups_for_charts)
+        
+        height_per_chart = 150
+        gap_pixels = 70
+        chart_height = num_groups * height_per_chart + (num_groups - 1) * gap_pixels
+        
+        v_spacing = gap_pixels / chart_height if num_groups > 1 else 0.1
+        max_allowed = 1.0 / (num_groups - 1) if num_groups > 1 else 0.5
+        v_spacing = min(v_spacing, max_allowed * 0.95)
+        
+        fig = make_subplots(
+            rows=num_groups, cols=1,
+            shared_xaxes=False,
+            vertical_spacing=v_spacing,
+            subplot_titles=[str(g) for g in groups_for_charts],
+            specs=[[{"secondary_y": True}] for _ in range(num_groups)]
+        )
+        
+        for i, group in enumerate(groups_for_charts):
+            row = i + 1
+            group_chart_data = chart_agg_df[chart_agg_df['Group'] == group]
+            
+            sent_values = []
+            opens_values = []
+            clicks_values = []
+            for month in sorted_chart_months:
+                month_data = group_chart_data[group_chart_data['Year_Month'] == month]
+                if not month_data.empty:
+                    sent_values.append(month_data['Received_Email'].sum())
+                    opens_values.append(month_data['Unique_Opens'].sum())
+                    clicks_values.append(month_data['Unique_Clicks'].sum())
+                else:
+                    sent_values.append(0)
+                    opens_values.append(0)
+                    clicks_values.append(0)
+            
+            x_labels = [format_month_label(m) for m in sorted_chart_months]
+            
+            # Linje for Antal Sendt (venstre y-akse)
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=sent_values,
+                    name='Sendt',
+                    mode='lines+markers',
+                    line=dict(color='#9B7EBD', width=2),
+                    marker=dict(size=6, color='#9B7EBD'),
+                    showlegend=(i == 0),
+                    legendgroup='sendt'
+                ),
+                row=row, col=1, secondary_y=False
+            )
+            
+            # Linje for Opens (venstre y-akse)
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=opens_values,
+                    name='Opens',
+                    mode='lines+markers',
+                    line=dict(color='#A8E6CF', width=2),
+                    marker=dict(size=6, color='#A8E6CF'),
+                    showlegend=(i == 0),
+                    legendgroup='opens'
+                ),
+                row=row, col=1, secondary_y=False
+            )
+            
+            # Linje for Clicks (højre y-akse)
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=clicks_values,
+                    name='Clicks',
+                    mode='lines+markers',
+                    line=dict(color='#E8B4CB', width=2),
+                    marker=dict(size=6, color='#E8B4CB'),
+                    showlegend=(i == 0),
+                    legendgroup='clicks'
+                ),
+                row=row, col=1, secondary_y=True
+            )
+            
+            # Smart skalering for clicks y-akse
+            current_month = get_current_year_month()
+            current_month_label = format_month_short(current_month)
+            
+            opens_for_calc = [v for v, lbl in zip(opens_values, x_labels) if lbl != current_month_label]
+            sent_for_calc = [v for v, lbl in zip(sent_values, x_labels) if lbl != current_month_label]
+            clicks_for_calc = [v for v, lbl in zip(clicks_values, x_labels) if lbl != current_month_label]
+            
+            max_clicks = max(clicks_for_calc) if clicks_for_calc else (max(clicks_values) if clicks_values else 0)
+            max_left = max(
+                max(sent_for_calc) if sent_for_calc else 0, 
+                max(opens_for_calc) if opens_for_calc else 0
+            )
+            min_opens = min(opens_for_calc) if opens_for_calc else 0
+            
+            if max_left == 0:
+                max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
+            if min_opens == 0:
+                min_opens = min(opens_values) if opens_values else 0
+            
+            if max_clicks > 0 and min_opens > 0 and max_left > 0:
+                target_visual_height = min_opens * 0.9
+                clicks_range = max_clicks * max_left / target_visual_height
+                fig.update_yaxes(range=[0, clicks_range], row=row, col=1, secondary_y=True)
+            elif max_clicks > 0:
+                fig.update_yaxes(range=[0, max_clicks * 2], row=row, col=1, secondary_y=True)
+        
+        chart_height = max(350, chart_height)
+        top_margin = 80
+        
+        fig.update_layout(
+            showlegend=True,
+            height=chart_height + top_margin,
+            margin=dict(l=60, r=60, t=top_margin, b=40),
+            legend=dict(
+                orientation="h", 
+                yanchor="bottom", y=1.02, 
+                xanchor="right", x=1,
+                bgcolor='rgba(0,0,0,0)'
+            ),
+            plot_bgcolor='rgba(250,245,255,0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='x unified'
+        )
+        
+        for annotation in fig['layout']['annotations']:
+            annotation['font'] = dict(size=13, color='#7B5EA5', family='sans-serif')
+            annotation['xanchor'] = 'left'
+            annotation['x'] = 0
+            annotation['yanchor'] = 'bottom'
+            annotation['yshift'] = 10
+        
+        for i in range(num_groups):
+            fig.update_yaxes(
+                title_text="Sendt / Opens",
+                title_font=dict(size=10, color='#4A3F55'),
+                gridcolor='rgba(212,191,255,0.3)',
+                tickformat=',d',
+                rangemode='tozero',
+                row=i+1, col=1, secondary_y=False
+            )
+            fig.update_yaxes(
+                title_text="Clicks",
+                title_font=dict(size=10, color='#4A3F55'),
+                gridcolor='rgba(232,180,203,0.2)',
+                showgrid=False,
+                tickformat=',d',
+                rangemode='tozero',
+                row=i+1, col=1, secondary_y=True
+            )
+        
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 
 def render_group_mail_content(df, repeat_name, group_name, sel_countries, filter_config=None, full_df=None):
