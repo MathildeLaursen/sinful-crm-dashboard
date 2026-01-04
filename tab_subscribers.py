@@ -176,8 +176,8 @@ def render_overview_tab(full_df, light_df):
         st.warning("Vælg mindst ét land.")
         return
 
-    # --- KPI CARDS ---
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # --- KPI CARDS (3 kort med % og absolut ændring) ---
+    col1, col2, col3 = st.columns(3)
     
     # Hent data for seneste valgte måned (end_month) og summér over valgte lande
     if not full_df.empty:
@@ -216,14 +216,29 @@ def render_overview_tab(full_df, light_df):
     prev_total = (prev_full or 0) + (prev_light or 0) if (prev_full is not None or prev_light is not None) else None
     total_growth = full_growth + light_growth
 
-    show_metric(col1, "Full Subscribers", current_full, prev_full)
-    show_metric(col2, "Light Subscribers", current_light, prev_light)
-    show_metric(col3, "Total Subscribers", total_subscribers, prev_total)
+    # Full Subscribers med % og absolut
+    if prev_full is not None and prev_full > 0:
+        full_pct = ((current_full - prev_full) / prev_full * 100)
+        full_growth_str = f"+{full_growth:,.0f}" if full_growth >= 0 else f"{full_growth:,.0f}"
+        col1.metric("Full Subscribers", format_number(current_full), delta=f"{full_pct:+.1f}% ({full_growth_str})")
+    else:
+        col1.metric("Full Subscribers", format_number(current_full))
     
-    # Nye subscribers - vis med +/- prefix
-    col4.metric("Nye Full", f"+{format_number(full_growth)}" if full_growth >= 0 else format_number(full_growth))
-    col5.metric("Nye Light", f"+{format_number(light_growth)}" if light_growth >= 0 else format_number(light_growth))
-    col6.metric("Nye Total", f"+{format_number(total_growth)}" if total_growth >= 0 else format_number(total_growth))
+    # Light Subscribers med % og absolut
+    if prev_light is not None and prev_light > 0:
+        light_pct = ((current_light - prev_light) / prev_light * 100)
+        light_growth_str = f"+{light_growth:,.0f}" if light_growth >= 0 else f"{light_growth:,.0f}"
+        col2.metric("Light Subscribers", format_number(current_light), delta=f"{light_pct:+.1f}% ({light_growth_str})")
+    else:
+        col2.metric("Light Subscribers", format_number(current_light))
+    
+    # Total Subscribers med % og absolut
+    if prev_total is not None and prev_total > 0:
+        total_pct = ((total_subscribers - prev_total) / prev_total * 100)
+        total_growth_str = f"+{total_growth:,.0f}" if total_growth >= 0 else f"{total_growth:,.0f}"
+        col3.metric("Total Subscribers", format_number(total_subscribers), delta=f"{total_pct:+.1f}% ({total_growth_str})")
+    else:
+        col3.metric("Total Subscribers", format_number(total_subscribers))
 
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
