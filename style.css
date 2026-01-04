@@ -533,6 +533,8 @@ label[data-baseweb="checkbox"] svg path {
     border-radius: 4px !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    min-width: fit-content !important;
 }
 
 [class*="st-key-fl_only_"] button:hover,
