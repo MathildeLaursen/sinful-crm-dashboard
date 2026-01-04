@@ -165,10 +165,38 @@ def render_overview_tab(full_df, light_df):
     
     # Filtrer måneder i range
     selected_months = [m for m in available_months if start_month <= m <= end_month]
+    num_months = len(selected_months)
     
-    # For sammenligning: find måneden før start_month
-    start_idx = available_months.index(start_month)
-    prev_month = available_months[start_idx - 1] if start_idx > 0 else None
+    # Beregn måned progress (hvor langt vi er i nuværende måned)
+    import calendar
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    days_with_data = yesterday.day
+    total_days_in_month = calendar.monthrange(today.year, today.month)[1]
+    month_progress = days_with_data / total_days_in_month
+    
+    # Tjek om nuværende måned er valgt
+    current_month_dt = pd.Timestamp(today.year, today.month, 1)
+    current_month_selected = any(
+        m.year == current_month_dt.year and m.month == current_month_dt.month 
+        for m in selected_months
+    )
+    
+    # Find sammenligningsperiode: N måneder FØR den ældste valgte måned
+    if selected_months and num_months > 0:
+        oldest_selected = selected_months[0]
+        oldest_idx = available_months.index(oldest_selected) if oldest_selected in available_months else -1
+        
+        prev_months = []
+        for i in range(num_months):
+            prev_idx = oldest_idx - 1 - i
+            if prev_idx >= 0:
+                prev_months.append(available_months[prev_idx])
+        
+        oldest_prev_month = min(prev_months) if prev_months else None
+    else:
+        prev_months = []
+        oldest_prev_month = None
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
@@ -180,62 +208,72 @@ def render_overview_tab(full_df, light_df):
     # --- KPI CARDS (3 kort med % og absolut ændring, samme bredde som før) ---
     col1, col2, col3, _, _, _ = st.columns(6)
     
-    # Hent data for seneste valgte måned (end_month) og summér over valgte lande
+    # Beregn current og previous for Full Subscribers
+    current_full = 0
+    prev_full = 0
     if not full_df.empty:
-        current_full_row = full_df[full_df['Month'] == end_month]
-        current_full = current_full_row[selected_countries].sum(axis=1).values[0] if not current_full_row.empty else 0
+        # Sum over valgte måneder og lande
+        for m in selected_months:
+            m_row = full_df[full_df['Month'] == m]
+            if not m_row.empty:
+                current_full += m_row[selected_countries].sum(axis=1).values[0]
         
-        if prev_month is not None:
-            prev_full_row = full_df[full_df['Month'] == prev_month]
-            prev_full = prev_full_row[selected_countries].sum(axis=1).values[0] if not prev_full_row.empty else None
-        else:
-            prev_full = None
-        
-        full_growth = (current_full - prev_full) if prev_full is not None else 0
-    else:
-        current_full = 0
-        prev_full = None
-        full_growth = 0
-
+        # Sum over sammenligningsperiode med skalering
+        for pm in prev_months:
+            pm_row = full_df[full_df['Month'] == pm]
+            if not pm_row.empty:
+                pm_val = pm_row[selected_countries].sum(axis=1).values[0]
+                if pm == oldest_prev_month and current_month_selected:
+                    prev_full += pm_val * month_progress
+                else:
+                    prev_full += pm_val
+    
+    # Beregn current og previous for Light Subscribers
+    current_light = 0
+    prev_light = 0
     if not light_df.empty:
-        current_light_row = light_df[light_df['Month'] == end_month]
-        current_light = current_light_row[selected_countries].sum(axis=1).values[0] if not current_light_row.empty else 0
+        # Sum over valgte måneder og lande
+        for m in selected_months:
+            m_row = light_df[light_df['Month'] == m]
+            if not m_row.empty:
+                current_light += m_row[selected_countries].sum(axis=1).values[0]
         
-        if prev_month is not None:
-            prev_light_row = light_df[light_df['Month'] == prev_month]
-            prev_light = prev_light_row[selected_countries].sum(axis=1).values[0] if not prev_light_row.empty else None
-        else:
-            prev_light = None
-        
-        light_growth = (current_light - prev_light) if prev_light is not None else 0
-    else:
-        current_light = 0
-        prev_light = None
-        light_growth = 0
-
+        # Sum over sammenligningsperiode med skalering
+        for pm in prev_months:
+            pm_row = light_df[light_df['Month'] == pm]
+            if not pm_row.empty:
+                pm_val = pm_row[selected_countries].sum(axis=1).values[0]
+                if pm == oldest_prev_month and current_month_selected:
+                    prev_light += pm_val * month_progress
+                else:
+                    prev_light += pm_val
+    
+    # Totaler
     total_subscribers = current_full + current_light
-    prev_total = (prev_full or 0) + (prev_light or 0) if (prev_full is not None or prev_light is not None) else None
-    total_growth = full_growth + light_growth
-
+    prev_total = prev_full + prev_light
+    
     # Full Subscribers med % og absolut
-    if prev_full is not None and prev_full > 0:
-        full_pct = ((current_full - prev_full) / prev_full * 100)
+    if prev_full > 0:
+        full_growth = current_full - prev_full
+        full_pct = (full_growth / prev_full * 100)
         full_growth_str = f"+{full_growth:,.0f}" if full_growth >= 0 else f"{full_growth:,.0f}"
         col1.metric("Full Subscribers", format_number(current_full), delta=f"{full_pct:+.1f}% ({full_growth_str})")
     else:
         col1.metric("Full Subscribers", format_number(current_full))
     
     # Light Subscribers med % og absolut
-    if prev_light is not None and prev_light > 0:
-        light_pct = ((current_light - prev_light) / prev_light * 100)
+    if prev_light > 0:
+        light_growth = current_light - prev_light
+        light_pct = (light_growth / prev_light * 100)
         light_growth_str = f"+{light_growth:,.0f}" if light_growth >= 0 else f"{light_growth:,.0f}"
         col2.metric("Light Subscribers", format_number(current_light), delta=f"{light_pct:+.1f}% ({light_growth_str})")
     else:
         col2.metric("Light Subscribers", format_number(current_light))
     
     # Total Subscribers med % og absolut
-    if prev_total is not None and prev_total > 0:
-        total_pct = ((total_subscribers - prev_total) / prev_total * 100)
+    if prev_total > 0:
+        total_growth = total_subscribers - prev_total
+        total_pct = (total_growth / prev_total * 100)
         total_growth_str = f"+{total_growth:,.0f}" if total_growth >= 0 else f"{total_growth:,.0f}"
         col3.metric("Total Subscribers", format_number(total_subscribers), delta=f"{total_pct:+.1f}% ({total_growth_str})")
     else:
