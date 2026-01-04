@@ -714,8 +714,32 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     mail_df['Click_Rate'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     mail_df['CTR'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
 
-    # Fast afstand mellem scorecards og tabel (30px)
-    st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+    # === SKJUL INAKTIVE CHECKBOX (mellem scorecards og tabel) ===
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    
+    if filter_config is not None and '_ignore_inactive_key' in filter_config:
+        ignore_inactive_key = filter_config['_ignore_inactive_key']
+        st.markdown('<div style="font-size: 0.85em;">', unsafe_allow_html=True)
+        ignore_inactive_new = st.checkbox(
+            "Skjul inaktive mails fra tabel og grafer", 
+            value=st.session_state[ignore_inactive_key], 
+            key=f"fl_ignore_inactive_cb_{flow_trigger}"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        if ignore_inactive_new != st.session_state[ignore_inactive_key]:
+            st.session_state[ignore_inactive_key] = ignore_inactive_new
+            # Genberegn filtrerede mails
+            all_mails_raw = filter_config.get('_all_mails_raw', [])
+            active_mails = filter_config.get('_active_mails', set())
+            mail_state_key = filter_config.get('_mail_state_key')
+            mail_reset_key = filter_config.get('_mail_reset_key')
+            new_available_mails = [m for m in all_mails_raw if m in active_mails] if ignore_inactive_new else all_mails_raw
+            st.session_state[mail_state_key] = list(new_available_mails)
+            st.session_state[mail_reset_key] += 1
+            st.rerun()
+    
+    st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
     # === TABEL (OVER GRAFERNE) - Vis rå data uden aggregering ===
     # Sørg for at alle 4 kolonner eksisterer
@@ -1404,10 +1428,10 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.session_state[mail_state_key] = list(available_mails)
 
     # === LAYOUT (SIMPLIFIED) ===
-    # Linje 1: Land + Mail + Ignorer Inaktive + Slider
-    col_land, col_mail, col_inaktive, col_slider = st.columns([1, 1, 0.8, 3.2])
+    # Linje 1: Land + Mail + Slider
+    col_land, col_mail, col_slider = st.columns([1, 1, 4])
 
-    # === LINJE 1: Land + Ignorer Inaktive + Slider ===
+    # === LINJE 1: Land + Mail + Slider ===
     with col_land:
         land_count = len(st.session_state.fl_selected_countries)
         land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
@@ -1434,20 +1458,6 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state.fl_selected_countries = new_selected
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
-
-    with col_inaktive:
-        ignore_inactive = st.checkbox(
-            "Ignorer Inaktive", 
-            value=st.session_state[ignore_inactive_key], 
-            key=f"fl_ignore_inactive_cb_{flow_trigger}"
-        )
-        if ignore_inactive != st.session_state[ignore_inactive_key]:
-            st.session_state[ignore_inactive_key] = ignore_inactive
-            # Genberegn filtrerede mails baseret på DEN NYE toggle værdi
-            new_available_mails = [m for m in all_mails_raw if m in active_mails] if ignore_inactive else all_mails_raw
-            st.session_state[mail_state_key] = list(new_available_mails)
-            st.session_state[mail_reset_key] += 1
-            st.rerun()
 
     # === Mail dropdown (SIMPLIFIED) ===
     with col_mail:
@@ -1537,6 +1547,13 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     
     # Filtrer data efter valgte måneder
     df_month_filtered = df[df['Year_Month'].isin(sel_months)]
+
+    # Tilføj session state keys til filter_config så render funktionen kan bruge dem
+    filter_config['_ignore_inactive_key'] = ignore_inactive_key
+    filter_config['_mail_state_key'] = mail_state_key
+    filter_config['_mail_reset_key'] = mail_reset_key
+    filter_config['_all_mails_raw'] = all_mails_raw
+    filter_config['_active_mails'] = active_mails
 
     # Render indhold med filter config
     render_single_flow_content(df_month_filtered, flow_trigger, sel_countries, filter_config, df)
