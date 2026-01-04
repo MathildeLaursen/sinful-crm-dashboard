@@ -294,9 +294,16 @@ def render_newsletters_tab():
             
             new_selected = []
             for country in all_countries:
-                checked = country in st.session_state.nl_selected_countries
-                if st.checkbox(country, value=checked, key=f"nl_cb_land_{country}_{reset_land}"):
-                    new_selected.append(country)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = country in st.session_state.nl_selected_countries
+                    if st.checkbox(country, value=checked, key=f"nl_cb_land_{country}_{reset_land}"):
+                        new_selected.append(country)
+                with only_col:
+                    if st.button("Kun", key=f"nl_only_land_{country}_{reset_land}"):
+                        st.session_state.nl_selected_countries = [country]
+                        st.session_state.nl_cb_reset_land += 1
+                        st.rerun()
             
             if select_all_land and not all_land_selected:
                 st.session_state.nl_selected_countries = list(all_countries)
@@ -325,9 +332,16 @@ def render_newsletters_tab():
             
             new_selected = []
             for campaign in filtered_campaigns:
-                checked = campaign in st.session_state.nl_selected_campaigns
-                if st.checkbox(campaign, value=checked, key=f"nl_cb_kamp_{campaign}_{reset_kamp}"):
-                    new_selected.append(campaign)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = campaign in st.session_state.nl_selected_campaigns
+                    if st.checkbox(campaign, value=checked, key=f"nl_cb_kamp_{campaign}_{reset_kamp}"):
+                        new_selected.append(campaign)
+                with only_col:
+                    if st.button("Kun", key=f"nl_only_kamp_{campaign}_{reset_kamp}"):
+                        st.session_state.nl_selected_campaigns = [campaign]
+                        st.session_state.nl_cb_reset_kamp += 1
+                        st.rerun()
             
             if select_all_kamp and not all_kamp_selected:
                 st.session_state.nl_selected_campaigns = list(all_id_campaigns)
@@ -356,9 +370,16 @@ def render_newsletters_tab():
             
             new_selected = []
             for email in filtered_emails:
-                checked = email in st.session_state.nl_selected_emails
-                if st.checkbox(email, value=checked, key=f"nl_cb_email_{email}_{reset_email}"):
-                    new_selected.append(email)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = email in st.session_state.nl_selected_emails
+                    if st.checkbox(email, value=checked, key=f"nl_cb_email_{email}_{reset_email}"):
+                        new_selected.append(email)
+                with only_col:
+                    if st.button("Kun", key=f"nl_only_email_{email}_{reset_email}"):
+                        st.session_state.nl_selected_emails = [email]
+                        st.session_state.nl_cb_reset_email += 1
+                        st.rerun()
             
             if select_all_email and not all_email_selected:
                 st.session_state.nl_selected_emails = list(all_email_messages)
