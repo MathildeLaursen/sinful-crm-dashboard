@@ -1347,9 +1347,9 @@ def render_overview_tab_content(df, available_months):
     ]
     active_games = set(recent_data['Game_Trigger'].unique())
     
-    # Initialize ignore inactive state (default True)
+    # Initialize ignore inactive state (default False for Games)
     if 'gm_ignore_inactive_overview' not in st.session_state:
-        st.session_state.gm_ignore_inactive_overview = True
+        st.session_state.gm_ignore_inactive_overview = False
     
     # Filtrer flows baseret på ignore_inactive
     all_games = [f for f in all_games_full if f in active_games] if st.session_state.gm_ignore_inactive_overview else all_games_full
@@ -1623,9 +1623,9 @@ def render_single_game_tab_content(df, game_trigger, available_months):
     ab_state_key = f'gm_selected_ab_{game_trigger}'
     ab_reset_key = f'gm_cb_reset_ab_{game_trigger}'
     
-    # Initialize ignore_inactive (default: True - ignorer inaktive mails)
+    # Initialize ignore_inactive (default: False for Games - vis alle mails)
     if ignore_inactive_key not in st.session_state:
-        st.session_state[ignore_inactive_key] = True
+        st.session_state[ignore_inactive_key] = False
     
     # Initialize reset keys
     if group_reset_key not in st.session_state:
