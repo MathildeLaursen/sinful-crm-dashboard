@@ -560,8 +560,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         if filter_config.get('mails'):
             flow_data = flow_data[flow_data['Mail'].isin(filter_config['mails'])]
         
-        # Group filter (kun hvis ikke ignoreret)
-        if not filter_config.get('ignore_group') and filter_config.get('groups'):
+        # Group filter anvendes ALTID (også når ignore_group er True - vi aggregerer bare bagefter)
+        if filter_config.get('groups'):
             flow_data = flow_data[flow_data['Group'].isin(filter_config['groups'])]
         
         # Message filter (kun hvis ikke ignoreret)
@@ -641,7 +641,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         if filter_config is not None:
             if filter_config.get('mails'):
                 prev_data = prev_data[prev_data['Mail'].isin(filter_config['mails'])]
-            if not filter_config.get('ignore_group') and filter_config.get('groups'):
+            # Group filter anvendes ALTID
+            if filter_config.get('groups'):
                 prev_data = prev_data[prev_data['Group'].isin(filter_config['groups'])]
         
         if not prev_data.empty:
@@ -768,14 +769,28 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         if col not in flow_data.columns:
             flow_data[col] = ''
     
+    # Bestem grupperingsnøgler baseret på ignore_group setting
+    ignore_group = filter_config.get('ignore_group', False) if filter_config else False
+    
+    if ignore_group:
+        # Aggreger på tværs af groups - kun gruppér på Mail, Message, AB
+        table_group_cols = ['Mail', 'Message', 'AB']
+    else:
+        # Normal: gruppér på alle kolonner
+        table_group_cols = ['Group', 'Mail', 'Message', 'AB']
+    
     # Brug flow_data direkte (allerede filtreret) - aggreger kun på tværs af måneder
-    table_df = flow_data.groupby(['Group', 'Mail', 'Message', 'AB'], as_index=False).agg({
+    table_df = flow_data.groupby(table_group_cols, as_index=False).agg({
         'Received_Email': 'sum',
         'Unique_Opens': 'sum',
         'Unique_Clicks': 'sum',
         'Unsubscribed': 'sum',
         'Bounced': 'sum',
     })
+    
+    # Tilføj tom Group kolonne hvis vi ignorerer group
+    if ignore_group:
+        table_df['Group'] = ''
     
     # Genberegn rater
     table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
@@ -838,7 +853,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     if filter_config is not None:
         if filter_config.get('mails'):
             chart_base_df = chart_base_df[chart_base_df['Mail'].isin(filter_config['mails'])]
-        if not filter_config.get('ignore_group') and filter_config.get('groups'):
+        # Group filter anvendes ALTID (også når ignore_group er True - vi aggregerer bare bagefter)
+        if filter_config.get('groups'):
             chart_base_df = chart_base_df[chart_base_df['Group'].isin(filter_config['groups'])]
         if not filter_config.get('ignore_message') and filter_config.get('messages'):
             chart_base_df = chart_base_df[chart_base_df['Message'].isin(filter_config['messages'])]
@@ -881,7 +897,26 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
         return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
     
-    # Hent unikke Group+Mail+Message+AB kombinationer sorteret (matcher tabellen)
+    # Sørg for at alle kolonner eksisterer
+    for col in ['Group', 'Mail', 'Message', 'AB']:
+        if col not in chart_base_df.columns:
+            chart_base_df[col] = ''
+    
+    # Bestem om vi skal ignorere Group i grafer
+    chart_ignore_group = filter_config.get('ignore_group', False) if filter_config else False
+    
+    if chart_ignore_group:
+        # Aggreger data på Mail+Message+AB niveau (ignorer Group)
+        chart_base_df = chart_base_df.groupby(['Year_Month', 'Mail', 'Message', 'AB'], as_index=False).agg({
+            'Received_Email': 'sum',
+            'Unique_Opens': 'sum',
+            'Unique_Clicks': 'sum',
+            'Unsubscribed': 'sum',
+            'Bounced': 'sum',
+        })
+        chart_base_df['Group'] = ''  # Tom group kolonne
+    
+    # Hent unikke kombinationer sorteret (matcher tabellen)
     def combo_sort_key(row):
         match = re.search(r'Mail\s*(\d+)', str(row['Mail']))
         mail_num = int(match.group(1)) if match else 999
@@ -889,11 +924,6 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         msg = str(row['Message']) if pd.notna(row['Message']) else ''
         ab = str(row['AB']) if pd.notna(row['AB']) else ''
         return (mail_num, group, msg, ab)
-    
-    # Sørg for at alle kolonner eksisterer
-    for col in ['Group', 'Mail', 'Message', 'AB']:
-        if col not in chart_base_df.columns:
-            chart_base_df[col] = ''
     
     # Opret unikke kombinationer af Group+Mail+Message+AB
     unique_combos = chart_base_df.groupby(['Group', 'Mail', 'Message', 'AB'], as_index=False).first()[['Group', 'Mail', 'Message', 'AB']]
@@ -1556,6 +1586,11 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     # === LINJE 2: Group + Mail ===
     col_group, col_mail, col_empty = st.columns([1, 1, 4])
     
+    # === Session state for Ignorer Group ===
+    ignore_group_key = f'fl_ignore_group_{flow_trigger}'
+    if ignore_group_key not in st.session_state:
+        st.session_state[ignore_group_key] = False
+    
     # === Group dropdown ===
     with col_group:
         group_count = len([g for g in st.session_state[group_state_key] if g in available_groups])
@@ -1636,6 +1671,16 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
     
+    # === LINJE 3: Ignorer Group checkbox ===
+    ignore_group = st.checkbox(
+        "Ignorer Group",
+        value=st.session_state[ignore_group_key],
+        key=f"fl_ignore_group_cb_{flow_trigger}"
+    )
+    if ignore_group != st.session_state[ignore_group_key]:
+        st.session_state[ignore_group_key] = ignore_group
+        st.rerun()
+    
     if not sel_months:
         st.warning("Vælg mindst én måned.")
         return
@@ -1661,7 +1706,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         'messages': None,
         'ab': None,
         'ignore_inactive': st.session_state[ignore_inactive_key],
-        'ignore_group': False,  # Group filter er aktiv
+        'ignore_group': st.session_state[ignore_group_key],  # Aggreger på tværs af groups
         'ignore_message': True,
         'ignore_ab': True,
     }
