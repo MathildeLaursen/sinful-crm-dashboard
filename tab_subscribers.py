@@ -58,6 +58,15 @@ def load_subscribers_data():
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
+def format_month_short(month_dt):
+    """Formater måned til kort dansk format (Jan 25, Feb 25, osv.)"""
+    month_names = {
+        1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Maj', 6: 'Jun',
+        7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Okt', 11: 'Nov', 12: 'Dec'
+    }
+    return f"{month_names[month_dt.month]} {str(month_dt.year)[2:]}"
+
+
 def render_overview_tab(full_df, light_df):
     """Render Oversigt sub-tab med scorecards og graf"""
     
@@ -89,11 +98,8 @@ def render_overview_tab(full_df, light_df):
         st.warning("Ingen data tilgængelig.")
         return
     
-    # Format måneder til visning
-    month_labels = [m.strftime('%Y-%m') for m in available_months]
-    
-    # Find index for denne måned (seneste)
-    current_month_idx = len(available_months) - 1
+    # Seneste måned som default
+    current_month = available_months[-1]
     
     # Filter row
     col_land, col_slider = st.columns([1, 5])
@@ -141,21 +147,27 @@ def render_overview_tab(full_df, light_df):
     
     with col_slider:
         if len(available_months) > 1:
-            selected_month_label = st.select_slider(
+            # Range slider med to bobler - begge på denne måned som default
+            month_range = st.select_slider(
                 "Periode",
-                options=month_labels,
-                value=month_labels[-1],  # Denne måned (seneste)
+                options=available_months,
+                value=(current_month, current_month),  # Begge på denne måned
+                format_func=format_month_short,
                 key="sub_overview_period",
                 label_visibility="collapsed"
             )
-            selected_month_idx = month_labels.index(selected_month_label)
+            start_month, end_month = month_range
         else:
-            selected_month_idx = 0
-            st.write(f"Periode: {month_labels[0]}")
+            start_month = available_months[0]
+            end_month = available_months[0]
+            st.write(f"Periode: {format_month_short(start_month)}")
     
-    selected_month = available_months[selected_month_idx]
-    prev_month_idx = selected_month_idx - 1 if selected_month_idx > 0 else None
-    prev_month = available_months[prev_month_idx] if prev_month_idx is not None else None
+    # Filtrer måneder i range
+    selected_months = [m for m in available_months if start_month <= m <= end_month]
+    
+    # For sammenligning: find måneden før start_month
+    start_idx = available_months.index(start_month)
+    prev_month = available_months[start_idx - 1] if start_idx > 0 else None
 
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
@@ -167,9 +179,9 @@ def render_overview_tab(full_df, light_df):
     # --- KPI CARDS ---
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     
-    # Hent data for valgt måned og summér over valgte lande
+    # Hent data for seneste valgte måned (end_month) og summér over valgte lande
     if not full_df.empty:
-        current_full_row = full_df[full_df['Month'] == selected_month]
+        current_full_row = full_df[full_df['Month'] == end_month]
         current_full = current_full_row[selected_countries].sum(axis=1).values[0] if not current_full_row.empty else 0
         
         if prev_month is not None:
@@ -185,7 +197,7 @@ def render_overview_tab(full_df, light_df):
         full_growth = 0
 
     if not light_df.empty:
-        current_light_row = light_df[light_df['Month'] == selected_month]
+        current_light_row = light_df[light_df['Month'] == end_month]
         current_light = current_light_row[selected_countries].sum(axis=1).values[0] if not current_light_row.empty else 0
         
         if prev_month is not None:
@@ -243,13 +255,24 @@ def render_overview_tab(full_df, light_df):
                 )
             )
         
-        # Tilføj vertikal linje for valgt måned
-        fig.add_vline(
-            x=selected_month.to_pydatetime(),
-            line_dash="dash",
-            line_color="#9B7EBD",
-            opacity=0.5
-        )
+        # Tilføj markering for valgt periode
+        if start_month == end_month:
+            # Enkelt måned - vis vertikal linje
+            fig.add_vline(
+                x=end_month.to_pydatetime(),
+                line_dash="dash",
+                line_color="#9B7EBD",
+                opacity=0.5
+            )
+        else:
+            # Range - vis skraveret område
+            fig.add_vrect(
+                x0=start_month.to_pydatetime(),
+                x1=end_month.to_pydatetime(),
+                fillcolor="#D4BFFF",
+                opacity=0.2,
+                line_width=0
+            )
         
         fig.update_layout(
             title="", showlegend=True, height=400,
