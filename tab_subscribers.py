@@ -1134,7 +1134,8 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
     else:
         # For individuel source: vis aggregeret per måned
         agg_df['Month_str'] = agg_df['Month'].dt.strftime('%Y-%m')
-        cols_to_show = ['Month_str'] + [c for c in country_cols if c in agg_df.columns] + ['Total']
+        # country_cols indeholder allerede 'Total', så vi tilføjer ikke igen
+        cols_to_show = ['Month_str'] + [c for c in country_cols if c in agg_df.columns]
         
         table_height = min(len(agg_df) * 38 + 60, 800)
         
@@ -1145,7 +1146,7 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
             height=table_height,
             column_config={
                 "Month_str": st.column_config.TextColumn("Måned", width="small"),
-                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols + ['Total'] if col in agg_df.columns}
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in agg_df.columns}
             }
         )
 
