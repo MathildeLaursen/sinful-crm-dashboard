@@ -806,30 +806,42 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
         return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
     
-    # Hent unikke Mail+Message kombinationer sorteret (matcher tabellen)
-    def mail_sort_key(row):
+    # Hent unikke Group+Mail+Message+AB kombinationer sorteret (matcher tabellen)
+    def combo_sort_key(row):
         match = re.search(r'Mail\s*(\d+)', str(row['Mail']))
         mail_num = int(match.group(1)) if match else 999
+        group = str(row['Group']) if pd.notna(row['Group']) else ''
         msg = str(row['Message']) if pd.notna(row['Message']) else ''
-        return (mail_num, msg)
+        ab = str(row['AB']) if pd.notna(row['AB']) else ''
+        return (mail_num, group, msg, ab)
     
-    # Opret unikke kombinationer af Mail+Message
-    unique_combos = chart_base_df.groupby(['Mail', 'Message'], as_index=False).first()[['Mail', 'Message']]
-    unique_combos['_sort_key'] = unique_combos.apply(mail_sort_key, axis=1)
+    # Sørg for at alle kolonner eksisterer
+    for col in ['Group', 'Mail', 'Message', 'AB']:
+        if col not in chart_base_df.columns:
+            chart_base_df[col] = ''
+    
+    # Opret unikke kombinationer af Group+Mail+Message+AB
+    unique_combos = chart_base_df.groupby(['Group', 'Mail', 'Message', 'AB'], as_index=False).first()[['Group', 'Mail', 'Message', 'AB']]
+    unique_combos['_sort_key'] = unique_combos.apply(combo_sort_key, axis=1)
     unique_combos = unique_combos.sort_values('_sort_key').drop(columns=['_sort_key'])
     unique_combos_list = list(unique_combos.itertuples(index=False, name=None))
     
     if len(sorted_chart_months) > 0 and len(unique_combos_list) > 0:
-        # Opret subplots - en raekke per mail+message kombination
+        # Opret subplots - en række per unik kombination
         num_items = len(unique_combos_list)
         
-        # Titel format: "Mail x - Message" hvis message findes, ellers bare "Mail x"
+        # Titel format: "Group - Mail x - Message - A/B" (kun dele der har værdi)
         subplot_titles = []
-        for mail, message in unique_combos_list:
-            if pd.notna(message) and message != '':
-                subplot_titles.append(f"{mail} - {message}")
-            else:
-                subplot_titles.append(str(mail))
+        for group, mail, message, ab in unique_combos_list:
+            parts = []
+            if pd.notna(group) and str(group).strip():
+                parts.append(str(group))
+            parts.append(str(mail))
+            if pd.notna(message) and str(message).strip():
+                parts.append(str(message))
+            if pd.notna(ab) and str(ab).strip():
+                parts.append(str(ab))
+            subplot_titles.append(' - '.join(parts))
         
         # Fast pixel-afstand mellem grafer uanset antal
         # Beregn spacing saa pixel-afstanden er ens
@@ -853,13 +865,30 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
             specs=[[{"secondary_y": True}] for _ in range(num_items)]
         )
         
-        for i, (mail, message) in enumerate(unique_combos_list):
+        for i, (group, mail, message, ab) in enumerate(unique_combos_list):
             row = i + 1
-            # Filtrer paa baade Mail og Message
-            if pd.notna(message) and message != '':
-                mail_data = chart_base_df[(chart_base_df['Mail'] == mail) & (chart_base_df['Message'] == message)].copy()
+            # Filtrer på alle 4 kolonner
+            mask = (chart_base_df['Mail'] == mail)
+            
+            # Group filter
+            if pd.notna(group) and str(group).strip():
+                mask = mask & (chart_base_df['Group'] == group)
             else:
-                mail_data = chart_base_df[(chart_base_df['Mail'] == mail) & (chart_base_df['Message'].isna() | (chart_base_df['Message'] == ''))].copy()
+                mask = mask & (chart_base_df['Group'].isna() | (chart_base_df['Group'] == ''))
+            
+            # Message filter
+            if pd.notna(message) and str(message).strip():
+                mask = mask & (chart_base_df['Message'] == message)
+            else:
+                mask = mask & (chart_base_df['Message'].isna() | (chart_base_df['Message'] == ''))
+            
+            # AB filter
+            if pd.notna(ab) and str(ab).strip():
+                mask = mask & (chart_base_df['AB'] == ab)
+            else:
+                mask = mask & (chart_base_df['AB'].isna() | (chart_base_df['AB'] == ''))
+            
+            mail_data = chart_base_df[mask].copy()
             
             # Opret data for alle maaneder
             sent_values = []
