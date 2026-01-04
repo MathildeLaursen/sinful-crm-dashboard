@@ -1471,12 +1471,23 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
             select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"fl_sel_all_land_sf_{flow_trigger}_{reset_land}")
             
             new_selected = []
+            only_clicked_land = None
             for country in all_countries:
-                checked = country in st.session_state.fl_selected_countries
-                if st.checkbox(country, value=checked, key=f"fl_cb_land_sf_{flow_trigger}_{country}_{reset_land}"):
-                    new_selected.append(country)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = country in st.session_state.fl_selected_countries
+                    if st.checkbox(country, value=checked, key=f"fl_cb_land_sf_{flow_trigger}_{country}_{reset_land}"):
+                        new_selected.append(country)
+                with only_col:
+                    if st.button("Kun", key=f"fl_only_land_{flow_trigger}_{country}_{reset_land}", type="secondary"):
+                        only_clicked_land = country
             
-            if select_all_land and not all_land_selected:
+            # Handle ONLY button click first
+            if only_clicked_land:
+                st.session_state.fl_selected_countries = [only_clicked_land]
+                st.session_state.fl_cb_reset_land += 1
+                st.rerun()
+            elif select_all_land and not all_land_selected:
                 st.session_state.fl_selected_countries = list(all_countries)
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
@@ -1534,12 +1545,23 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
             select_all_group = st.checkbox("Vælg alle", value=all_group_selected, key=f"fl_sel_all_group_{flow_trigger}_{reset_group}")
             
             new_selected_groups = []
+            only_clicked_group = None
             for group in available_groups:
-                checked = group in st.session_state[group_state_key]
-                if st.checkbox(str(group), value=checked, key=f"fl_cb_group_{flow_trigger}_{group}_{reset_group}"):
-                    new_selected_groups.append(group)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = group in st.session_state[group_state_key]
+                    if st.checkbox(str(group), value=checked, key=f"fl_cb_group_{flow_trigger}_{group}_{reset_group}"):
+                        new_selected_groups.append(group)
+                with only_col:
+                    if st.button("Kun", key=f"fl_only_group_{flow_trigger}_{group}_{reset_group}", type="secondary"):
+                        only_clicked_group = group
             
-            if select_all_group and not all_group_selected:
+            # Handle ONLY button click first
+            if only_clicked_group:
+                st.session_state[group_state_key] = [only_clicked_group]
+                st.session_state[group_reset_key] += 1
+                st.rerun()
+            elif select_all_group and not all_group_selected:
                 st.session_state[group_state_key] = list(available_groups)
                 st.session_state[group_reset_key] += 1
                 st.rerun()
@@ -1563,12 +1585,23 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
             select_all_mail = st.checkbox("Vælg alle", value=all_mail_selected, key=f"fl_sel_all_mail_{flow_trigger}_{reset_mail}")
             
             new_selected_mails = []
+            only_clicked_mail = None
             for mail in available_mails:
-                checked = mail in st.session_state[mail_state_key]
-                if st.checkbox(str(mail), value=checked, key=f"fl_cb_mail_{flow_trigger}_{mail}_{reset_mail}"):
-                    new_selected_mails.append(mail)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = mail in st.session_state[mail_state_key]
+                    if st.checkbox(str(mail), value=checked, key=f"fl_cb_mail_{flow_trigger}_{mail}_{reset_mail}"):
+                        new_selected_mails.append(mail)
+                with only_col:
+                    if st.button("Kun", key=f"fl_only_mail_{flow_trigger}_{mail}_{reset_mail}", type="secondary"):
+                        only_clicked_mail = mail
             
-            if select_all_mail and not all_mail_selected:
+            # Handle ONLY button click first
+            if only_clicked_mail:
+                st.session_state[mail_state_key] = [only_clicked_mail]
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+            elif select_all_mail and not all_mail_selected:
                 st.session_state[mail_state_key] = list(available_mails)
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
