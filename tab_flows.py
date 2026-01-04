@@ -892,15 +892,41 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     ].copy()
     
     # Anvend samme filtre som til data (alle filtre anvendes ALTID - vi aggregerer kun bagefter hvis ignore er True)
+    # "Ingen" i filter_config betyder tomme/blanke værdier
+    BLANK_LABEL = "Ingen"
     if filter_config is not None:
         if filter_config.get('mails'):
-            chart_base_df = chart_base_df[chart_base_df['Mail'].isin(filter_config['mails'])]
+            selected_mails = filter_config['mails']
+            include_blank = BLANK_LABEL in selected_mails
+            non_blank_mails = [m for m in selected_mails if m != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['Mail'].isin(non_blank_mails) | (chart_base_df['Mail'].str.strip() == '') | chart_base_df['Mail'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['Mail'].isin(non_blank_mails)]
         if filter_config.get('groups'):
-            chart_base_df = chart_base_df[chart_base_df['Group'].isin(filter_config['groups'])]
+            selected_groups = filter_config['groups']
+            include_blank = BLANK_LABEL in selected_groups
+            non_blank_groups = [g for g in selected_groups if g != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['Group'].isin(non_blank_groups) | (chart_base_df['Group'].str.strip() == '') | chart_base_df['Group'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['Group'].isin(non_blank_groups)]
         if filter_config.get('messages'):
-            chart_base_df = chart_base_df[chart_base_df['Message'].isin(filter_config['messages'])]
+            selected_messages = filter_config['messages']
+            include_blank = BLANK_LABEL in selected_messages
+            non_blank_messages = [m for m in selected_messages if m != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['Message'].isin(non_blank_messages) | (chart_base_df['Message'].str.strip() == '') | chart_base_df['Message'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['Message'].isin(non_blank_messages)]
         if filter_config.get('ab'):
-            chart_base_df = chart_base_df[chart_base_df['AB'].isin(filter_config['ab'])]
+            selected_ab = filter_config['ab']
+            include_blank = BLANK_LABEL in selected_ab
+            non_blank_ab = [a for a in selected_ab if a != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['AB'].isin(non_blank_ab) | (chart_base_df['AB'].str.strip() == '') | chart_base_df['AB'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['AB'].isin(non_blank_ab)]
         
         # Filtrer inaktive kombinationer hvis ignore_inactive er True
         if filter_config.get('ignore_inactive'):
