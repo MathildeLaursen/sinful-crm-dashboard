@@ -769,15 +769,21 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         if col not in flow_data.columns:
             flow_data[col] = ''
     
-    # Bestem grupperingsnøgler baseret på ignore_group setting
+    # Bestem grupperingsnøgler baseret på ignore settings
     ignore_group = filter_config.get('ignore_group', False) if filter_config else False
+    ignore_mail = filter_config.get('ignore_mail', False) if filter_config else False
     
-    if ignore_group:
-        # Aggreger på tværs af groups - kun gruppér på Mail, Message, AB
-        table_group_cols = ['Mail', 'Message', 'AB']
-    else:
-        # Normal: gruppér på alle kolonner
-        table_group_cols = ['Group', 'Mail', 'Message', 'AB']
+    # Byg grupperingsnøgler dynamisk
+    table_group_cols = []
+    if not ignore_group:
+        table_group_cols.append('Group')
+    if not ignore_mail:
+        table_group_cols.append('Mail')
+    table_group_cols.extend(['Message', 'AB'])
+    
+    # Hvis alle kolonner ignoreres, brug mindst Message og AB
+    if not table_group_cols:
+        table_group_cols = ['Message', 'AB']
     
     # Brug flow_data direkte (allerede filtreret) - aggreger kun på tværs af måneder
     table_df = flow_data.groupby(table_group_cols, as_index=False).agg({
@@ -788,9 +794,11 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         'Bounced': 'sum',
     })
     
-    # Tilføj tom Group kolonne hvis vi ignorerer group
+    # Tilføj tomme kolonner for ignorerede felter
     if ignore_group:
         table_df['Group'] = ''
+    if ignore_mail:
+        table_df['Mail'] = ''
     
     # Genberegn rater
     table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
@@ -902,19 +910,33 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         if col not in chart_base_df.columns:
             chart_base_df[col] = ''
     
-    # Bestem om vi skal ignorere Group i grafer
+    # Bestem om vi skal ignorere Group og/eller Mail i grafer
     chart_ignore_group = filter_config.get('ignore_group', False) if filter_config else False
+    chart_ignore_mail = filter_config.get('ignore_mail', False) if filter_config else False
     
-    if chart_ignore_group:
-        # Aggreger data på Mail+Message+AB niveau (ignorer Group)
-        chart_base_df = chart_base_df.groupby(['Year_Month', 'Mail', 'Message', 'AB'], as_index=False).agg({
+    if chart_ignore_group or chart_ignore_mail:
+        # Byg grupperingsnøgler dynamisk
+        chart_agg_cols = ['Year_Month']
+        if not chart_ignore_group:
+            chart_agg_cols.append('Group')
+        if not chart_ignore_mail:
+            chart_agg_cols.append('Mail')
+        chart_agg_cols.extend(['Message', 'AB'])
+        
+        # Aggreger data baseret på ignore settings
+        chart_base_df = chart_base_df.groupby(chart_agg_cols, as_index=False).agg({
             'Received_Email': 'sum',
             'Unique_Opens': 'sum',
             'Unique_Clicks': 'sum',
             'Unsubscribed': 'sum',
             'Bounced': 'sum',
         })
-        chart_base_df['Group'] = ''  # Tom group kolonne
+        
+        # Tilføj tomme kolonner for ignorerede felter
+        if chart_ignore_group:
+            chart_base_df['Group'] = ''
+        if chart_ignore_mail:
+            chart_base_df['Mail'] = ''
     
     # Hent unikke kombinationer sorteret (matcher tabellen)
     def combo_sort_key(row):
@@ -1586,10 +1608,14 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     # === LINJE 2: Group + Mail ===
     col_group, col_mail, col_empty = st.columns([1, 1, 4])
     
-    # === Session state for Ignorer Group ===
+    # === Session state for Ignorer Group og Ignorer Mail ===
     ignore_group_key = f'fl_ignore_group_{flow_trigger}'
     if ignore_group_key not in st.session_state:
         st.session_state[ignore_group_key] = False
+    
+    ignore_mail_key = f'fl_ignore_mail_{flow_trigger}'
+    if ignore_mail_key not in st.session_state:
+        st.session_state[ignore_mail_key] = False
     
     # === Group dropdown ===
     with col_group:
@@ -1671,15 +1697,28 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
     
-    # === LINJE 3: Ignorer Group checkbox ===
-    ignore_group = st.checkbox(
-        "Ignorer Group",
-        value=st.session_state[ignore_group_key],
-        key=f"fl_ignore_group_cb_{flow_trigger}"
-    )
-    if ignore_group != st.session_state[ignore_group_key]:
-        st.session_state[ignore_group_key] = ignore_group
-        st.rerun()
+    # === LINJE 3: Ignorer Group + Ignorer Mail checkboxes ===
+    col_ig_group, col_ig_mail, col_ig_empty = st.columns([1, 1, 4])
+    
+    with col_ig_group:
+        ignore_group = st.checkbox(
+            "Ignorer Group",
+            value=st.session_state[ignore_group_key],
+            key=f"fl_ignore_group_cb_{flow_trigger}"
+        )
+        if ignore_group != st.session_state[ignore_group_key]:
+            st.session_state[ignore_group_key] = ignore_group
+            st.rerun()
+    
+    with col_ig_mail:
+        ignore_mail = st.checkbox(
+            "Ignorer Mail",
+            value=st.session_state[ignore_mail_key],
+            key=f"fl_ignore_mail_cb_{flow_trigger}"
+        )
+        if ignore_mail != st.session_state[ignore_mail_key]:
+            st.session_state[ignore_mail_key] = ignore_mail
+            st.rerun()
     
     if not sel_months:
         st.warning("Vælg mindst én måned.")
@@ -1707,6 +1746,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         'ab': None,
         'ignore_inactive': st.session_state[ignore_inactive_key],
         'ignore_group': st.session_state[ignore_group_key],  # Aggreger på tværs af groups
+        'ignore_mail': st.session_state[ignore_mail_key],    # Aggreger på tværs af mails
         'ignore_message': True,
         'ignore_ab': True,
     }
