@@ -1078,8 +1078,8 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
     
     # --- GRAF: Udvikling per land ---
     fig = go.Figure()
-    graph_cols = country_cols + ['Total']
-    for country in graph_cols:
+    # country_cols indeholder allerede 'Total', så vi bruger den direkte
+    for country in country_cols:
         if country in agg_df.columns:
             fig.add_trace(
                 go.Scatter(
