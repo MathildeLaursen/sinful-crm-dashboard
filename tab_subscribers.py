@@ -200,12 +200,10 @@ def render_overview_tab(full_df, light_df):
         
         # Tilføj vertikal linje for valgt måned
         fig.add_vline(
-            x=selected_month,
+            x=selected_month.to_pydatetime(),
             line_dash="dash",
             line_color="#9B7EBD",
-            opacity=0.5,
-            annotation_text=selected_month.strftime('%Y-%m'),
-            annotation_position="top"
+            opacity=0.5
         )
         
         fig.update_layout(
