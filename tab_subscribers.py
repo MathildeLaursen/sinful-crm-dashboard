@@ -704,10 +704,15 @@ def render_nye_subscribers_tab(events_df):
             
             # --- SCORECARDS ---
             num_sources = len(master_sources)
-            cols = st.columns(num_sources)
+            cols = st.columns(num_sources + 1)  # +1 for Total
+            
+            # Total for alle Master Sources
+            grand_total = 0
+            grand_prev_total = 0
             
             for i, master in enumerate(master_sources):
                 master_total = period_df[period_df['Master Source'] == master]['Total'].sum()
+                grand_total += master_total
                 
                 # Beregn sammenligning med forrige periode (N måneder)
                 prev_total = 0
@@ -721,6 +726,8 @@ def render_nye_subscribers_tab(events_df):
                         else:
                             prev_total += pm_total
                 
+                grand_prev_total += prev_total
+                
                 if prev_total > 0:
                     pct = ((master_total - prev_total) / prev_total * 100)
                     growth = int(master_total - prev_total)
@@ -728,6 +735,15 @@ def render_nye_subscribers_tab(events_df):
                     cols[i].metric(master, format_number(master_total), delta=f"{pct:+.1f}% ({growth_str})")
                 else:
                     cols[i].metric(master, format_number(master_total))
+            
+            # Total scorecard
+            if grand_prev_total > 0:
+                grand_pct = ((grand_total - grand_prev_total) / grand_prev_total * 100)
+                grand_growth = int(grand_total - grand_prev_total)
+                grand_growth_str = f"+{grand_growth:,}" if grand_growth >= 0 else f"{grand_growth:,}"
+                cols[num_sources].metric("Total", format_number(grand_total), delta=f"{grand_pct:+.1f}% ({grand_growth_str})")
+            else:
+                cols[num_sources].metric("Total", format_number(grand_total))
             
             st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
             
