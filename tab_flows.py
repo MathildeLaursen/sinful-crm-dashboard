@@ -1422,21 +1422,6 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
 
-    # === Ignorer Inaktive checkbox ===
-    with col_inaktive:
-        ignore_inactive = st.checkbox(
-            "Ignorer Inaktive", 
-            value=st.session_state[ignore_inactive_key], 
-            key=f"fl_ignore_inactive_cb_{flow_trigger}"
-        )
-        if ignore_inactive != st.session_state[ignore_inactive_key]:
-            st.session_state[ignore_inactive_key] = ignore_inactive
-            # Reset mail selection når toggle ændres
-            new_available = [m for m in all_mails_raw if m in active_mails] if ignore_inactive else all_mails_raw
-            st.session_state[mail_state_key] = list(new_available)
-            st.session_state[mail_reset_key] += 1
-            st.rerun()
-
     # === Periode slider ===
     with col_slider:
         if len(sorted_months) > 1:
