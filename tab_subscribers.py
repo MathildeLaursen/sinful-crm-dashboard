@@ -299,10 +299,14 @@ def render_full_subscribers_tab(full_df):
         display_full['Month'] = display_full['Month'].dt.strftime('%Y-%m')
         cols_to_show = ['Month'] + [c for c in country_cols if c in display_full.columns]
         
+        # Beregn højde baseret på antal rækker (35px per række + 40px header + padding)
+        table_height = min(len(display_full) * 35 + 50, 800)
+        
         st.dataframe(
             display_full[cols_to_show],
             use_container_width=True,
             hide_index=True,
+            height=table_height,
             column_config={
                 "Month": st.column_config.TextColumn("Måned", width="small"),
                 **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_full.columns}
@@ -322,10 +326,14 @@ def render_light_subscribers_tab(light_df):
         display_light['Month'] = display_light['Month'].dt.strftime('%Y-%m')
         cols_to_show = ['Month'] + [c for c in country_cols if c in display_light.columns]
         
+        # Beregn højde baseret på antal rækker
+        table_height = min(len(display_light) * 35 + 50, 800)
+        
         st.dataframe(
             display_light[cols_to_show],
             use_container_width=True,
             hide_index=True,
+            height=table_height,
             column_config={
                 "Month": st.column_config.TextColumn("Måned", width="small"),
                 **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_light.columns}
@@ -366,10 +374,14 @@ def render_nye_subscribers_tab(events_df):
         
         cols_to_show = ['Month', 'Master Source', 'Source'] + [c for c in country_cols if c in filtered_events.columns]
         
+        # Beregn højde baseret på antal rækker
+        table_height = min(len(filtered_events) * 35 + 50, 800)
+        
         st.dataframe(
             filtered_events[cols_to_show].sort_values('Month', ascending=False),
             use_container_width=True,
             hide_index=True,
+            height=table_height,
             column_config={
                 "Month": st.column_config.TextColumn("Måned", width="small"),
                 "Master Source": st.column_config.TextColumn("Master Source", width="medium"),
