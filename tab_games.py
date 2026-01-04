@@ -666,12 +666,41 @@ def render_single_game_content(raw_df, game_trigger, sel_countries, filter_confi
         prev_data = full_df[prev_filter].copy()
         
         # Anvend samme filtre til sammenligning som til nuværende periode
+        # Håndter "Ingen" label for tomme værdier
+        BLANK_LABEL = "Ingen"
         if filter_config is not None:
             if filter_config.get('mails'):
-                prev_data = prev_data[prev_data['Mail'].isin(filter_config['mails'])]
-            # Group filter anvendes ALTID
+                selected_mails = filter_config['mails']
+                include_blank = BLANK_LABEL in selected_mails
+                non_blank_mails = [m for m in selected_mails if m != BLANK_LABEL]
+                if include_blank:
+                    prev_data = prev_data[prev_data['Mail'].isin(non_blank_mails) | (prev_data['Mail'].str.strip() == '') | prev_data['Mail'].isna()]
+                else:
+                    prev_data = prev_data[prev_data['Mail'].isin(non_blank_mails)]
             if filter_config.get('groups'):
-                prev_data = prev_data[prev_data['Group'].isin(filter_config['groups'])]
+                selected_groups = filter_config['groups']
+                include_blank = BLANK_LABEL in selected_groups
+                non_blank_groups = [g for g in selected_groups if g != BLANK_LABEL]
+                if include_blank:
+                    prev_data = prev_data[prev_data['Group'].isin(non_blank_groups) | (prev_data['Group'].str.strip() == '') | prev_data['Group'].isna()]
+                else:
+                    prev_data = prev_data[prev_data['Group'].isin(non_blank_groups)]
+            if filter_config.get('messages'):
+                selected_messages = filter_config['messages']
+                include_blank = BLANK_LABEL in selected_messages
+                non_blank_messages = [m for m in selected_messages if m != BLANK_LABEL]
+                if include_blank:
+                    prev_data = prev_data[prev_data['Message'].isin(non_blank_messages) | (prev_data['Message'].str.strip() == '') | prev_data['Message'].isna()]
+                else:
+                    prev_data = prev_data[prev_data['Message'].isin(non_blank_messages)]
+            if filter_config.get('ab'):
+                selected_ab = filter_config['ab']
+                include_blank = BLANK_LABEL in selected_ab
+                non_blank_ab = [a for a in selected_ab if a != BLANK_LABEL]
+                if include_blank:
+                    prev_data = prev_data[prev_data['AB'].isin(non_blank_ab) | (prev_data['AB'].str.strip() == '') | prev_data['AB'].isna()]
+                else:
+                    prev_data = prev_data[prev_data['AB'].isin(non_blank_ab)]
         
         if not prev_data.empty:
             # Aggreger forrige periode PER MÅNED
