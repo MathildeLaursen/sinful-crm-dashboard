@@ -66,32 +66,97 @@ def render_overview_tab(full_df, light_df):
         full_df = full_df.sort_values('Month', ascending=False)
     if not light_df.empty:
         light_df = light_df.sort_values('Month', ascending=False)
+    
+    # --- FILTRE: Land og Periode ---
+    country_options = ['Total', 'DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    
+    # Find tilgængelige måneder fra data
+    all_months = set()
+    if not full_df.empty:
+        all_months.update(full_df['Month'].dropna().tolist())
+    if not light_df.empty:
+        all_months.update(light_df['Month'].dropna().tolist())
+    
+    available_months = sorted(list(all_months))
+    
+    if not available_months:
+        st.warning("Ingen data tilgængelig.")
+        return
+    
+    # Format måneder til visning
+    month_labels = [m.strftime('%Y-%m') for m in available_months]
+    
+    # Find index for denne måned (seneste)
+    current_month_idx = len(available_months) - 1
+    
+    # Filter row
+    col_land, col_slider = st.columns([1, 5])
+    
+    with col_land:
+        selected_country = st.selectbox(
+            "Land",
+            options=country_options,
+            index=0,
+            key="sub_overview_country",
+            label_visibility="collapsed"
+        )
+    
+    with col_slider:
+        if len(available_months) > 1:
+            selected_month_idx = st.slider(
+                "Periode",
+                min_value=0,
+                max_value=len(available_months) - 1,
+                value=current_month_idx,
+                format_func=lambda x: month_labels[x],
+                key="sub_overview_period",
+                label_visibility="collapsed"
+            )
+        else:
+            selected_month_idx = 0
+            st.write(f"Periode: {month_labels[0]}")
+    
+    selected_month = available_months[selected_month_idx]
+    prev_month_idx = selected_month_idx - 1 if selected_month_idx > 0 else None
+    prev_month = available_months[prev_month_idx] if prev_month_idx is not None else None
+
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     # --- KPI CARDS ---
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     
-    # Seneste data
-    if not full_df.empty and len(full_df) >= 2:
-        current_full = full_df.iloc[0]['Total']
-        prev_full = full_df.iloc[1]['Total']
-        full_growth = current_full - prev_full
-        full_growth_pct = ((current_full - prev_full) / prev_full * 100) if prev_full > 0 else 0
+    # Hent data for valgt måned og land
+    if not full_df.empty:
+        current_full_row = full_df[full_df['Month'] == selected_month]
+        current_full = current_full_row[selected_country].values[0] if not current_full_row.empty else 0
+        
+        if prev_month is not None:
+            prev_full_row = full_df[full_df['Month'] == prev_month]
+            prev_full = prev_full_row[selected_country].values[0] if not prev_full_row.empty else None
+        else:
+            prev_full = None
+        
+        full_growth = (current_full - prev_full) if prev_full is not None else 0
     else:
-        current_full = full_df.iloc[0]['Total'] if not full_df.empty else 0
+        current_full = 0
         prev_full = None
         full_growth = 0
-        full_growth_pct = 0
 
-    if not light_df.empty and len(light_df) >= 2:
-        current_light = light_df.iloc[0]['Total']
-        prev_light = light_df.iloc[1]['Total']
-        light_growth = current_light - prev_light
-        light_growth_pct = ((current_light - prev_light) / prev_light * 100) if prev_light > 0 else 0
+    if not light_df.empty:
+        current_light_row = light_df[light_df['Month'] == selected_month]
+        current_light = current_light_row[selected_country].values[0] if not current_light_row.empty else 0
+        
+        if prev_month is not None:
+            prev_light_row = light_df[light_df['Month'] == prev_month]
+            prev_light = prev_light_row[selected_country].values[0] if not prev_light_row.empty else None
+        else:
+            prev_light = None
+        
+        light_growth = (current_light - prev_light) if prev_light is not None else 0
     else:
-        current_light = light_df.iloc[0]['Total'] if not light_df.empty else 0
+        current_light = 0
         prev_light = None
         light_growth = 0
-        light_growth_pct = 0
 
     total_subscribers = current_full + current_light
     total_growth = full_growth + light_growth
@@ -100,14 +165,14 @@ def render_overview_tab(full_df, light_df):
     show_metric(col2, "Light Subscribers", current_light, prev_light)
     show_metric(col3, "Total Subscribers", total_subscribers)
     
-    # Nye subscribers denne maned
+    # Nye subscribers denne måned
     col4.metric("Nye Full", f"+{format_number(full_growth)}" if full_growth >= 0 else format_number(full_growth))
     col5.metric("Nye Light", f"+{format_number(light_growth)}" if light_growth >= 0 else format_number(light_growth))
     col6.metric("Nye Total", f"+{format_number(total_growth)}" if total_growth >= 0 else format_number(total_growth))
 
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-    # --- GRAF: Subscriber vaekst over tid ---
+    # --- GRAF: Subscriber vækst over tid ---
     if not full_df.empty or not light_df.empty:
         fig = make_subplots(specs=[[{"secondary_y": False}]])
         
@@ -116,7 +181,7 @@ def render_overview_tab(full_df, light_df):
             full_chart = full_df.sort_values('Month')
             fig.add_trace(
                 go.Scatter(
-                    x=full_chart['Month'], y=full_chart['Total'],
+                    x=full_chart['Month'], y=full_chart[selected_country],
                     name='Full Subscribers', mode='lines+markers',
                     line=dict(color='#9B7EBD', width=3),
                     marker=dict(size=8)
@@ -127,12 +192,22 @@ def render_overview_tab(full_df, light_df):
             light_chart = light_df.sort_values('Month')
             fig.add_trace(
                 go.Scatter(
-                    x=light_chart['Month'], y=light_chart['Total'],
+                    x=light_chart['Month'], y=light_chart[selected_country],
                     name='Light Subscribers', mode='lines+markers',
                     line=dict(color='#E8B4CB', width=3),
                     marker=dict(size=8)
                 )
             )
+        
+        # Tilføj vertikal linje for valgt måned
+        fig.add_vline(
+            x=selected_month,
+            line_dash="dash",
+            line_color="#9B7EBD",
+            opacity=0.5,
+            annotation_text=selected_month.strftime('%Y-%m'),
+            annotation_position="top"
+        )
         
         fig.update_layout(
             title="", showlegend=True, height=400,
