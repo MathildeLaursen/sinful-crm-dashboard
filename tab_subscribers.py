@@ -290,16 +290,55 @@ def render_overview_tab(full_df, light_df):
 
 
 def render_full_subscribers_tab(full_df):
-    """Render Full Subscribers sub-tab med tabel"""
-    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
+    """Render Full Subscribers sub-tab med graf og tabel"""
+    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    
+    # Farver per land
+    country_colors = {
+        'DK': '#9B7EBD', 'SE': '#E8B4CB', 'NO': '#A8E6CF', 'FI': '#FFD3B6',
+        'FR': '#D4BFFF', 'UK': '#F0B4D4', 'DE': '#B4E0F0', 'AT': '#E0D4B4',
+        'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0'
+    }
     
     if not full_df.empty:
+        # --- GRAF: Udvikling per land ---
+        chart_df = full_df.sort_values('Month')
+        
+        fig = go.Figure()
+        for country in country_cols:
+            if country in chart_df.columns:
+                fig.add_trace(
+                    go.Scatter(
+                        x=chart_df['Month'],
+                        y=chart_df[country],
+                        name=country,
+                        mode='lines+markers',
+                        line=dict(color=country_colors.get(country, '#9B7EBD'), width=2),
+                        marker=dict(size=6)
+                    )
+                )
+        
+        fig.update_layout(
+            title="", showlegend=True, height=350,
+            margin=dict(l=50, r=50, t=20, b=50),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='x unified'
+        )
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
+        fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        
+        # --- TABEL ---
         full_df = full_df.sort_values('Month', ascending=False)
         display_full = full_df.copy()
         display_full['Month'] = display_full['Month'].dt.strftime('%Y-%m')
-        cols_to_show = ['Month'] + [c for c in country_cols if c in display_full.columns]
+        cols_to_show = ['Month'] + [c for c in country_cols + ['Total'] if c in display_full.columns]
         
-        # Beregn højde baseret på antal rækker (35px per række + 40px header + padding)
+        # Beregn højde baseret på antal rækker
         table_height = min(len(display_full) * 35 + 50, 800)
         
         st.dataframe(
@@ -309,7 +348,7 @@ def render_full_subscribers_tab(full_df):
             height=table_height,
             column_config={
                 "Month": st.column_config.TextColumn("Måned", width="small"),
-                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_full.columns}
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols + ['Total'] if col in display_full.columns}
             }
         )
     else:
@@ -317,14 +356,53 @@ def render_full_subscribers_tab(full_df):
 
 
 def render_light_subscribers_tab(light_df):
-    """Render Light Subscribers sub-tab med tabel"""
-    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
+    """Render Light Subscribers sub-tab med graf og tabel"""
+    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    
+    # Farver per land
+    country_colors = {
+        'DK': '#9B7EBD', 'SE': '#E8B4CB', 'NO': '#A8E6CF', 'FI': '#FFD3B6',
+        'FR': '#D4BFFF', 'UK': '#F0B4D4', 'DE': '#B4E0F0', 'AT': '#E0D4B4',
+        'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0'
+    }
     
     if not light_df.empty:
+        # --- GRAF: Udvikling per land ---
+        chart_df = light_df.sort_values('Month')
+        
+        fig = go.Figure()
+        for country in country_cols:
+            if country in chart_df.columns:
+                fig.add_trace(
+                    go.Scatter(
+                        x=chart_df['Month'],
+                        y=chart_df[country],
+                        name=country,
+                        mode='lines+markers',
+                        line=dict(color=country_colors.get(country, '#9B7EBD'), width=2),
+                        marker=dict(size=6)
+                    )
+                )
+        
+        fig.update_layout(
+            title="", showlegend=True, height=350,
+            margin=dict(l=50, r=50, t=20, b=50),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='x unified'
+        )
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
+        fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        
+        # --- TABEL ---
         light_df = light_df.sort_values('Month', ascending=False)
         display_light = light_df.copy()
         display_light['Month'] = display_light['Month'].dt.strftime('%Y-%m')
-        cols_to_show = ['Month'] + [c for c in country_cols if c in display_light.columns]
+        cols_to_show = ['Month'] + [c for c in country_cols + ['Total'] if c in display_light.columns]
         
         # Beregn højde baseret på antal rækker
         table_height = min(len(display_light) * 35 + 50, 800)
@@ -336,7 +414,7 @@ def render_light_subscribers_tab(light_df):
             height=table_height,
             column_config={
                 "Month": st.column_config.TextColumn("Måned", width="small"),
-                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_light.columns}
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols + ['Total'] if col in display_light.columns}
             }
         )
     else:
