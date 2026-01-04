@@ -600,15 +600,20 @@ def render_nye_subscribers_tab(events_df):
     """Render Nye Subscribers per Kilde sub-tab med underfaner per Master Source"""
     country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
     
-    # Farver for Master Sources
+    # Farver for Master Sources - unikke farver til hver
     master_colors = {
-        'Paid': '#9B7EBD',
-        'Organic': '#A8E6CF',
-        'Referral': '#E8B4CB',
-        'Direct': '#FFD3B6',
-        'Social': '#D4BFFF',
-        'Email': '#87CEEB',
-        'Other': '#F0E68C'
+        'Game': '#9B7EBD',           # Lilla
+        'Lead Ad': '#E8B4CB',        # Pink
+        'LightPermission': '#A8E6CF', # Mint
+        'On Site': '#FFD3B6',        # Fersken
+        'Other': '#F0E68C',          # Gul
+        'Sleeknote': '#87CEEB',      # Lyseblå
+        'Paid': '#FF6B6B',           # Koral
+        'Organic': '#4ECDC4',        # Turkis
+        'Referral': '#45B7D1',       # Blå
+        'Direct': '#96CEB4',         # Sage
+        'Social': '#DDA0DD',         # Plum
+        'Email': '#F7DC6F',          # Guld
     }
     
     if not events_df.empty:
@@ -646,10 +651,10 @@ def render_nye_subscribers_tab(events_df):
                 )
             
             fig.update_layout(
-                title="Nye subscribers per Master Source",
+                title="",
                 showlegend=True,
                 height=500,
-                margin=dict(l=50, r=50, t=60, b=50),
+                margin=dict(l=50, r=50, t=30, b=50),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
                 plot_bgcolor='rgba(250,245,255,0.5)',
                 paper_bgcolor='rgba(0,0,0,0)',
