@@ -290,7 +290,7 @@ def render_overview_tab(full_df, light_df):
 
 
 def render_full_subscribers_tab(full_df):
-    """Render Full Subscribers sub-tab med graf og tabel"""
+    """Render Full Subscribers sub-tab med scorecards, graf og tabel"""
     country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
     
     # Farver per land
@@ -301,6 +301,52 @@ def render_full_subscribers_tab(full_df):
     }
     
     if not full_df.empty:
+        # Sortér data
+        df_sorted = full_df.sort_values('Month', ascending=False)
+        
+        # --- SCORECARDS PER LAND ---
+        # Række 1: DK, SE, NO, FI, FR, UK - Subscribers
+        row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
+        cols_row1 = st.columns(6)
+        for i, country in enumerate(row1_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                current = df_sorted.iloc[0][country]
+                prev = df_sorted.iloc[1][country]
+                show_metric(cols_row1[i], f"{country} Subscribers", current, prev)
+            elif country in df_sorted.columns:
+                show_metric(cols_row1[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+        
+        # Række 2: DK, SE, NO, FI, FR, UK - Nye
+        cols_row2 = st.columns(6)
+        for i, country in enumerate(row1_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+                cols_row2[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
+            else:
+                cols_row2[i].metric(f"{country} Nye", "—")
+        
+        # Række 3: DE, AT, NL, BE, CH - Subscribers
+        row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
+        cols_row3 = st.columns(6)
+        for i, country in enumerate(row2_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                current = df_sorted.iloc[0][country]
+                prev = df_sorted.iloc[1][country]
+                show_metric(cols_row3[i], f"{country} Subscribers", current, prev)
+            elif country in df_sorted.columns:
+                show_metric(cols_row3[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+        
+        # Række 4: DE, AT, NL, BE, CH - Nye
+        cols_row4 = st.columns(6)
+        for i, country in enumerate(row2_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+                cols_row4[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
+            else:
+                cols_row4[i].metric(f"{country} Nye", "—")
+        
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        
         # --- GRAF: Udvikling per land ---
         chart_df = full_df.sort_values('Month')
         
@@ -356,7 +402,7 @@ def render_full_subscribers_tab(full_df):
 
 
 def render_light_subscribers_tab(light_df):
-    """Render Light Subscribers sub-tab med graf og tabel"""
+    """Render Light Subscribers sub-tab med scorecards, graf og tabel"""
     country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
     
     # Farver per land
@@ -367,6 +413,52 @@ def render_light_subscribers_tab(light_df):
     }
     
     if not light_df.empty:
+        # Sortér data
+        df_sorted = light_df.sort_values('Month', ascending=False)
+        
+        # --- SCORECARDS PER LAND ---
+        # Række 1: DK, SE, NO, FI, FR, UK - Subscribers
+        row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
+        cols_row1 = st.columns(6)
+        for i, country in enumerate(row1_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                current = df_sorted.iloc[0][country]
+                prev = df_sorted.iloc[1][country]
+                show_metric(cols_row1[i], f"{country} Subscribers", current, prev)
+            elif country in df_sorted.columns:
+                show_metric(cols_row1[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+        
+        # Række 2: DK, SE, NO, FI, FR, UK - Nye
+        cols_row2 = st.columns(6)
+        for i, country in enumerate(row1_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+                cols_row2[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
+            else:
+                cols_row2[i].metric(f"{country} Nye", "—")
+        
+        # Række 3: DE, AT, NL, BE, CH - Subscribers
+        row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
+        cols_row3 = st.columns(6)
+        for i, country in enumerate(row2_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                current = df_sorted.iloc[0][country]
+                prev = df_sorted.iloc[1][country]
+                show_metric(cols_row3[i], f"{country} Subscribers", current, prev)
+            elif country in df_sorted.columns:
+                show_metric(cols_row3[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+        
+        # Række 4: DE, AT, NL, BE, CH - Nye
+        cols_row4 = st.columns(6)
+        for i, country in enumerate(row2_countries):
+            if country in df_sorted.columns and len(df_sorted) >= 2:
+                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+                cols_row4[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
+            else:
+                cols_row4[i].metric(f"{country} Nye", "—")
+        
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        
         # --- GRAF: Udvikling per land ---
         chart_df = light_df.sort_values('Month')
         
