@@ -103,15 +103,14 @@ def render_overview_tab(full_df, light_df):
     
     with col_slider:
         if len(available_months) > 1:
-            selected_month_idx = st.slider(
+            selected_month_label = st.select_slider(
                 "Periode",
-                min_value=0,
-                max_value=len(available_months) - 1,
-                value=current_month_idx,
-                format_func=lambda x: month_labels[x],
+                options=month_labels,
+                value=month_labels[-1],  # Denne måned (seneste)
                 key="sub_overview_period",
                 label_visibility="collapsed"
             )
+            selected_month_idx = month_labels.index(selected_month_label)
         else:
             selected_month_idx = 0
             st.write(f"Periode: {month_labels[0]}")
