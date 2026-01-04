@@ -967,12 +967,12 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
 
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-    # Tabel med mail-niveau data - vis altid alle 4 kolonner: Group, Mail, Message, A/B
-    # Aggreger baseret på group_cols (som allerede er defineret ud fra ignore settings)
-    table_group_cols = [c for c in group_cols if c != 'Year_Month']
+    # Tabel med mail-niveau data - vis ALTID alle 4 kolonner: Group, Mail, Message, A/B
+    # Aggreger ALTID efter alle 4 kolonner for at vise detaljeret data
+    table_group_cols = ['Group', 'Mail', 'Message', 'AB']
     
     # Sørg for at alle 4 kolonner eksisterer i mail_df før groupby
-    for col in ['Group', 'Mail', 'Message', 'AB']:
+    for col in table_group_cols:
         if col not in mail_df.columns:
             mail_df[col] = ''
     
@@ -989,41 +989,19 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
     
-    # Sorter efter mail nummer
+    # Sorter efter mail nummer, derefter group, message, ab
     table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
-    sort_cols = ['_mail_num']
-    if 'Group' in table_group_cols:
-        table_df['_group'] = table_df['Group'].apply(lambda g: str(g) if pd.notna(g) else '')
-        sort_cols.append('_group')
-    if 'Message' in table_group_cols:
-        table_df['_msg'] = table_df['Message'].apply(lambda m: str(m) if pd.notna(m) else '')
-        sort_cols.append('_msg')
-    if 'AB' in table_group_cols:
-        table_df['_ab'] = table_df['AB'].apply(lambda a: str(a) if pd.notna(a) else '')
-        sort_cols.append('_ab')
+    table_df['_group'] = table_df['Group'].apply(lambda g: str(g) if pd.notna(g) else '')
+    table_df['_msg'] = table_df['Message'].apply(lambda m: str(m) if pd.notna(m) else '')
+    table_df['_ab'] = table_df['AB'].apply(lambda a: str(a) if pd.notna(a) else '')
     
-    table_df = table_df.sort_values(sort_cols, ascending=True)
+    table_df = table_df.sort_values(['_mail_num', '_group', '_msg', '_ab'], ascending=True)
     
     # Fjern hjælpekolonner
-    drop_cols = ['_mail_num'] + [c for c in ['_group', '_msg', '_ab'] if c in table_df.columns]
-    table_df = table_df.drop(columns=drop_cols)
+    table_df = table_df.drop(columns=['_mail_num', '_group', '_msg', '_ab'])
     
-    # Byg kolonnerækkefølge - vis kun de kolonner der er i table_group_cols
-    display_cols = []
-    if 'Group' in table_group_cols:
-        display_cols.append('Group')
-    if 'Mail' in table_group_cols:
-        display_cols.append('Mail')
-    if 'Message' in table_group_cols:
-        display_cols.append('Message')
-    if 'AB' in table_group_cols:
-        display_cols.append('AB')
-    
-    # Tilføj KPI kolonner
-    display_cols += ['Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']
-    
-    # Filtrer til kun eksisterende kolonner
-    display_cols = [c for c in display_cols if c in table_df.columns]
+    # Vis altid alle 4 kolonner + KPI kolonner
+    display_cols = ['Group', 'Mail', 'Message', 'AB', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']
     table_df = table_df[display_cols]
     
     # Beregn hoejde saa alle raekker vises (35px per raekke + 38px header)
@@ -1671,11 +1649,21 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         return
 
     # Saml alle aktive filtre
+    # Hvis ignore_inactive er ON, brug kun cascade_mails (som allerede er filtreret for aktive)
+    # Hvis ignore_inactive er OFF, brug valgte mails fra session state
+    if st.session_state[ignore_inactive_key]:
+        # Brug cascade_mails direkte (allerede filtreret for aktive)
+        selected_mails = [m for m in st.session_state[mail_state_key] if m in cascade_mails]
+    else:
+        # Brug alle valgte mails (kan inkludere inaktive)
+        selected_mails = st.session_state[mail_state_key]
+    
     filter_config = {
-        'mails': [m for m in st.session_state[mail_state_key] if m in cascade_mails] if not st.session_state[ignore_inactive_key] or st.session_state[mail_state_key] else cascade_mails,
+        'mails': selected_mails if selected_mails else cascade_mails,
         'groups': st.session_state[group_state_key] if not st.session_state[ignore_group_key] else None,
         'messages': st.session_state[message_state_key] if not st.session_state[ignore_message_key] else None,
         'ab': st.session_state[ab_state_key] if not st.session_state[ignore_ab_key] else None,
+        'ignore_inactive': st.session_state[ignore_inactive_key],
         'ignore_group': st.session_state[ignore_group_key],
         'ignore_message': st.session_state[ignore_message_key],
         'ignore_ab': st.session_state[ignore_ab_key],
