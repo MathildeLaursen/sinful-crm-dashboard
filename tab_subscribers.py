@@ -330,46 +330,42 @@ def render_full_subscribers_tab(full_df):
         
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         
-        # --- SCORECARDS PER LAND ---
-        # Række 1: DK, SE, NO, FI, FR, UK - Subscribers
+        # --- SCORECARDS PER LAND (med % og absolut ændring) ---
+        # Række 1: DK, SE, NO, FI, FR, UK
         row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
         cols_row1 = st.columns(6)
         for i, country in enumerate(row1_countries):
             if country in full_df.columns and not current_row.empty:
                 current = current_row.iloc[0][country]
-                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
-                show_metric(cols_row1[i], f"{country} Subscribers", current, prev)
+                if prev_row is not None and not prev_row.empty:
+                    prev = prev_row.iloc[0][country]
+                    growth = current - prev
+                    pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                    growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                    delta_str = f"{pct:+.1f}% ({growth_str})"
+                    cols_row1[i].metric(f"{country}", format_number(current), delta=delta_str)
+                else:
+                    cols_row1[i].metric(f"{country}", format_number(current))
             else:
-                cols_row1[i].metric(f"{country} Subscribers", "—")
+                cols_row1[i].metric(f"{country}", "—")
         
-        # Række 2: DK, SE, NO, FI, FR, UK - Nye
-        cols_row2 = st.columns(6)
-        for i, country in enumerate(row1_countries):
-            if country in full_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
-                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
-                cols_row2[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
-            else:
-                cols_row2[i].metric(f"{country} Nye", "—")
-        
-        # Række 3: DE, AT, NL, BE, CH - Subscribers
+        # Række 2: DE, AT, NL, BE, CH
         row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
-        cols_row3 = st.columns(6)
+        cols_row2 = st.columns(6)
         for i, country in enumerate(row2_countries):
             if country in full_df.columns and not current_row.empty:
                 current = current_row.iloc[0][country]
-                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
-                show_metric(cols_row3[i], f"{country} Subscribers", current, prev)
+                if prev_row is not None and not prev_row.empty:
+                    prev = prev_row.iloc[0][country]
+                    growth = current - prev
+                    pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                    growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                    delta_str = f"{pct:+.1f}% ({growth_str})"
+                    cols_row2[i].metric(f"{country}", format_number(current), delta=delta_str)
+                else:
+                    cols_row2[i].metric(f"{country}", format_number(current))
             else:
-                cols_row3[i].metric(f"{country} Subscribers", "—")
-        
-        # Række 4: DE, AT, NL, BE, CH - Nye
-        cols_row4 = st.columns(6)
-        for i, country in enumerate(row2_countries):
-            if country in full_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
-                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
-                cols_row4[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
-            else:
-                cols_row4[i].metric(f"{country} Nye", "—")
+                cols_row2[i].metric(f"{country}", "—")
         
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
@@ -468,46 +464,42 @@ def render_light_subscribers_tab(light_df):
         
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         
-        # --- SCORECARDS PER LAND ---
-        # Række 1: DK, SE, NO, FI, FR, UK - Subscribers
+        # --- SCORECARDS PER LAND (med % og absolut ændring) ---
+        # Række 1: DK, SE, NO, FI, FR, UK
         row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
         cols_row1 = st.columns(6)
         for i, country in enumerate(row1_countries):
             if country in light_df.columns and not current_row.empty:
                 current = current_row.iloc[0][country]
-                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
-                show_metric(cols_row1[i], f"{country} Subscribers", current, prev)
+                if prev_row is not None and not prev_row.empty:
+                    prev = prev_row.iloc[0][country]
+                    growth = current - prev
+                    pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                    growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                    delta_str = f"{pct:+.1f}% ({growth_str})"
+                    cols_row1[i].metric(f"{country}", format_number(current), delta=delta_str)
+                else:
+                    cols_row1[i].metric(f"{country}", format_number(current))
             else:
-                cols_row1[i].metric(f"{country} Subscribers", "—")
+                cols_row1[i].metric(f"{country}", "—")
         
-        # Række 2: DK, SE, NO, FI, FR, UK - Nye
-        cols_row2 = st.columns(6)
-        for i, country in enumerate(row1_countries):
-            if country in light_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
-                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
-                cols_row2[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
-            else:
-                cols_row2[i].metric(f"{country} Nye", "—")
-        
-        # Række 3: DE, AT, NL, BE, CH - Subscribers
+        # Række 2: DE, AT, NL, BE, CH
         row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
-        cols_row3 = st.columns(6)
+        cols_row2 = st.columns(6)
         for i, country in enumerate(row2_countries):
             if country in light_df.columns and not current_row.empty:
                 current = current_row.iloc[0][country]
-                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
-                show_metric(cols_row3[i], f"{country} Subscribers", current, prev)
+                if prev_row is not None and not prev_row.empty:
+                    prev = prev_row.iloc[0][country]
+                    growth = current - prev
+                    pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                    growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                    delta_str = f"{pct:+.1f}% ({growth_str})"
+                    cols_row2[i].metric(f"{country}", format_number(current), delta=delta_str)
+                else:
+                    cols_row2[i].metric(f"{country}", format_number(current))
             else:
-                cols_row3[i].metric(f"{country} Subscribers", "—")
-        
-        # Række 4: DE, AT, NL, BE, CH - Nye
-        cols_row4 = st.columns(6)
-        for i, country in enumerate(row2_countries):
-            if country in light_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
-                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
-                cols_row4[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
-            else:
-                cols_row4[i].metric(f"{country} Nye", "—")
+                cols_row2[i].metric(f"{country}", "—")
         
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
