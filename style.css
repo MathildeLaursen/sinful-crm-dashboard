@@ -524,7 +524,8 @@ label[data-baseweb="checkbox"] svg path {
 [class*="st-key-gm_only_"] button,
 [class*="st-key-nl_only_"] button,
 [class*="st-key-rp_only_"] button,
-[class*="st-key-lt_only_"] button {
+[class*="st-key-lt_only_"] button,
+[class*="st-key-sub_only_"] button {
     padding: 0px 8px !important;
     font-size: 10px !important;
     min-height: 24px !important;
@@ -543,7 +544,8 @@ label[data-baseweb="checkbox"] svg path {
 [class*="st-key-gm_only_"] button:hover,
 [class*="st-key-nl_only_"] button:hover,
 [class*="st-key-rp_only_"] button:hover,
-[class*="st-key-lt_only_"] button:hover {
+[class*="st-key-lt_only_"] button:hover,
+[class*="st-key-sub_only_"] button:hover {
     background: #9B7EBD !important;
     border-color: #9B7EBD !important;
     color: white !important;
@@ -556,7 +558,8 @@ label[data-baseweb="checkbox"] svg path {
 [class*="st-key-gm_only_"],
 [class*="st-key-nl_only_"],
 [class*="st-key-rp_only_"],
-[class*="st-key-lt_only_"] {
+[class*="st-key-lt_only_"],
+[class*="st-key-sub_only_"] {
     display: flex !important;
     align-items: center !important;
     margin-top: -8px !important;
