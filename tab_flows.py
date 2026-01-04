@@ -841,14 +841,17 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
                 row=row, col=1, secondary_y=True
             )
             
-            # Brug log-skala på højre y-akse for clicks
-            # Dette komprimerer store værdier og giver bedre adskillelse fra venstre akse
-            max_clicks = max(clicks_values) if clicks_values else 1
-            if max_clicks > 0:
+            # Sæt højre y-akse baseret på venstre akse, så clicks altid er i bunden
+            max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
+            max_clicks = max(clicks_values) if clicks_values else 0
+            
+            if max_clicks > 0 and max_left > 0:
+                # Clicks range = venstre akse max, så clicks (som er meget mindre) vises i bunden
+                # Dette sikrer at clicks altid er tydeligt adskilt fra Sendt/Opens
                 fig.update_yaxes(
-                    type='log',
-                    range=[0, 4],  # Log range fra 1 til 10000
-                    row=row, col=1, secondary_y=True
+                    range=[0, max_left],
+                    row=row, col=1, secondary_y=True,
+                    rangemode='tozero'
                 )
         
         # chart_height er allerede beregnet ovenfor - brug minimum 350
