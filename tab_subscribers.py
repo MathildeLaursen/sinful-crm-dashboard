@@ -3,6 +3,7 @@ Subscribers Tab - CRM Dashboard
 """
 import streamlit as st
 import pandas as pd
+import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from shared import get_gspread_client, show_metric, format_number
@@ -664,6 +665,21 @@ def render_nye_subscribers_tab(events_df):
             # Filtrer data til valgt periode
             period_df = agg_df[(agg_df['Month'] >= start_month) & (agg_df['Month'] <= end_month)]
             
+            # Beregn måned progress (hvor langt vi er i nuværende måned)
+            import calendar
+            today = datetime.date.today()
+            yesterday = today - datetime.timedelta(days=1)
+            days_with_data = yesterday.day
+            total_days_in_month = calendar.monthrange(today.year, today.month)[1]
+            month_progress = days_with_data / total_days_in_month
+            
+            # Tjek om nuværende måned er valgt
+            current_month_dt = pd.Timestamp(today.year, today.month, 1)
+            current_month_selected = any(
+                m.year == current_month_dt.year and m.month == current_month_dt.month 
+                for m in [start_month, end_month] if m is not None
+            )
+            
             # --- SCORECARDS ---
             num_sources = len(master_sources)
             cols = st.columns(num_sources)
@@ -676,7 +692,14 @@ def render_nye_subscribers_tab(events_df):
                     start_idx = available_months.index(start_month)
                     if start_idx > 0:
                         prev_month = available_months[start_idx - 1]
-                        prev_total = agg_df[(agg_df['Month'] == prev_month) & (agg_df['Master Source'] == master)]['Total'].sum()
+                        prev_total_raw = agg_df[(agg_df['Month'] == prev_month) & (agg_df['Master Source'] == master)]['Total'].sum()
+                        
+                        # Skaler forrige måned hvis nuværende måned er valgt
+                        if current_month_selected:
+                            prev_total = prev_total_raw * month_progress
+                        else:
+                            prev_total = prev_total_raw
+                        
                         if prev_total > 0:
                             pct = ((master_total - prev_total) / prev_total * 100)
                             growth_str = f"+{int(master_total - prev_total):,}" if master_total >= prev_total else f"{int(master_total - prev_total):,}"
