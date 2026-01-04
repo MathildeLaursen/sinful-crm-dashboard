@@ -542,20 +542,42 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None, all
     )
 
 
-def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=None, full_df=None):
+def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_config=None, full_df=None):
     """Render indhold for et enkelt flow med mail-niveau breakdown"""
-    # Filtrer til dette specifikke flow og valgte lande (UDEN mail filter - til scorecards)
-    flow_data_all = raw_df[
+    # Filtrer til dette specifikke flow og valgte lande
+    flow_data = raw_df[
         (raw_df['Flow_Trigger'] == flow_trigger) &
         (raw_df['Country'].isin(sel_countries))
     ].copy()
     
-    if flow_data_all.empty:
+    if flow_data.empty:
         st.warning(f"Ingen data for {flow_trigger} med de valgte filtre.")
         return
     
-    # Aggreger ALLE mails for scorecards (ingen mail filter)
-    scorecard_df = flow_data_all.groupby(['Year_Month'], as_index=False).agg({
+    # Anvend filtre fra filter_config
+    if filter_config is not None:
+        # Mail filter (altid aktiv)
+        if filter_config.get('mails'):
+            flow_data = flow_data[flow_data['Mail'].isin(filter_config['mails'])]
+        
+        # Group filter (kun hvis ikke ignoreret)
+        if not filter_config.get('ignore_group') and filter_config.get('groups'):
+            flow_data = flow_data[flow_data['Group'].isin(filter_config['groups'])]
+        
+        # Message filter (kun hvis ikke ignoreret)
+        if not filter_config.get('ignore_message') and filter_config.get('messages'):
+            flow_data = flow_data[flow_data['Message'].isin(filter_config['messages'])]
+        
+        # A/B filter (kun hvis ikke ignoreret)
+        if not filter_config.get('ignore_ab') and filter_config.get('ab'):
+            flow_data = flow_data[flow_data['AB'].isin(filter_config['ab'])]
+    
+    if flow_data.empty:
+        st.warning(f"Ingen data for {flow_trigger} med de valgte filtre.")
+        return
+    
+    # Aggreger for scorecards
+    scorecard_df = flow_data.groupby(['Year_Month'], as_index=False).agg({
         'Received_Email': 'sum',
         'Unique_Opens': 'sum',
         'Unique_Clicks': 'sum',
@@ -662,20 +684,22 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     show_metric(col5, "Click Rate", click_rate, prev_cr, is_percent=True)
     show_metric(col6, "Click Through Rate", ctr, prev_ctr, is_percent=True)
     
-    # --- Filtreret data til tabel og grafer (påvirkes af Ignorer Inaktive) ---
-    flow_data = flow_data_all.copy()
-    if sel_mails is not None and len(sel_mails) > 0:
-        # Opret filter for hver (Mail, Message) kombination
-        mail_filter = pd.Series([False] * len(flow_data), index=flow_data.index)
-        for mail, msg in sel_mails:
-            if pd.notna(msg) and msg != '':
-                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'] == msg)
-            else:
-                mail_filter |= (flow_data['Mail'] == mail) & (flow_data['Message'].isna() | (flow_data['Message'] == ''))
-        flow_data = flow_data[mail_filter]
+    # --- Bestem grupperingsnøgler baseret på ignore settings ---
+    group_cols = ['Year_Month', 'Mail']
     
-    # Aggreger per mail for tabel og grafer
-    mail_df = flow_data.groupby(['Year_Month', 'Mail', 'Message'], as_index=False).agg({
+    # Tilføj ekstra kolonner hvis de ikke ignoreres
+    if filter_config is not None:
+        if not filter_config.get('ignore_group'):
+            group_cols.append('Group')
+        if not filter_config.get('ignore_message'):
+            group_cols.append('Message')
+        if not filter_config.get('ignore_ab'):
+            group_cols.append('AB')
+    else:
+        group_cols.append('Message')  # Default: inkluder Message
+    
+    # Aggreger per de valgte grupperingsnøgler
+    mail_df = flow_data.groupby(group_cols, as_index=False).agg({
         'Received_Email': 'sum',
         'Total_Opens': 'sum',
         'Unique_Opens': 'sum',
@@ -703,20 +727,22 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, sel_mails=No
     all_months_for_chart = full_df[full_df['Flow_Trigger'] == flow_trigger]['Year_Month'].unique()
     sorted_chart_months = sorted(all_months_for_chart, key=month_to_sortkey)
     
-    # Hent ufiltreret data til grafen
+    # Hent ufiltreret data til grafen (men med samme filter_config)
     chart_base_df = full_df[
         (full_df['Flow_Trigger'] == flow_trigger) &
         (full_df['Country'].isin(sel_countries))
     ].copy()
-    if sel_mails is not None and len(sel_mails) > 0:
-        # Opret filter for hver (Mail, Message) kombination
-        mail_filter_chart = pd.Series([False] * len(chart_base_df), index=chart_base_df.index)
-        for mail, msg in sel_mails:
-            if pd.notna(msg) and msg != '':
-                mail_filter_chart |= (chart_base_df['Mail'] == mail) & (chart_base_df['Message'] == msg)
-            else:
-                mail_filter_chart |= (chart_base_df['Mail'] == mail) & (chart_base_df['Message'].isna() | (chart_base_df['Message'] == ''))
-        chart_base_df = chart_base_df[mail_filter_chart]
+    
+    # Anvend samme filtre som til data
+    if filter_config is not None:
+        if filter_config.get('mails'):
+            chart_base_df = chart_base_df[chart_base_df['Mail'].isin(filter_config['mails'])]
+        if not filter_config.get('ignore_group') and filter_config.get('groups'):
+            chart_base_df = chart_base_df[chart_base_df['Group'].isin(filter_config['groups'])]
+        if not filter_config.get('ignore_message') and filter_config.get('messages'):
+            chart_base_df = chart_base_df[chart_base_df['Message'].isin(filter_config['messages'])]
+        if not filter_config.get('ignore_ab') and filter_config.get('ab'):
+            chart_base_df = chart_base_df[chart_base_df['AB'].isin(filter_config['ab'])]
     
     # Formatér måneder til visning
     def format_month_label(m):
@@ -1254,73 +1280,132 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.warning(f"Ingen data for dette flow.")
         return
 
-    # Hent alle mail+message kombinationer for dette flow
-    def mail_combo_sort_key(combo):
-        mail, msg = combo
+    # === FILTER OPTIONS ===
+    # Hent unikke værdier for alle filter-dimensioner
+    all_groups = sorted([g for g in flow_data_all['Group'].unique() if pd.notna(g) and str(g).strip() != ''])
+    all_mails_raw = sorted([m for m in flow_data_all['Mail'].unique() if pd.notna(m) and str(m).strip() != ''])
+    all_messages = sorted([m for m in flow_data_all['Message'].unique() if pd.notna(m) and str(m).strip() != ''])
+    all_ab = sorted([a for a in flow_data_all['AB'].unique() if pd.notna(a) and str(a).strip() != ''])
+    
+    # Sorter mails efter nummer
+    def mail_sort_key(mail):
         match = re.search(r'Mail\s*(\d+)', str(mail))
-        mail_num = int(match.group(1)) if match else 999
-        msg_str = str(msg) if pd.notna(msg) else ''
-        return (mail_num, msg_str)
+        return int(match.group(1)) if match else 999
+    all_mails_raw = sorted(all_mails_raw, key=mail_sort_key)
     
-    # Opret unikke Mail+Message kombinationer
-    mail_combos = flow_data_all.groupby(['Mail', 'Message'], as_index=False).first()[['Mail', 'Message']]
-    all_mails_full = sorted([tuple(x) for x in mail_combos.values], key=mail_combo_sort_key)
-    
-    # Find aktive mails (sendt denne eller sidste måned)
+    # Find aktive kombinationer (sendt denne eller sidste måned)
     current_month = get_current_year_month()
     today = datetime.date.today()
     if today.month == 1:
         prev_month = f"{today.year - 1}-12"
     else:
         prev_month = f"{today.year}-{today.month - 1}"
-    
     recent_months = [current_month, prev_month]
     recent_data = flow_data_all[
         (flow_data_all['Year_Month'].isin(recent_months)) & 
         (flow_data_all['Received_Email'] > 0)
     ]
-    active_mail_combos = recent_data.groupby(['Mail', 'Message'], as_index=False).first()[['Mail', 'Message']]
-    active_mails = set([tuple(x) for x in active_mail_combos.values])
+    active_mails = set(recent_data['Mail'].unique())
     
-    # Initialize ignore inactive state (per flow, default True)
+    # === SESSION STATE KEYS ===
     ignore_inactive_key = f'fl_ignore_inactive_{flow_trigger}'
+    ignore_group_key = f'fl_ignore_group_{flow_trigger}'
+    ignore_message_key = f'fl_ignore_message_{flow_trigger}'
+    ignore_ab_key = f'fl_ignore_ab_{flow_trigger}'
+    
+    group_state_key = f'fl_selected_groups_{flow_trigger}'
+    mail_state_key = f'fl_selected_mails_{flow_trigger}'
+    message_state_key = f'fl_selected_messages_{flow_trigger}'
+    ab_state_key = f'fl_selected_ab_{flow_trigger}'
+    
+    group_reset_key = f'fl_cb_reset_group_{flow_trigger}'
+    mail_reset_key = f'fl_cb_reset_mail_{flow_trigger}'
+    message_reset_key = f'fl_cb_reset_message_{flow_trigger}'
+    ab_reset_key = f'fl_cb_reset_ab_{flow_trigger}'
+    
+    # Initialize ignore states (default: Group, Message, AB ignoreres)
     if ignore_inactive_key not in st.session_state:
         st.session_state[ignore_inactive_key] = True
+    if ignore_group_key not in st.session_state:
+        st.session_state[ignore_group_key] = True
+    if ignore_message_key not in st.session_state:
+        st.session_state[ignore_message_key] = True
+    if ignore_ab_key not in st.session_state:
+        st.session_state[ignore_ab_key] = True
+    
+    # Initialize reset keys
+    for key in [group_reset_key, mail_reset_key, message_reset_key, ab_reset_key]:
+        if key not in st.session_state:
+            st.session_state[key] = 0
     
     # Filtrer mails baseret på ignore_inactive
-    all_mails = [m for m in all_mails_full if m in active_mails] if st.session_state[ignore_inactive_key] else all_mails_full
+    available_mails = [m for m in all_mails_raw if m in active_mails] if st.session_state[ignore_inactive_key] else all_mails_raw
     
-    # Funktion til at formatere mail+message til visning
-    def format_mail_label(combo):
-        mail, msg = combo
-        if pd.notna(msg) and msg != '':
-            return f"{mail} - {msg}"
-        return str(mail)
-
-    # Initialize country selection
+    # Initialize selections (alle valgt som default)
     if st.session_state.fl_selected_countries is None:
         st.session_state.fl_selected_countries = list(all_countries)
     else:
         st.session_state.fl_selected_countries = [c for c in st.session_state.fl_selected_countries if c in all_countries]
         if not st.session_state.fl_selected_countries:
             st.session_state.fl_selected_countries = list(all_countries)
-
-    # Initialize mail selection (per flow)
-    mail_state_key = f'fl_selected_mails_{flow_trigger}'
-    mail_reset_key = f'fl_cb_reset_mail_{flow_trigger}'
+    
+    if group_state_key not in st.session_state:
+        st.session_state[group_state_key] = list(all_groups)
     if mail_state_key not in st.session_state:
-        st.session_state[mail_state_key] = list(all_mails)
+        st.session_state[mail_state_key] = list(available_mails)
+    if message_state_key not in st.session_state:
+        st.session_state[message_state_key] = list(all_messages)
+    if ab_state_key not in st.session_state:
+        st.session_state[ab_state_key] = list(all_ab)
+
+    # === KASKADE FILTRERING ===
+    # Group filter påvirker hvilke Mails der vises
+    if not st.session_state[ignore_group_key]:
+        sel_groups = st.session_state[group_state_key]
+        filtered_by_group = flow_data_all[flow_data_all['Group'].isin(sel_groups)] if sel_groups else flow_data_all
     else:
-        st.session_state[mail_state_key] = [m for m in st.session_state[mail_state_key] if m in all_mails]
-        if not st.session_state[mail_state_key]:
-            st.session_state[mail_state_key] = list(all_mails)
-    if mail_reset_key not in st.session_state:
-        st.session_state[mail_reset_key] = 0
+        filtered_by_group = flow_data_all
+        sel_groups = all_groups
+    
+    # Opdater tilgængelige mails baseret på group
+    cascade_mails = sorted([m for m in filtered_by_group['Mail'].unique() if pd.notna(m) and str(m).strip() != ''], key=mail_sort_key)
+    if st.session_state[ignore_inactive_key]:
+        cascade_mails = [m for m in cascade_mails if m in active_mails]
+    
+    # Mail filter påvirker hvilke Messages der vises
+    if not st.session_state[ignore_message_key]:
+        sel_mails = [m for m in st.session_state[mail_state_key] if m in cascade_mails]
+        if not sel_mails:
+            sel_mails = cascade_mails
+        filtered_by_mail = filtered_by_group[filtered_by_group['Mail'].isin(sel_mails)]
+    else:
+        filtered_by_mail = filtered_by_group
+        sel_mails = cascade_mails
+    
+    # Opdater tilgængelige messages baseret på mail
+    cascade_messages = sorted([m for m in filtered_by_mail['Message'].unique() if pd.notna(m) and str(m).strip() != ''])
+    
+    # Message filter påvirker hvilke A/B der vises
+    if not st.session_state[ignore_ab_key]:
+        sel_messages = [m for m in st.session_state[message_state_key] if m in cascade_messages]
+        if not sel_messages:
+            sel_messages = cascade_messages
+        filtered_by_message = filtered_by_mail[filtered_by_mail['Message'].isin(sel_messages)]
+    else:
+        filtered_by_message = filtered_by_mail
+        sel_messages = cascade_messages
+    
+    # Opdater tilgængelige A/B baseret på message
+    cascade_ab = sorted([a for a in filtered_by_message['AB'].unique() if pd.notna(a) and str(a).strip() != ''])
 
-    # Layout - dropdowns, checkbox og slider på samme linje
-    col_land, col_mail, col_inaktive, col_slider = st.columns([1, 1, 0.8, 3.2])
+    # === LAYOUT ===
+    # Linje 1: Land + Ignorer Inaktive + Slider
+    col_land, col_inaktive, col_slider = st.columns([1, 0.8, 4.2])
+    
+    # Linje 2: Mail + Group + Message + A/B + Ignorer checkboxes
+    col_mail, col_group, col_message, col_ab = st.columns([1, 1, 1, 1])
 
-    # Land filter
+    # === LINJE 1: Land + Ignorer Inaktive + Slider ===
     with col_land:
         land_count = len(st.session_state.fl_selected_countries)
         land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
@@ -1348,38 +1433,6 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
 
-    # Mail filter
-    with col_mail:
-        mail_count = len(st.session_state[mail_state_key])
-        mail_label = f"Mail ({mail_count})" if mail_count < len(all_mails) else "Mail"
-        with st.popover(mail_label, use_container_width=True):
-            reset_mail = st.session_state[mail_reset_key]
-            all_mail_selected = len(st.session_state[mail_state_key]) == len(all_mails)
-            select_all_mail = st.checkbox("Vælg alle", value=all_mail_selected, key=f"fl_sel_all_mail_{flow_trigger}_{reset_mail}")
-            
-            new_selected_mails = []
-            for mail_combo in all_mails:
-                checked = mail_combo in st.session_state[mail_state_key]
-                label = format_mail_label(mail_combo)
-                # Brug hash af combo til unik key
-                combo_key = f"{mail_combo[0]}_{mail_combo[1] if pd.notna(mail_combo[1]) else 'none'}"
-                if st.checkbox(label, value=checked, key=f"fl_cb_mail_{flow_trigger}_{combo_key}_{reset_mail}"):
-                    new_selected_mails.append(mail_combo)
-            
-            if select_all_mail and not all_mail_selected:
-                st.session_state[mail_state_key] = list(all_mails)
-                st.session_state[mail_reset_key] += 1
-                st.rerun()
-            elif not select_all_mail and all_mail_selected:
-                st.session_state[mail_state_key] = []
-                st.session_state[mail_reset_key] += 1
-                st.rerun()
-            elif set(new_selected_mails) != set(st.session_state[mail_state_key]):
-                st.session_state[mail_state_key] = new_selected_mails
-                st.session_state[mail_reset_key] += 1
-                st.rerun()
-
-    # Ignorer Inaktive checkbox
     with col_inaktive:
         ignore_inactive = st.checkbox(
             "Ignorer Inaktive", 
@@ -1388,26 +1441,171 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         )
         if ignore_inactive != st.session_state[ignore_inactive_key]:
             st.session_state[ignore_inactive_key] = ignore_inactive
-            # Reset mail selection når toggle ændres
-            new_all_mails = [m for m in all_mails_full if m in active_mails] if ignore_inactive else all_mails_full
-            st.session_state[mail_state_key] = list(new_all_mails)
+            st.session_state[mail_state_key] = list(available_mails) if ignore_inactive else list(all_mails_raw)
             st.session_state[mail_reset_key] += 1
             st.rerun()
 
-    # Periode slider (på samme linje som dropdowns)
+    # === LINJE 2: Mail + Group + Message + A/B ===
+    with col_mail:
+        # Mail dropdown med Ignorer checkbox inde i popover
+        mail_count = len([m for m in st.session_state[mail_state_key] if m in cascade_mails])
+        mail_label = f"Mail ({mail_count})" if mail_count < len(cascade_mails) else "Mail"
+        with st.popover(mail_label, use_container_width=True):
+            reset_mail = st.session_state[mail_reset_key]
+            current_sel = [m for m in st.session_state[mail_state_key] if m in cascade_mails]
+            all_mail_selected = len(current_sel) == len(cascade_mails)
+            select_all_mail = st.checkbox("Vælg alle", value=all_mail_selected, key=f"fl_sel_all_mail_{flow_trigger}_{reset_mail}")
+            
+            new_selected_mails = []
+            for mail in cascade_mails:
+                checked = mail in st.session_state[mail_state_key]
+                if st.checkbox(str(mail), value=checked, key=f"fl_cb_mail_{flow_trigger}_{mail}_{reset_mail}"):
+                    new_selected_mails.append(mail)
+            
+            if select_all_mail and not all_mail_selected:
+                st.session_state[mail_state_key] = list(cascade_mails)
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+            elif not select_all_mail and all_mail_selected:
+                st.session_state[mail_state_key] = []
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+            elif set(new_selected_mails) != set([m for m in st.session_state[mail_state_key] if m in cascade_mails]):
+                st.session_state[mail_state_key] = new_selected_mails
+                st.session_state[mail_reset_key] += 1
+                st.rerun()
+
+    with col_group:
+        # Group dropdown med Ignorer checkbox
+        ignore_group = st.session_state[ignore_group_key]
+        if ignore_group:
+            st.button("Group (ignoreret)", disabled=True, use_container_width=True)
+        else:
+            group_count = len([g for g in st.session_state[group_state_key] if g in all_groups])
+            group_label = f"Group ({group_count})" if group_count < len(all_groups) else "Group"
+            with st.popover(group_label, use_container_width=True):
+                reset_group = st.session_state[group_reset_key]
+                current_sel_g = [g for g in st.session_state[group_state_key] if g in all_groups]
+                all_group_selected = len(current_sel_g) == len(all_groups)
+                select_all_group = st.checkbox("Vælg alle", value=all_group_selected, key=f"fl_sel_all_group_{flow_trigger}_{reset_group}")
+                
+                new_selected_groups = []
+                for group in all_groups:
+                    checked = group in st.session_state[group_state_key]
+                    if st.checkbox(str(group), value=checked, key=f"fl_cb_group_{flow_trigger}_{group}_{reset_group}"):
+                        new_selected_groups.append(group)
+                
+                if select_all_group and not all_group_selected:
+                    st.session_state[group_state_key] = list(all_groups)
+                    st.session_state[group_reset_key] += 1
+                    st.rerun()
+                elif not select_all_group and all_group_selected:
+                    st.session_state[group_state_key] = []
+                    st.session_state[group_reset_key] += 1
+                    st.rerun()
+                elif set(new_selected_groups) != set(current_sel_g):
+                    st.session_state[group_state_key] = new_selected_groups
+                    st.session_state[group_reset_key] += 1
+                    st.rerun()
+
+    with col_message:
+        # Message dropdown med Ignorer checkbox
+        ignore_message = st.session_state[ignore_message_key]
+        if ignore_message:
+            st.button("Message (ignoreret)", disabled=True, use_container_width=True)
+        else:
+            msg_count = len([m for m in st.session_state[message_state_key] if m in cascade_messages])
+            msg_label = f"Message ({msg_count})" if msg_count < len(cascade_messages) else "Message"
+            with st.popover(msg_label, use_container_width=True):
+                reset_msg = st.session_state[message_reset_key]
+                current_sel_m = [m for m in st.session_state[message_state_key] if m in cascade_messages]
+                all_msg_selected = len(current_sel_m) == len(cascade_messages)
+                select_all_msg = st.checkbox("Vælg alle", value=all_msg_selected, key=f"fl_sel_all_msg_{flow_trigger}_{reset_msg}")
+                
+                new_selected_msgs = []
+                for msg in cascade_messages:
+                    checked = msg in st.session_state[message_state_key]
+                    if st.checkbox(str(msg), value=checked, key=f"fl_cb_msg_{flow_trigger}_{msg}_{reset_msg}"):
+                        new_selected_msgs.append(msg)
+                
+                if select_all_msg and not all_msg_selected:
+                    st.session_state[message_state_key] = list(cascade_messages)
+                    st.session_state[message_reset_key] += 1
+                    st.rerun()
+                elif not select_all_msg and all_msg_selected:
+                    st.session_state[message_state_key] = []
+                    st.session_state[message_reset_key] += 1
+                    st.rerun()
+                elif set(new_selected_msgs) != set(current_sel_m):
+                    st.session_state[message_state_key] = new_selected_msgs
+                    st.session_state[message_reset_key] += 1
+                    st.rerun()
+
+    with col_ab:
+        # A/B dropdown med Ignorer checkbox
+        ignore_ab = st.session_state[ignore_ab_key]
+        if ignore_ab:
+            st.button("A/B (ignoreret)", disabled=True, use_container_width=True)
+        else:
+            ab_count = len([a for a in st.session_state[ab_state_key] if a in cascade_ab])
+            ab_label = f"A/B ({ab_count})" if ab_count < len(cascade_ab) else "A/B"
+            with st.popover(ab_label, use_container_width=True):
+                reset_ab = st.session_state[ab_reset_key]
+                current_sel_ab = [a for a in st.session_state[ab_state_key] if a in cascade_ab]
+                all_ab_selected = len(current_sel_ab) == len(cascade_ab)
+                select_all_ab = st.checkbox("Vælg alle", value=all_ab_selected, key=f"fl_sel_all_ab_{flow_trigger}_{reset_ab}")
+                
+                new_selected_ab = []
+                for ab in cascade_ab:
+                    checked = ab in st.session_state[ab_state_key]
+                    if st.checkbox(str(ab), value=checked, key=f"fl_cb_ab_{flow_trigger}_{ab}_{reset_ab}"):
+                        new_selected_ab.append(ab)
+                
+                if select_all_ab and not all_ab_selected:
+                    st.session_state[ab_state_key] = list(cascade_ab)
+                    st.session_state[ab_reset_key] += 1
+                    st.rerun()
+                elif not select_all_ab and all_ab_selected:
+                    st.session_state[ab_state_key] = []
+                    st.session_state[ab_reset_key] += 1
+                    st.rerun()
+                elif set(new_selected_ab) != set(current_sel_ab):
+                    st.session_state[ab_state_key] = new_selected_ab
+                    st.session_state[ab_reset_key] += 1
+                    st.rerun()
+
+    # Linje 3: Ignorer checkboxes
+    col_ign1, col_ign2, col_ign3, col_ign4 = st.columns([1, 1, 1, 1])
+    
+    with col_ign2:
+        new_ignore_group = st.checkbox("Ignorer Group", value=st.session_state[ignore_group_key], key=f"fl_ign_group_cb_{flow_trigger}")
+        if new_ignore_group != st.session_state[ignore_group_key]:
+            st.session_state[ignore_group_key] = new_ignore_group
+            st.rerun()
+    
+    with col_ign3:
+        new_ignore_message = st.checkbox("Ignorer Message", value=st.session_state[ignore_message_key], key=f"fl_ign_msg_cb_{flow_trigger}")
+        if new_ignore_message != st.session_state[ignore_message_key]:
+            st.session_state[ignore_message_key] = new_ignore_message
+            st.rerun()
+    
+    with col_ign4:
+        new_ignore_ab = st.checkbox("Ignorer A/B", value=st.session_state[ignore_ab_key], key=f"fl_ign_ab_cb_{flow_trigger}")
+        if new_ignore_ab != st.session_state[ignore_ab_key]:
+            st.session_state[ignore_ab_key] = new_ignore_ab
+            st.rerun()
+
+    # Periode slider (på linje 1)
     with col_slider:
         if len(sorted_months) > 1:
-            # Beregn default værdier
             default_end = sorted_months[-1]
             default_start_idx = max(0, len(sorted_months) - 3)
             default_start = sorted_months[default_start_idx]
             
-            # Brug separat saved state (ikke widget key) for at overleve st.rerun()
             saved_key = f"fl_month_range_{flow_trigger}_saved"
             if saved_key not in st.session_state:
                 st.session_state[saved_key] = (default_start, default_end)
             
-            # Valider at gemte værdier stadig er i sorted_months
             saved_range = st.session_state[saved_key]
             if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
                 initial_value = saved_range
@@ -1423,36 +1621,37 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 key=f"fl_month_range_{flow_trigger}",
                 label_visibility="collapsed"
             )
-            
-            # Gem værdien i separat state efter rendering
             st.session_state[saved_key] = month_range
-            
             sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
         else:
-            # Kun én måned tilgængelig
             sel_months = sorted_months
     
     if not sel_months:
         st.warning("Vælg mindst én måned.")
         return
 
-    # Filtrer data efter valgte måneder
-    df_month_filtered = df[df['Year_Month'].isin(sel_months)]
-
-    # Check selections
+    # === BYGG FILTER DICT ===
     sel_countries = st.session_state.fl_selected_countries
-    sel_mails = st.session_state[mail_state_key]
-
     if not sel_countries:
         st.warning("Vælg mindst ét land.")
         return
-    
-    if not sel_mails:
-        st.warning("Vælg mindst én mail.")
-        return
 
-    # Render indhold
-    render_single_flow_content(df_month_filtered, flow_trigger, sel_countries, sel_mails, df)
+    # Saml alle aktive filtre
+    filter_config = {
+        'mails': [m for m in st.session_state[mail_state_key] if m in cascade_mails] if not st.session_state[ignore_inactive_key] or st.session_state[mail_state_key] else cascade_mails,
+        'groups': st.session_state[group_state_key] if not st.session_state[ignore_group_key] else None,
+        'messages': st.session_state[message_state_key] if not st.session_state[ignore_message_key] else None,
+        'ab': st.session_state[ab_state_key] if not st.session_state[ignore_ab_key] else None,
+        'ignore_group': st.session_state[ignore_group_key],
+        'ignore_message': st.session_state[ignore_message_key],
+        'ignore_ab': st.session_state[ignore_ab_key],
+    }
+    
+    # Filtrer data efter valgte måneder
+    df_month_filtered = df[df['Year_Month'].isin(sel_months)]
+
+    # Render indhold med filter config
+    render_single_flow_content(df_month_filtered, flow_trigger, sel_countries, filter_config, df)
 
     if st.button('Opdater Data', key=f"fl_refresh_{flow_trigger}"):
         st.rerun()
