@@ -967,8 +967,15 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
 
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-    # Tabel med mail-niveau data (aggregeret baseret på group_cols minus Year_Month)
+    # Tabel med mail-niveau data - vis altid alle 4 kolonner: Group, Mail, Message, A/B
+    # Aggreger baseret på group_cols (som allerede er defineret ud fra ignore settings)
     table_group_cols = [c for c in group_cols if c != 'Year_Month']
+    
+    # Sørg for at alle 4 kolonner eksisterer i mail_df før groupby
+    for col in ['Group', 'Mail', 'Message', 'AB']:
+        if col not in mail_df.columns:
+            mail_df[col] = ''
+    
     table_df = mail_df.groupby(table_group_cols, as_index=False).agg({
         'Received_Email': 'sum',
         'Unique_Opens': 'sum',
@@ -976,23 +983,11 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         'Unsubscribed': 'sum',
         'Bounced': 'sum',
     })
+    
     # Genberegn rater efter aggregering
     table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
-    
-    # Byg visningsnavn baseret på hvilke kolonner der er inkluderet
-    def build_display_name(row):
-        parts = [str(row['Mail'])]
-        if 'Group' in table_group_cols and pd.notna(row.get('Group')) and str(row.get('Group', '')).strip():
-            parts.append(str(row['Group']))
-        if 'Message' in table_group_cols and pd.notna(row.get('Message')) and str(row.get('Message', '')).strip():
-            parts.append(str(row['Message']))
-        if 'AB' in table_group_cols and pd.notna(row.get('AB')) and str(row.get('AB', '')).strip():
-            parts.append(str(row['AB']))
-        return ' - '.join(parts) if len(parts) > 1 else parts[0]
-    
-    table_df['Mail_Display'] = table_df.apply(build_display_name, axis=1)
     
     # Sorter efter mail nummer
     table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
@@ -1009,12 +1004,27 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     
     table_df = table_df.sort_values(sort_cols, ascending=True)
     
-    # Fjern hjælpekolonner og originalkolonner
-    drop_cols = ['_mail_num'] + [c for c in ['_group', '_msg', '_ab'] if c in table_df.columns] + table_group_cols
+    # Fjern hjælpekolonner
+    drop_cols = ['_mail_num'] + [c for c in ['_group', '_msg', '_ab'] if c in table_df.columns]
     table_df = table_df.drop(columns=drop_cols)
     
-    # Kolonner med kombineret Mail kolonne
-    table_df = table_df[['Mail_Display', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
+    # Byg kolonnerækkefølge - vis kun de kolonner der er i table_group_cols
+    display_cols = []
+    if 'Group' in table_group_cols:
+        display_cols.append('Group')
+    if 'Mail' in table_group_cols:
+        display_cols.append('Mail')
+    if 'Message' in table_group_cols:
+        display_cols.append('Message')
+    if 'AB' in table_group_cols:
+        display_cols.append('AB')
+    
+    # Tilføj KPI kolonner
+    display_cols += ['Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']
+    
+    # Filtrer til kun eksisterende kolonner
+    display_cols = [c for c in display_cols if c in table_df.columns]
+    table_df = table_df[display_cols]
     
     # Beregn hoejde saa alle raekker vises (35px per raekke + 38px header)
     table_height = (len(table_df) + 1) * 35 + 3
@@ -1022,7 +1032,10 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     st.dataframe(
         table_df, use_container_width=True, hide_index=True, height=table_height,
         column_config={
-            "Mail_Display": st.column_config.TextColumn("Mail", width="medium"),
+            "Group": st.column_config.TextColumn("Group", width="small"),
+            "Mail": st.column_config.TextColumn("Mail", width="small"),
+            "Message": st.column_config.TextColumn("Message", width="medium"),
+            "AB": st.column_config.TextColumn("A/B", width="small"),
             "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
             "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
             "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
@@ -1500,7 +1513,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         # Group dropdown med Ignorer checkbox
         ignore_group = st.session_state[ignore_group_key]
         if ignore_group:
-            st.button("Group (ignoreret)", disabled=True, use_container_width=True)
+            st.button("Group (ignoreret)", disabled=True, use_container_width=True, key=f"fl_group_ignored_{flow_trigger}")
         else:
             group_count = len([g for g in st.session_state[group_state_key] if g in all_groups])
             group_label = f"Group ({group_count})" if group_count < len(all_groups) else "Group"
@@ -1533,7 +1546,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         # Message dropdown med Ignorer checkbox
         ignore_message = st.session_state[ignore_message_key]
         if ignore_message:
-            st.button("Message (ignoreret)", disabled=True, use_container_width=True)
+            st.button("Message (ignoreret)", disabled=True, use_container_width=True, key=f"fl_msg_ignored_{flow_trigger}")
         else:
             msg_count = len([m for m in st.session_state[message_state_key] if m in cascade_messages])
             msg_label = f"Message ({msg_count})" if msg_count < len(cascade_messages) else "Message"
@@ -1566,7 +1579,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         # A/B dropdown med Ignorer checkbox
         ignore_ab = st.session_state[ignore_ab_key]
         if ignore_ab:
-            st.button("A/B (ignoreret)", disabled=True, use_container_width=True)
+            st.button("A/B (ignoreret)", disabled=True, use_container_width=True, key=f"fl_ab_ignored_{flow_trigger}")
         else:
             ab_count = len([a for a in st.session_state[ab_state_key] if a in cascade_ab])
             ab_label = f"A/B ({ab_count})" if ab_count < len(cascade_ab) else "A/B"
