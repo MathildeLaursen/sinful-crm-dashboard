@@ -504,3 +504,13 @@ label[data-baseweb="checkbox"] svg path {
     box-shadow: 0 4px 12px rgba(155, 126, 189, 0.3) !important;
 }
 
+/* ===========================================
+   REDUCER AFSTAND MELLEM CHECKBOX OG TABEL
+   =========================================== */
+
+/* Target "Skjul inaktive" checkbox containere i flows */
+/* Brug negativ margin for at kompensere for stVerticalBlock gap (16px) */
+[class*="st-key-fl_ignore_inactive_cb_"] {
+    margin-bottom: -13px !important;
+}
+
