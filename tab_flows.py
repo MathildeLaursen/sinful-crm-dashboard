@@ -714,9 +714,65 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     mail_df['Click_Rate'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     mail_df['CTR'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
 
-    # Fast afstand mellem scorecards og grafer (30px)
+    # Fast afstand mellem scorecards og tabel (30px)
     st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
+    # === TABEL (OVER GRAFERNE) - Vis rå data uden aggregering ===
+    # Sørg for at alle 4 kolonner eksisterer
+    for col in ['Group', 'Mail', 'Message', 'AB']:
+        if col not in flow_data.columns:
+            flow_data[col] = ''
+    
+    # Brug flow_data direkte (allerede filtreret) - aggreger kun på tværs af måneder
+    table_df = flow_data.groupby(['Group', 'Mail', 'Message', 'AB'], as_index=False).agg({
+        'Received_Email': 'sum',
+        'Unique_Opens': 'sum',
+        'Unique_Clicks': 'sum',
+        'Unsubscribed': 'sum',
+        'Bounced': 'sum',
+    })
+    
+    # Genberegn rater
+    table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
+    table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
+    
+    # Sorter efter mail nummer, derefter group, message, ab
+    table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
+    table_df['_group'] = table_df['Group'].apply(lambda g: str(g) if pd.notna(g) else '')
+    table_df['_msg'] = table_df['Message'].apply(lambda m: str(m) if pd.notna(m) else '')
+    table_df['_ab'] = table_df['AB'].apply(lambda a: str(a) if pd.notna(a) else '')
+    table_df = table_df.sort_values(['_mail_num', '_group', '_msg', '_ab'], ascending=True)
+    table_df = table_df.drop(columns=['_mail_num', '_group', '_msg', '_ab'])
+    
+    # Vis alle kolonner
+    display_cols = ['Group', 'Mail', 'Message', 'AB', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']
+    table_df = table_df[display_cols]
+    
+    # Beregn højde så alle rækker vises
+    table_height = (len(table_df) + 1) * 35 + 3
+    
+    st.dataframe(
+        table_df, use_container_width=True, hide_index=True, height=table_height,
+        column_config={
+            "Group": st.column_config.TextColumn("Group", width="small"),
+            "Mail": st.column_config.TextColumn("Mail", width="small"),
+            "Message": st.column_config.TextColumn("Message", width="medium"),
+            "AB": st.column_config.TextColumn("A/B", width="small"),
+            "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
+            "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
+            "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
+            "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
+            "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
+            "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
+            "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
+            "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
+        }
+    )
+
+    st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+
+    # === GRAFER (UNDER TABELLEN) ===
     # Chart - stacked grafer, en per mail (viser ALLE måneder, uanset slider)
     # Sorter måneder kronologisk
     def month_to_sortkey(m):
@@ -964,67 +1020,6 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-
-    # Tabel med mail-niveau data - vis ALTID alle 4 kolonner: Group, Mail, Message, A/B
-    # Aggreger ALTID efter alle 4 kolonner for at vise detaljeret data
-    table_group_cols = ['Group', 'Mail', 'Message', 'AB']
-    
-    # Sørg for at alle 4 kolonner eksisterer i mail_df før groupby
-    for col in table_group_cols:
-        if col not in mail_df.columns:
-            mail_df[col] = ''
-    
-    table_df = mail_df.groupby(table_group_cols, as_index=False).agg({
-        'Received_Email': 'sum',
-        'Unique_Opens': 'sum',
-        'Unique_Clicks': 'sum',
-        'Unsubscribed': 'sum',
-        'Bounced': 'sum',
-    })
-    
-    # Genberegn rater efter aggregering
-    table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
-    table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
-    table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
-    
-    # Sorter efter mail nummer, derefter group, message, ab
-    table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
-    table_df['_group'] = table_df['Group'].apply(lambda g: str(g) if pd.notna(g) else '')
-    table_df['_msg'] = table_df['Message'].apply(lambda m: str(m) if pd.notna(m) else '')
-    table_df['_ab'] = table_df['AB'].apply(lambda a: str(a) if pd.notna(a) else '')
-    
-    table_df = table_df.sort_values(['_mail_num', '_group', '_msg', '_ab'], ascending=True)
-    
-    # Fjern hjælpekolonner
-    table_df = table_df.drop(columns=['_mail_num', '_group', '_msg', '_ab'])
-    
-    # Vis altid alle 4 kolonner + KPI kolonner
-    display_cols = ['Group', 'Mail', 'Message', 'AB', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']
-    table_df = table_df[display_cols]
-    
-    # Beregn hoejde saa alle raekker vises (35px per raekke + 38px header)
-    table_height = (len(table_df) + 1) * 35 + 3
-    
-    st.dataframe(
-        table_df, use_container_width=True, hide_index=True, height=table_height,
-        column_config={
-            "Group": st.column_config.TextColumn("Group", width="small"),
-            "Mail": st.column_config.TextColumn("Mail", width="small"),
-            "Message": st.column_config.TextColumn("Message", width="medium"),
-            "AB": st.column_config.TextColumn("A/B", width="small"),
-            "Received_Email": st.column_config.NumberColumn("Sendt", format="localized", width="small"),
-            "Unique_Opens": st.column_config.NumberColumn("Opens", format="localized", width="small"),
-            "Unique_Clicks": st.column_config.NumberColumn("Clicks", format="localized", width="small"),
-            "Open_Rate": st.column_config.NumberColumn("Open Rate", format="%.1f%%", width="small"),
-            "Click_Rate": st.column_config.NumberColumn("Click Rate", format="%.1f%%", width="small"),
-            "CTR": st.column_config.NumberColumn("CTR", format="%.1f%%", width="small"),
-            "Unsubscribed": st.column_config.NumberColumn("Unsub", format="localized", width="small"),
-            "Bounced": st.column_config.NumberColumn("Bounced", format="localized", width="small"),
-        }
-    )
-
 
 def get_short_flow_name(flow_trigger):
     """Udtræk kun 'Flow X' fra 'Flow X - Trigger Name'"""
