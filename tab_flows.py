@@ -799,6 +799,36 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
             chart_base_df = chart_base_df[chart_base_df['Message'].isin(filter_config['messages'])]
         if not filter_config.get('ignore_ab') and filter_config.get('ab'):
             chart_base_df = chart_base_df[chart_base_df['AB'].isin(filter_config['ab'])]
+        
+        # Filtrer inaktive kombinationer hvis ignore_inactive er True
+        if filter_config.get('ignore_inactive'):
+            # Find aktive kombinationer (sendt denne eller sidste måned)
+            current_month = get_current_year_month()
+            today = datetime.date.today()
+            if today.month == 1:
+                prev_month = f"{today.year - 1}-12"
+            else:
+                prev_month = f"{today.year}-{today.month - 1}"
+            recent_months = [current_month, prev_month]
+            
+            # Find kombinationer der har sendt i recent_months
+            recent_chart_data = chart_base_df[
+                (chart_base_df['Year_Month'].isin(recent_months)) & 
+                (chart_base_df['Received_Email'] > 0)
+            ]
+            
+            # Sørg for at kolonner eksisterer
+            for col in ['Group', 'Mail', 'Message', 'AB']:
+                if col not in chart_base_df.columns:
+                    chart_base_df[col] = ''
+                if col not in recent_chart_data.columns:
+                    recent_chart_data[col] = ''
+            
+            # Hent aktive kombinationer
+            if not recent_chart_data.empty:
+                active_combos = recent_chart_data.groupby(['Group', 'Mail', 'Message', 'AB'], as_index=False).first()[['Group', 'Mail', 'Message', 'AB']]
+                # Merge for at filtrere - behold kun rækker der matcher aktive kombinationer
+                chart_base_df = chart_base_df.merge(active_combos, on=['Group', 'Mail', 'Message', 'AB'], how='inner')
     
     # Formatér måneder til visning
     def format_month_label(m):
