@@ -967,8 +967,9 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
 
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-    # Tabel med mail-niveau data (altid aggregeret - uden måned kolonne)
-    table_df = mail_df.groupby(['Mail', 'Message'], as_index=False).agg({
+    # Tabel med mail-niveau data (aggregeret baseret på group_cols minus Year_Month)
+    table_group_cols = [c for c in group_cols if c != 'Year_Month']
+    table_df = mail_df.groupby(table_group_cols, as_index=False).agg({
         'Received_Email': 'sum',
         'Unique_Opens': 'sum',
         'Unique_Clicks': 'sum',
@@ -980,17 +981,37 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     table_df['Click_Rate'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
     table_df['CTR'] = table_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
     
-    # Kombiner Mail og Message til én kolonne
-    table_df['Mail_Display'] = table_df.apply(
-        lambda x: f"{x['Mail']} - {x['Message']}" if pd.notna(x['Message']) and x['Message'] != '' else str(x['Mail']), 
-        axis=1
-    )
+    # Byg visningsnavn baseret på hvilke kolonner der er inkluderet
+    def build_display_name(row):
+        parts = [str(row['Mail'])]
+        if 'Group' in table_group_cols and pd.notna(row.get('Group')) and str(row.get('Group', '')).strip():
+            parts.append(str(row['Group']))
+        if 'Message' in table_group_cols and pd.notna(row.get('Message')) and str(row.get('Message', '')).strip():
+            parts.append(str(row['Message']))
+        if 'AB' in table_group_cols and pd.notna(row.get('AB')) and str(row.get('AB', '')).strip():
+            parts.append(str(row['AB']))
+        return ' - '.join(parts) if len(parts) > 1 else parts[0]
     
-    # Sorter efter mail nummer og message
+    table_df['Mail_Display'] = table_df.apply(build_display_name, axis=1)
+    
+    # Sorter efter mail nummer
     table_df['_mail_num'] = table_df['Mail'].apply(lambda m: int(re.search(r'Mail\s*(\d+)', str(m)).group(1)) if re.search(r'Mail\s*(\d+)', str(m)) else 999)
-    table_df['_msg'] = table_df['Message'].apply(lambda m: str(m) if pd.notna(m) else '')
-    table_df = table_df.sort_values(['_mail_num', '_msg'], ascending=True)
-    table_df = table_df.drop(columns=['_mail_num', '_msg', 'Mail', 'Message'])
+    sort_cols = ['_mail_num']
+    if 'Group' in table_group_cols:
+        table_df['_group'] = table_df['Group'].apply(lambda g: str(g) if pd.notna(g) else '')
+        sort_cols.append('_group')
+    if 'Message' in table_group_cols:
+        table_df['_msg'] = table_df['Message'].apply(lambda m: str(m) if pd.notna(m) else '')
+        sort_cols.append('_msg')
+    if 'AB' in table_group_cols:
+        table_df['_ab'] = table_df['AB'].apply(lambda a: str(a) if pd.notna(a) else '')
+        sort_cols.append('_ab')
+    
+    table_df = table_df.sort_values(sort_cols, ascending=True)
+    
+    # Fjern hjælpekolonner og originalkolonner
+    drop_cols = ['_mail_num'] + [c for c in ['_group', '_msg', '_ab'] if c in table_df.columns] + table_group_cols
+    table_df = table_df.drop(columns=drop_cols)
     
     # Kolonner med kombineret Mail kolonne
     table_df = table_df[['Mail_Display', 'Received_Email', 'Unique_Opens', 'Unique_Clicks', 'Open_Rate', 'Click_Rate', 'CTR', 'Unsubscribed', 'Bounced']]
