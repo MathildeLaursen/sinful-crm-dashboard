@@ -2658,6 +2658,334 @@ def render_light_flow_content(df, light_name, sel_countries, filter_config, full
         }
     )
 
+    # === GRAFER PER MAIL (UNDER TABELLEN) ===
+    st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+    
+    # Hent alle måneder til grafen
+    all_chart_months = all_months_df['Year_Month'].unique() if all_months_df is not None else df['Year_Month'].unique()
+    
+    def month_to_sortkey(m):
+        parts = m.split('-')
+        return int(parts[0]) * 100 + int(parts[1])
+    
+    sorted_chart_months = sorted(all_chart_months, key=month_to_sortkey)
+    
+    # Hent data til grafen
+    chart_base_df = all_months_df if all_months_df is not None else df
+    chart_base_df = chart_base_df[
+        (chart_base_df['Light'] == light_name) &
+        (chart_base_df['Country'].isin(sel_countries))
+    ].copy()
+    
+    # Anvend filtre
+    if filter_config is not None:
+        if filter_config.get('groups'):
+            selected_groups = filter_config['groups']
+            include_blank = BLANK_LABEL in selected_groups
+            non_blank_groups = [g for g in selected_groups if g != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['Group'].isin(non_blank_groups) | (chart_base_df['Group'].str.strip() == '') | chart_base_df['Group'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['Group'].isin(non_blank_groups)]
+        if filter_config.get('mails'):
+            selected_mails = filter_config['mails']
+            include_blank = BLANK_LABEL in selected_mails
+            non_blank_mails = [m for m in selected_mails if m != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['Mail'].isin(non_blank_mails) | (chart_base_df['Mail'].str.strip() == '') | chart_base_df['Mail'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['Mail'].isin(non_blank_mails)]
+        if filter_config.get('messages'):
+            selected_messages = filter_config['messages']
+            include_blank = BLANK_LABEL in selected_messages
+            non_blank_messages = [m for m in selected_messages if m != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['Message'].isin(non_blank_messages) | (chart_base_df['Message'].str.strip() == '') | chart_base_df['Message'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['Message'].isin(non_blank_messages)]
+        if filter_config.get('ab'):
+            selected_ab = filter_config['ab']
+            include_blank = BLANK_LABEL in selected_ab
+            non_blank_ab = [a for a in selected_ab if a != BLANK_LABEL]
+            if include_blank:
+                chart_base_df = chart_base_df[chart_base_df['AB'].isin(non_blank_ab) | (chart_base_df['AB'].str.strip() == '') | chart_base_df['AB'].isna()]
+            else:
+                chart_base_df = chart_base_df[chart_base_df['AB'].isin(non_blank_ab)]
+        
+        # Filtrer inaktive kombinationer hvis ignore_inactive er True
+        if filter_config.get('ignore_inactive'):
+            current_month = get_current_year_month()
+            today = datetime.date.today()
+            if today.month == 1:
+                prev_month = f"{today.year - 1}-12"
+            else:
+                prev_month = f"{today.year}-{today.month - 1}"
+            recent_months = [current_month, prev_month]
+            
+            recent_chart_data = chart_base_df[
+                (chart_base_df['Year_Month'].isin(recent_months)) & 
+                (chart_base_df['Received_Email'] > 0)
+            ]
+            
+            for col in ['Group', 'Mail', 'Message', 'AB']:
+                if col not in chart_base_df.columns:
+                    chart_base_df[col] = ''
+                if col not in recent_chart_data.columns:
+                    recent_chart_data[col] = ''
+            
+            if not recent_chart_data.empty:
+                active_combos = recent_chart_data.groupby(['Group', 'Mail', 'Message', 'AB'], as_index=False).first()[['Group', 'Mail', 'Message', 'AB']]
+                chart_base_df = chart_base_df.merge(active_combos, on=['Group', 'Mail', 'Message', 'AB'], how='inner')
+    
+    # Formatér måneder til visning
+    def format_month_label(m):
+        parts = m.split('-')
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+        return f"{month_names[int(parts[1])-1]} {parts[0][2:]}"
+    
+    # Sørg for at alle kolonner eksisterer
+    for col in ['Group', 'Mail', 'Message', 'AB']:
+        if col not in chart_base_df.columns:
+            chart_base_df[col] = ''
+    
+    # Bestem om vi skal ignorere kolonner i grafer
+    chart_ignore_group = filter_config.get('ignore_group', False) if filter_config else False
+    chart_ignore_mail = filter_config.get('ignore_mail', False) if filter_config else False
+    chart_ignore_message = filter_config.get('ignore_message', False) if filter_config else False
+    chart_ignore_ab = filter_config.get('ignore_ab', False) if filter_config else False
+    
+    if chart_ignore_group or chart_ignore_mail or chart_ignore_message or chart_ignore_ab:
+        chart_agg_cols = ['Year_Month']
+        if not chart_ignore_group:
+            chart_agg_cols.append('Group')
+        if not chart_ignore_mail:
+            chart_agg_cols.append('Mail')
+        if not chart_ignore_message:
+            chart_agg_cols.append('Message')
+        if not chart_ignore_ab:
+            chart_agg_cols.append('AB')
+        
+        if len(chart_agg_cols) == 1:
+            chart_base_df['_dummy'] = 'Total'
+            chart_agg_cols.append('_dummy')
+        
+        chart_base_df = chart_base_df.groupby(chart_agg_cols, as_index=False).agg({
+            'Received_Email': 'sum',
+            'Unique_Opens': 'sum',
+            'Unique_Clicks': 'sum',
+            'Unsubscribed': 'sum',
+            'Bounced': 'sum',
+        })
+        
+        if '_dummy' in chart_base_df.columns:
+            chart_base_df = chart_base_df.drop(columns=['_dummy'])
+        
+        if chart_ignore_group:
+            chart_base_df['Group'] = ''
+        if chart_ignore_mail:
+            chart_base_df['Mail'] = ''
+        if chart_ignore_message:
+            chart_base_df['Message'] = ''
+        if chart_ignore_ab:
+            chart_base_df['AB'] = ''
+    
+    # Hent unikke kombinationer sorteret
+    def combo_sort_key(row):
+        match = re.search(r'Mail\s*(\d+)', str(row['Mail']))
+        mail_num = int(match.group(1)) if match else 999
+        group = str(row['Group']) if pd.notna(row['Group']) else ''
+        msg = str(row['Message']) if pd.notna(row['Message']) else ''
+        ab = str(row['AB']) if pd.notna(row['AB']) else ''
+        return (mail_num, group, msg, ab)
+    
+    unique_combos = chart_base_df.groupby(['Group', 'Mail', 'Message', 'AB'], as_index=False).first()[['Group', 'Mail', 'Message', 'AB']]
+    unique_combos['_sort_key'] = unique_combos.apply(combo_sort_key, axis=1)
+    unique_combos = unique_combos.sort_values('_sort_key').drop(columns=['_sort_key'])
+    unique_combos_list = list(unique_combos.itertuples(index=False, name=None))
+    
+    if len(sorted_chart_months) > 0 and len(unique_combos_list) > 0:
+        num_items = len(unique_combos_list)
+        
+        subplot_titles = []
+        for group, mail, message, ab in unique_combos_list:
+            parts = []
+            if pd.notna(group) and str(group).strip():
+                parts.append(str(group))
+            if pd.notna(mail) and str(mail).strip():
+                parts.append(str(mail))
+            if pd.notna(message) and str(message).strip():
+                parts.append(str(message))
+            if pd.notna(ab) and str(ab).strip():
+                parts.append(str(ab))
+            subplot_titles.append(' - '.join(parts) if parts else 'Total')
+        
+        height_per_chart = 150
+        gap_pixels = 70
+        chart_height = num_items * height_per_chart + (num_items - 1) * gap_pixels
+        
+        v_spacing = gap_pixels / chart_height if num_items > 1 else 0.1
+        max_allowed = 1.0 / (num_items - 1) if num_items > 1 else 0.5
+        v_spacing = min(v_spacing, max_allowed * 0.95)
+        
+        fig = make_subplots(
+            rows=num_items, cols=1,
+            shared_xaxes=False,
+            vertical_spacing=v_spacing,
+            subplot_titles=subplot_titles,
+            specs=[[{"secondary_y": True}] for _ in range(num_items)]
+        )
+        
+        for i, (group, mail, message, ab) in enumerate(unique_combos_list):
+            row = i + 1
+            
+            # Byg maske for denne kombination
+            mask = pd.Series([True] * len(chart_base_df))
+            
+            if pd.notna(group) and str(group).strip():
+                mask = mask & (chart_base_df['Group'] == group)
+            else:
+                mask = mask & (chart_base_df['Group'].isna() | (chart_base_df['Group'] == ''))
+            
+            if pd.notna(mail) and str(mail).strip():
+                mask = mask & (chart_base_df['Mail'] == mail)
+            else:
+                mask = mask & (chart_base_df['Mail'].isna() | (chart_base_df['Mail'] == ''))
+            
+            if pd.notna(message) and str(message).strip():
+                mask = mask & (chart_base_df['Message'] == message)
+            else:
+                mask = mask & (chart_base_df['Message'].isna() | (chart_base_df['Message'] == ''))
+            
+            if pd.notna(ab) and str(ab).strip():
+                mask = mask & (chart_base_df['AB'] == ab)
+            else:
+                mask = mask & (chart_base_df['AB'].isna() | (chart_base_df['AB'] == ''))
+            
+            combo_data = chart_base_df[mask].copy()
+            
+            sent_values = []
+            opens_values = []
+            clicks_values = []
+            for month in sorted_chart_months:
+                month_data = combo_data[combo_data['Year_Month'] == month]
+                if not month_data.empty:
+                    sent_values.append(month_data['Received_Email'].sum())
+                    opens_values.append(month_data['Unique_Opens'].sum())
+                    clicks_values.append(month_data['Unique_Clicks'].sum())
+                else:
+                    sent_values.append(0)
+                    opens_values.append(0)
+                    clicks_values.append(0)
+            
+            x_labels = [format_month_label(m) for m in sorted_chart_months]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=sent_values,
+                    name='Sendt',
+                    mode='lines+markers',
+                    line=dict(color='#9B7EBD', width=2),
+                    marker=dict(size=6, color='#9B7EBD'),
+                    showlegend=(i == 0),
+                    legendgroup='sendt'
+                ),
+                row=row, col=1, secondary_y=False
+            )
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=opens_values,
+                    name='Opens',
+                    mode='lines+markers',
+                    line=dict(color='#A8E6CF', width=2),
+                    marker=dict(size=6, color='#A8E6CF'),
+                    showlegend=(i == 0),
+                    legendgroup='opens'
+                ),
+                row=row, col=1, secondary_y=False
+            )
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=x_labels,
+                    y=clicks_values,
+                    name='Clicks',
+                    mode='lines+markers',
+                    line=dict(color='#E8B4CB', width=2),
+                    marker=dict(size=6, color='#E8B4CB'),
+                    showlegend=(i == 0),
+                    legendgroup='clicks'
+                ),
+                row=row, col=1, secondary_y=True
+            )
+            
+            # Juster y-akse for clicks
+            current_month_label = format_month_label(get_current_year_month())
+            opens_for_calc = [v for v, lbl in zip(opens_values, x_labels) if lbl != current_month_label]
+            sent_for_calc = [v for v, lbl in zip(sent_values, x_labels) if lbl != current_month_label]
+            clicks_for_calc = [v for v, lbl in zip(clicks_values, x_labels) if lbl != current_month_label]
+            
+            max_clicks = max(clicks_for_calc) if clicks_for_calc else (max(clicks_values) if clicks_values else 0)
+            max_left = max(max(sent_for_calc) if sent_for_calc else 0, max(opens_for_calc) if opens_for_calc else 0)
+            min_opens = min(opens_for_calc) if opens_for_calc else 0
+            
+            if max_left == 0:
+                max_left = max(max(sent_values) if sent_values else 0, max(opens_values) if opens_values else 0)
+            if min_opens == 0:
+                min_opens = min(opens_values) if opens_values else 0
+            
+            if max_clicks > 0 and min_opens > 0 and max_left > 0:
+                target_visual_height = min_opens * 0.9
+                clicks_range = max_clicks * max_left / target_visual_height
+                fig.update_yaxes(range=[0, clicks_range], row=row, col=1, secondary_y=True)
+            elif max_clicks > 0:
+                fig.update_yaxes(range=[0, max_clicks * 2], row=row, col=1, secondary_y=True)
+        
+        chart_height = max(350, chart_height)
+        top_margin = 80
+        
+        fig.update_layout(
+            showlegend=True,
+            height=chart_height + top_margin,
+            margin=dict(l=60, r=60, t=top_margin, b=40),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor='rgba(0,0,0,0)'),
+            plot_bgcolor='rgba(250,245,255,0.5)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            hovermode='x unified'
+        )
+        
+        for annotation in fig['layout']['annotations']:
+            annotation['font'] = dict(size=13, color='#7B5EA5', family='sans-serif')
+            annotation['xanchor'] = 'left'
+            annotation['x'] = 0
+            annotation['yanchor'] = 'bottom'
+            annotation['yshift'] = 10
+        
+        for i in range(num_items):
+            fig.update_yaxes(
+                title_text="Sendt / Opens",
+                title_font=dict(size=10, color='#4A3F55'),
+                gridcolor='rgba(212,191,255,0.3)',
+                tickformat=',d',
+                rangemode='tozero',
+                row=i+1, col=1, secondary_y=False
+            )
+            fig.update_yaxes(
+                title_text="Clicks",
+                title_font=dict(size=10, color='#4A3F55'),
+                gridcolor='rgba(232,180,203,0.2)',
+                showgrid=False,
+                tickformat=',d',
+                rangemode='tozero',
+                row=i+1, col=1, secondary_y=True
+            )
+        
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
 
 def render_light_group_overview_tab(df, light_name, available_months, all_groups):
     """Render group oversigt for en specifik repeat"""
