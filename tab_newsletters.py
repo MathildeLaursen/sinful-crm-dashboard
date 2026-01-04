@@ -107,13 +107,13 @@ def calculate_date_range(preset, today, yesterday):
         return (today - datetime.timedelta(days=7), yesterday)
     elif preset == "Sidste 30 dage":
         return (today - datetime.timedelta(days=30), yesterday)
-    elif preset == "Denne maned":
+    elif preset == "Denne måned":
         return (today.replace(day=1), yesterday)
     elif preset == "Dette kvartal":
         return (get_quarter_start(today), yesterday)
-    elif preset == "I ar":
+    elif preset == "I år":
         return (today.replace(month=1, day=1), yesterday)
-    elif preset == "Sidste maned":
+    elif preset == "Sidste måned":
         first_this_month = today.replace(day=1)
         last_day_last_month = first_this_month - datetime.timedelta(days=1)
         return (last_day_last_month.replace(day=1), last_day_last_month)
@@ -199,8 +199,8 @@ def render_newsletters_tab():
         st.session_state.nl_date_range_value = (today - datetime.timedelta(days=30), yesterday)
 
     preset_options = [
-        "Sidste 7 dage", "Sidste 30 dage", "Denne maned",
-        "Dette kvartal", "I ar", "Sidste maned", "Sidste kvartal",
+        "Sidste 7 dage", "Sidste 30 dage", "Denne måned",
+        "Dette kvartal", "I år", "Sidste måned", "Sidste kvartal",
     ]
 
     # Layout
@@ -290,7 +290,7 @@ def render_newsletters_tab():
         with st.popover("Land", use_container_width=True):
             reset_land = st.session_state.nl_cb_reset_land
             all_land_selected = len(st.session_state.nl_selected_countries) == len(all_countries)
-            select_all_land = st.checkbox("Vaelg alle", value=all_land_selected, key=f"nl_sel_all_land_{reset_land}")
+            select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"nl_sel_all_land_{reset_land}")
             
             new_selected = []
             for country in all_countries:
@@ -325,9 +325,9 @@ def render_newsletters_tab():
         with st.popover(kamp_label, use_container_width=True):
             reset_kamp = st.session_state.nl_cb_reset_kamp
             all_kamp_selected = len(st.session_state.nl_selected_campaigns) == len(all_id_campaigns)
-            select_all_kamp = st.checkbox("Vaelg alle", value=all_kamp_selected, key=f"nl_sel_all_kamp_{reset_kamp}")
+            select_all_kamp = st.checkbox("Vælg alle", value=all_kamp_selected, key=f"nl_sel_all_kamp_{reset_kamp}")
             
-            search_kamp = st.text_input("Soeg", key="nl_search_kamp", placeholder="Soeg...", label_visibility="collapsed")
+            search_kamp = st.text_input("Søg", key="nl_search_kamp", placeholder="Søg...", label_visibility="collapsed")
             filtered_campaigns = [c for c in all_id_campaigns if search_kamp.lower() in c.lower()] if search_kamp else all_id_campaigns
             
             new_selected = []
@@ -363,9 +363,9 @@ def render_newsletters_tab():
         with st.popover(email_label, use_container_width=True):
             reset_email = st.session_state.nl_cb_reset_email
             all_email_selected = len(st.session_state.nl_selected_emails) == len(all_email_messages)
-            select_all_email = st.checkbox("Vaelg alle", value=all_email_selected, key=f"nl_sel_all_email_{reset_email}")
+            select_all_email = st.checkbox("Vælg alle", value=all_email_selected, key=f"nl_sel_all_email_{reset_email}")
             
-            search_email = st.text_input("Soeg", key="nl_search_email_input", placeholder="Soeg...", label_visibility="collapsed")
+            search_email = st.text_input("Søg", key="nl_search_email_input", placeholder="Søg...", label_visibility="collapsed")
             filtered_emails = [e for e in all_email_messages if search_email.lower() in e.lower()] if search_email else all_email_messages
             
             new_selected = []
