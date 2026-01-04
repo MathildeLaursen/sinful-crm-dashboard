@@ -628,7 +628,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         # Den ældste måned i sammenligningsperioden
         oldest_prev_month = min(prev_months, key=month_to_tuple)
         
-        # Hent data for forrige periode (samme flow og lande - INGEN mail filter for scorecards)
+        # Hent data for forrige periode (samme flow, lande og filtre)
         prev_filter = (
             (full_df['Year_Month'].isin(prev_months)) &
             (full_df['Flow_Trigger'] == flow_trigger) &
@@ -636,6 +636,13 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         )
         
         prev_data = full_df[prev_filter].copy()
+        
+        # Anvend samme filtre til sammenligning som til nuværende periode
+        if filter_config is not None:
+            if filter_config.get('mails'):
+                prev_data = prev_data[prev_data['Mail'].isin(filter_config['mails'])]
+            if not filter_config.get('ignore_group') and filter_config.get('groups'):
+                prev_data = prev_data[prev_data['Group'].isin(filter_config['groups'])]
         
         if not prev_data.empty:
             # Aggreger forrige periode PER MÅNED
@@ -675,7 +682,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
             if prev_opens > 0:
                 prev_ctr = (prev_clicks / prev_opens * 100)
 
-    # KPI Cards (viser ALLE mails - ikke påvirket af Ignorer Inaktive)
+    # KPI Cards (påvirket af Group og Mail filtre)
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     show_metric(col1, "Emails Sendt", total_received, prev_received)
     show_metric(col2, "Unikke Opens", total_opens, prev_opens)
@@ -1451,10 +1458,10 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         st.session_state[mail_state_key] = list(available_mails)
 
     # === LAYOUT ===
-    # Linje 1: Land + Slider
-    col_land, col_slider = st.columns([1, 5])
+    # Alle dropdowns på én linje med samme bredde som scorecards (1/6 hver)
+    col_land, col_group, col_mail, col_slider = st.columns([1, 1, 1, 3])
 
-    # === LINJE 1: Land + Slider ===
+    # === Land dropdown ===
     with col_land:
         land_count = len(st.session_state.fl_selected_countries)
         land_label = f"Land ({land_count})" if land_count < len(all_countries) else "Land"
@@ -1482,40 +1489,6 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
 
-    # === Periode slider ===
-    with col_slider:
-        if len(sorted_months) > 1:
-            default_end = sorted_months[-1]
-            default_start_idx = max(0, len(sorted_months) - 3)
-            default_start = sorted_months[default_start_idx]
-            
-            saved_key = f"fl_month_range_{flow_trigger}_saved"
-            if saved_key not in st.session_state:
-                st.session_state[saved_key] = (default_start, default_end)
-            
-            saved_range = st.session_state[saved_key]
-            if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
-                initial_value = saved_range
-            else:
-                initial_value = (default_start, default_end)
-                st.session_state[saved_key] = initial_value
-            
-            month_range = st.select_slider(
-                "Periode",
-                options=sorted_months,
-                value=initial_value,
-                format_func=format_month_short,
-                key=f"fl_month_range_{flow_trigger}",
-                label_visibility="collapsed"
-            )
-            st.session_state[saved_key] = month_range
-            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
-        else:
-            sel_months = sorted_months
-    
-    # === LINJE 2: Group + Mail ===
-    col_group, col_mail = st.columns([1, 1])
-    
     # === Group dropdown ===
     with col_group:
         group_count = len([g for g in st.session_state[group_state_key] if g in available_groups])
@@ -1574,6 +1547,37 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[mail_reset_key] += 1
                 st.rerun()
     
+    # === Periode slider ===
+    with col_slider:
+        if len(sorted_months) > 1:
+            default_end = sorted_months[-1]
+            default_start_idx = max(0, len(sorted_months) - 3)
+            default_start = sorted_months[default_start_idx]
+            
+            saved_key = f"fl_month_range_{flow_trigger}_saved"
+            if saved_key not in st.session_state:
+                st.session_state[saved_key] = (default_start, default_end)
+            
+            saved_range = st.session_state[saved_key]
+            if saved_range[0] in sorted_months and saved_range[1] in sorted_months:
+                initial_value = saved_range
+            else:
+                initial_value = (default_start, default_end)
+                st.session_state[saved_key] = initial_value
+            
+            month_range = st.select_slider(
+                "Periode",
+                options=sorted_months,
+                value=initial_value,
+                format_func=format_month_short,
+                key=f"fl_month_range_{flow_trigger}",
+                label_visibility="collapsed"
+            )
+            st.session_state[saved_key] = month_range
+            sel_months = get_months_in_range(month_range[0], month_range[1], sorted_months)
+        else:
+            sel_months = sorted_months
+    
     if not sel_months:
         st.warning("Vælg mindst én måned.")
         return
@@ -1599,7 +1603,7 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         'messages': None,
         'ab': None,
         'ignore_inactive': st.session_state[ignore_inactive_key],
-        'ignore_group': True,
+        'ignore_group': False,  # Group filter er aktiv
         'ignore_message': True,
         'ignore_ab': True,
     }
