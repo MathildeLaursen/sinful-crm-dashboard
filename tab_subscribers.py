@@ -301,26 +301,52 @@ def render_full_subscribers_tab(full_df):
     }
     
     if not full_df.empty:
-        # Sortér data
-        df_sorted = full_df.sort_values('Month', ascending=False)
+        # Find tilgængelige måneder
+        available_months = sorted(full_df['Month'].dropna().unique().tolist())
+        current_month = available_months[-1] if available_months else None
+        
+        # --- SLIDER ---
+        if len(available_months) > 1:
+            month_range = st.select_slider(
+                "Periode",
+                options=available_months,
+                value=(current_month, current_month),
+                format_func=format_month_short,
+                key="sub_full_period",
+                label_visibility="collapsed"
+            )
+            start_month, end_month = month_range
+        else:
+            start_month = available_months[0] if available_months else None
+            end_month = start_month
+        
+        # Find data for valgt periode
+        if end_month:
+            current_row = full_df[full_df['Month'] == end_month]
+            # Find forrige måned
+            end_idx = available_months.index(end_month)
+            prev_month = available_months[end_idx - 1] if end_idx > 0 else None
+            prev_row = full_df[full_df['Month'] == prev_month] if prev_month else None
+        
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         
         # --- SCORECARDS PER LAND ---
         # Række 1: DK, SE, NO, FI, FR, UK - Subscribers
         row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
         cols_row1 = st.columns(6)
         for i, country in enumerate(row1_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                current = df_sorted.iloc[0][country]
-                prev = df_sorted.iloc[1][country]
+            if country in full_df.columns and not current_row.empty:
+                current = current_row.iloc[0][country]
+                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
                 show_metric(cols_row1[i], f"{country} Subscribers", current, prev)
-            elif country in df_sorted.columns:
-                show_metric(cols_row1[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+            else:
+                cols_row1[i].metric(f"{country} Subscribers", "—")
         
         # Række 2: DK, SE, NO, FI, FR, UK - Nye
         cols_row2 = st.columns(6)
         for i, country in enumerate(row1_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+            if country in full_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
+                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
                 cols_row2[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
             else:
                 cols_row2[i].metric(f"{country} Nye", "—")
@@ -329,18 +355,18 @@ def render_full_subscribers_tab(full_df):
         row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
         cols_row3 = st.columns(6)
         for i, country in enumerate(row2_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                current = df_sorted.iloc[0][country]
-                prev = df_sorted.iloc[1][country]
+            if country in full_df.columns and not current_row.empty:
+                current = current_row.iloc[0][country]
+                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
                 show_metric(cols_row3[i], f"{country} Subscribers", current, prev)
-            elif country in df_sorted.columns:
-                show_metric(cols_row3[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+            else:
+                cols_row3[i].metric(f"{country} Subscribers", "—")
         
         # Række 4: DE, AT, NL, BE, CH - Nye
         cols_row4 = st.columns(6)
         for i, country in enumerate(row2_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+            if country in full_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
+                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
                 cols_row4[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
             else:
                 cols_row4[i].metric(f"{country} Nye", "—")
@@ -413,26 +439,52 @@ def render_light_subscribers_tab(light_df):
     }
     
     if not light_df.empty:
-        # Sortér data
-        df_sorted = light_df.sort_values('Month', ascending=False)
+        # Find tilgængelige måneder
+        available_months = sorted(light_df['Month'].dropna().unique().tolist())
+        current_month = available_months[-1] if available_months else None
+        
+        # --- SLIDER ---
+        if len(available_months) > 1:
+            month_range = st.select_slider(
+                "Periode",
+                options=available_months,
+                value=(current_month, current_month),
+                format_func=format_month_short,
+                key="sub_light_period",
+                label_visibility="collapsed"
+            )
+            start_month, end_month = month_range
+        else:
+            start_month = available_months[0] if available_months else None
+            end_month = start_month
+        
+        # Find data for valgt periode
+        if end_month:
+            current_row = light_df[light_df['Month'] == end_month]
+            # Find forrige måned
+            end_idx = available_months.index(end_month)
+            prev_month = available_months[end_idx - 1] if end_idx > 0 else None
+            prev_row = light_df[light_df['Month'] == prev_month] if prev_month else None
+        
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         
         # --- SCORECARDS PER LAND ---
         # Række 1: DK, SE, NO, FI, FR, UK - Subscribers
         row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
         cols_row1 = st.columns(6)
         for i, country in enumerate(row1_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                current = df_sorted.iloc[0][country]
-                prev = df_sorted.iloc[1][country]
+            if country in light_df.columns and not current_row.empty:
+                current = current_row.iloc[0][country]
+                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
                 show_metric(cols_row1[i], f"{country} Subscribers", current, prev)
-            elif country in df_sorted.columns:
-                show_metric(cols_row1[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+            else:
+                cols_row1[i].metric(f"{country} Subscribers", "—")
         
         # Række 2: DK, SE, NO, FI, FR, UK - Nye
         cols_row2 = st.columns(6)
         for i, country in enumerate(row1_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+            if country in light_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
+                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
                 cols_row2[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
             else:
                 cols_row2[i].metric(f"{country} Nye", "—")
@@ -441,18 +493,18 @@ def render_light_subscribers_tab(light_df):
         row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
         cols_row3 = st.columns(6)
         for i, country in enumerate(row2_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                current = df_sorted.iloc[0][country]
-                prev = df_sorted.iloc[1][country]
+            if country in light_df.columns and not current_row.empty:
+                current = current_row.iloc[0][country]
+                prev = prev_row.iloc[0][country] if prev_row is not None and not prev_row.empty else None
                 show_metric(cols_row3[i], f"{country} Subscribers", current, prev)
-            elif country in df_sorted.columns:
-                show_metric(cols_row3[i], f"{country} Subscribers", df_sorted.iloc[0][country])
+            else:
+                cols_row3[i].metric(f"{country} Subscribers", "—")
         
         # Række 4: DE, AT, NL, BE, CH - Nye
         cols_row4 = st.columns(6)
         for i, country in enumerate(row2_countries):
-            if country in df_sorted.columns and len(df_sorted) >= 2:
-                growth = df_sorted.iloc[0][country] - df_sorted.iloc[1][country]
+            if country in light_df.columns and not current_row.empty and prev_row is not None and not prev_row.empty:
+                growth = current_row.iloc[0][country] - prev_row.iloc[0][country]
                 cols_row4[i].metric(f"{country} Nye", f"+{format_number(growth)}" if growth >= 0 else format_number(growth))
             else:
                 cols_row4[i].metric(f"{country} Nye", "—")
