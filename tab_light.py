@@ -1922,9 +1922,10 @@ def render_light_tab_content(df, light_name, available_months):
     if light_num == 1:
         # Light 1: Render direkte som et flow (ingen group sub-tabs)
         render_light_flow_style(df, light_name, available_months)
-    else:
-        # Light 2+: Render med group sub-tabs
-        all_groups = get_unique_groups_for_light(df, light_name)
+        return  # Light 1 er faerdig, ingen group tabs
+    
+    # Light 2+: Render med group sub-tabs
+    all_groups = get_unique_groups_for_light(df, light_name)
     
     if not all_groups:
         st.warning(f"Ingen groups fundet for {light_name}.")
