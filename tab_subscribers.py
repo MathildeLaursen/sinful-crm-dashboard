@@ -208,45 +208,42 @@ def render_overview_tab(full_df, light_df):
     # --- KPI CARDS (3 kort med % og absolut ændring, samme bredde som før) ---
     col1, col2, col3, _, _, _ = st.columns(6)
     
+    # For subscriber TOTALER: sammenlign slutmånedens total med forrige måneds total
+    # (ikke sum over flere måneder - det er cumulative totals)
+    
+    # Find forrige måned for sammenligning
+    end_idx = available_months.index(end_month) if end_month in available_months else -1
+    prev_month = available_months[end_idx - 1] if end_idx > 0 else None
+    
     # Beregn current og previous for Full Subscribers
     current_full = 0
     prev_full = 0
     if not full_df.empty:
-        # Sum over valgte måneder og lande
-        for m in selected_months:
-            m_row = full_df[full_df['Month'] == m]
-            if not m_row.empty:
-                current_full += m_row[selected_countries].sum(axis=1).values[0]
+        # Hent slutmånedens total
+        end_row = full_df[full_df['Month'] == end_month]
+        if not end_row.empty:
+            current_full = end_row[selected_countries].sum(axis=1).values[0]
         
-        # Sum over sammenligningsperiode med skalering
-        for pm in prev_months:
-            pm_row = full_df[full_df['Month'] == pm]
-            if not pm_row.empty:
-                pm_val = pm_row[selected_countries].sum(axis=1).values[0]
-                if pm == oldest_prev_month and current_month_selected:
-                    prev_full += pm_val * month_progress
-                else:
-                    prev_full += pm_val
+        # Hent forrige måneds total
+        if prev_month:
+            prev_row = full_df[full_df['Month'] == prev_month]
+            if not prev_row.empty:
+                prev_full = prev_row[selected_countries].sum(axis=1).values[0]
     
     # Beregn current og previous for Light Subscribers
     current_light = 0
     prev_light = 0
     if not light_df.empty:
-        # Sum over valgte måneder og lande
-        for m in selected_months:
-            m_row = light_df[light_df['Month'] == m]
-            if not m_row.empty:
-                current_light += m_row[selected_countries].sum(axis=1).values[0]
+        # Hent slutmånedens total
+        end_row = light_df[light_df['Month'] == end_month]
+        if not end_row.empty:
+            current_light = end_row[selected_countries].sum(axis=1).values[0]
         
-        # Sum over sammenligningsperiode med skalering
-        for pm in prev_months:
-            pm_row = light_df[light_df['Month'] == pm]
-            if not pm_row.empty:
-                pm_val = pm_row[selected_countries].sum(axis=1).values[0]
-                if pm == oldest_prev_month and current_month_selected:
-                    prev_light += pm_val * month_progress
-                else:
-                    prev_light += pm_val
+        # Hent forrige måneds total
+        if prev_month:
+            prev_row = light_df[light_df['Month'] == prev_month]
+            if not prev_row.empty:
+                prev_light = prev_row[selected_countries].sum(axis=1).values[0]
     
     # Totaler
     total_subscribers = current_full + current_light
