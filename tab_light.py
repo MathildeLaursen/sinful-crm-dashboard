@@ -1927,18 +1927,18 @@ def render_light_tab_content(df, light_name, available_months):
         all_groups = get_unique_groups_for_light(df, light_name)
     
     if not all_groups:
-            st.warning(f"Ingen groups fundet for {light_name}.")
+        st.warning(f"Ingen groups fundet for {light_name}.")
         return
     
     group_tab_labels = ["Oversigt"] + all_groups
     group_tabs = st.tabs(group_tab_labels)
     
     with group_tabs[0]:
-            render_light_group_overview_tab(df, light_name, available_months, all_groups)
+        render_light_group_overview_tab(df, light_name, available_months, all_groups)
     
     for i, group_name in enumerate(all_groups):
         with group_tabs[i + 1]:
-                render_group_mail_tab(df, light_name, group_name, available_months)
+            render_group_mail_tab(df, light_name, group_name, available_months)
 
 
 def render_light_flow_style(df, light_name, available_months):
