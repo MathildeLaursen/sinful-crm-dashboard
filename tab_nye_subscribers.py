@@ -6,7 +6,7 @@ import pandas as pd
 import datetime
 import calendar
 import plotly.graph_objects as go
-from shared import get_gspread_client, format_number
+from shared import get_gspread_client, format_number, style_graph, COUNTRY_ORDER
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -26,7 +26,7 @@ def load_nye_subscribers_data():
         events_df = pd.DataFrame(sub_events[1:], columns=sub_events[0]) if len(sub_events) > 1 else pd.DataFrame()
         
         if not events_df.empty:
-            country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
+            country_cols = COUNTRY_ORDER + ['Total']
             for col in country_cols:
                 if col in events_df.columns:
                     events_df[col] = pd.to_numeric(events_df[col].astype(str).str.replace(',', '').str.replace('"', ''), errors='coerce').fillna(0).astype(int)
@@ -63,7 +63,7 @@ def render_nye_subscribers_tab():
 
 def render_nye_subscribers_content(events_df):
     """Render Nye Subscribers per Kilde indhold med underfaner per Master Source"""
-    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
+    country_cols = COUNTRY_ORDER + ['Total']
     
     # Farver for Master Sources
     master_colors = {
@@ -102,7 +102,7 @@ def render_nye_subscribers_content(events_df):
             st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
             
             # --- FILTRE: Land og Periode ---
-            all_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+            all_countries = COUNTRY_ORDER
             
             # Session state for land selection
             if 'kilder_selected_countries' not in st.session_state:
@@ -282,18 +282,8 @@ def render_nye_subscribers_content(events_df):
                         )
                     )
                 
-                fig.update_layout(
-                    title="",
-                    showlegend=True,
-                    height=500,
-                    margin=dict(l=50, r=50, t=30, b=50),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-                    plot_bgcolor='rgba(250,245,255,0.5)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    hovermode='x unified'
-                )
-                fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
-                fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+                style_graph(fig, height=500, legend_position='center',
+                            x_tickformat='%Y-%m', y_tickformat=',')
                 
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
@@ -513,18 +503,8 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
                 )
             )
     
-    fig.update_layout(
-        title="",
-        showlegend=True,
-        height=500,
-        margin=dict(l=50, r=50, t=60, b=50),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        plot_bgcolor='rgba(250,245,255,0.5)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        hovermode='x unified'
-    )
-    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
-    fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+    style_graph(fig, height=500, legend_position='center', margin_top=60,
+                x_tickformat='%Y-%m', y_tickformat=',')
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
     

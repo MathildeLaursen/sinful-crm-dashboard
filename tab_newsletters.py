@@ -6,7 +6,7 @@ import pandas as pd
 import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from shared import get_gspread_client, show_metric
+from shared import get_gspread_client, show_metric, COUNTRY_ORDER
 
 
 @st.cache_data(ttl=300, show_spinner=False)  # Cache i 5 minutter
@@ -144,7 +144,7 @@ def filter_data(dataset, start, end, sel_countries, sel_id_campaigns, sel_email_
             fill_value=0
         ).reset_index()
         
-        all_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+        all_countries = COUNTRY_ORDER
         for country in all_countries:
             if country not in pivot_df.columns:
                 pivot_df[country] = 0

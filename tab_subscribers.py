@@ -6,7 +6,7 @@ import pandas as pd
 import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from shared import get_gspread_client, show_metric, format_number
+from shared import get_gspread_client, show_metric, format_number, style_graph, COUNTRY_ORDER
 
 
 @st.cache_data(ttl=300, show_spinner=False)  # Cache i 5 minutter
@@ -32,7 +32,7 @@ def load_subscribers_data():
         light_df = pd.DataFrame(light_subs[1:], columns=light_subs[0]) if len(light_subs) > 1 else pd.DataFrame()
         
         # Konverter numeriske kolonner
-        country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
+        country_cols = COUNTRY_ORDER + ['Total']
         
         for df in [full_df, light_df]:
             if not df.empty:
@@ -68,7 +68,7 @@ def render_overview_tab(full_df, light_df):
         light_df = light_df.sort_values('Month', ascending=False)
 
     # --- FILTRE: Land og Periode ---
-    all_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    all_countries = COUNTRY_ORDER
     
     # Session state for land selection
     if 'sub_selected_countries' not in st.session_state:
@@ -278,23 +278,13 @@ def render_overview_tab(full_df, light_df):
                 line_width=0
             )
         
-        fig.update_layout(
-            title="", showlegend=True, height=400,
-            margin=dict(l=50, r=50, t=30, b=50),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='x unified'
-        )
-        
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
-        fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
-        
+        style_graph(fig, height=400, x_tickformat='%Y-%m', y_tickformat=',')
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 
 def render_full_subscribers_tab(full_df):
     """Render Full Subscribers sub-tab med scorecards, graf og tabel"""
-    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    country_cols = COUNTRY_ORDER
     
     # Farver per land
     country_colors = {
@@ -401,16 +391,8 @@ def render_full_subscribers_tab(full_df):
                     )
                 )
         
-        fig.update_layout(
-            title="", showlegend=True, height=600,
-            margin=dict(l=50, r=50, t=60, b=50),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-            plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='x unified'
-        )
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
-        fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
-        
+        style_graph(fig, height=600, legend_position='center', margin_top=60, 
+                    x_tickformat='%Y-%m', y_tickformat=',')
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
@@ -440,7 +422,7 @@ def render_full_subscribers_tab(full_df):
 
 def render_light_subscribers_tab(light_df):
     """Render Light Subscribers sub-tab med scorecards, graf og tabel"""
-    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
+    country_cols = COUNTRY_ORDER
     
     # Farver per land
     country_colors = {
@@ -547,16 +529,8 @@ def render_light_subscribers_tab(light_df):
                     )
                 )
         
-        fig.update_layout(
-            title="", showlegend=True, height=600,
-            margin=dict(l=50, r=50, t=60, b=50),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-            plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
-            hovermode='x unified'
-        )
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
-        fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
-        
+        style_graph(fig, height=600, legend_position='center', margin_top=60,
+                    x_tickformat='%Y-%m', y_tickformat=',')
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)

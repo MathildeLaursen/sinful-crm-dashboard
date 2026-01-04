@@ -75,7 +75,8 @@ GRAPH_COLORS = {
 }
 
 
-def style_graph(fig, height=400, show_legend=True):
+def style_graph(fig, height=400, show_legend=True, legend_position='right', 
+                 margin_top=30, x_tickformat=None, y_tickformat=None):
     """
     Anvend standard Unicorn styling på en Plotly figur.
     
@@ -83,31 +84,49 @@ def style_graph(fig, height=400, show_legend=True):
         fig: Plotly figure objekt
         height: Graf højde i pixels
         show_legend: Vis legend (default True)
+        legend_position: 'right', 'center' eller dict med custom position
+        margin_top: Top margin i pixels (default 30, brug 60 for legend over graf)
+        x_tickformat: Format for x-akse labels (f.eks. '%Y-%m')
+        y_tickformat: Format for y-akse labels (f.eks. ',')
     
     Returns:
         fig: Den stylede figur
     """
+    # Legend position presets
+    if legend_position == 'right':
+        legend_config = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    elif legend_position == 'center':
+        legend_config = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+    elif isinstance(legend_position, dict):
+        legend_config = legend_position
+    else:
+        legend_config = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    
     fig.update_layout(
         title="",
         showlegend=show_legend,
         height=height,
-        margin=dict(l=50, r=50, t=30, b=50),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=50, r=50, t=margin_top, b=50),
+        legend=legend_config,
         plot_bgcolor=GRAPH_COLORS['plot_bg'],
         paper_bgcolor=GRAPH_COLORS['paper_bg'],
         hovermode='x unified'
     )
     
-    fig.update_xaxes(
-        gridcolor=GRAPH_COLORS['grid_x'],
-        automargin=True,
-        ticklabelstandoff=10
-    )
+    # X-akse styling
+    x_kwargs = dict(gridcolor=GRAPH_COLORS['grid_x'], automargin=True, ticklabelstandoff=10)
+    if x_tickformat:
+        x_kwargs['tickformat'] = x_tickformat
+    fig.update_xaxes(**x_kwargs)
     
-    fig.update_yaxes(
-        gridcolor=GRAPH_COLORS['grid_y'],
-        automargin=True,
-        ticklabelstandoff=10
-    )
+    # Y-akse styling
+    y_kwargs = dict(gridcolor=GRAPH_COLORS['grid_y'], automargin=True, ticklabelstandoff=10)
+    if y_tickformat:
+        y_kwargs['tickformat'] = y_tickformat
+    fig.update_yaxes(**y_kwargs)
     
     return fig
+
+
+# Standard lande rækkefølge for dropdowns
+COUNTRY_ORDER = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
