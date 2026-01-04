@@ -715,11 +715,9 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     mail_df['CTR'] = mail_df.apply(lambda x: (x['Unique_Clicks'] / x['Unique_Opens'] * 100) if x['Unique_Opens'] > 0 else 0, axis=1)
 
     # === SKJUL INAKTIVE CHECKBOX (mellem scorecards og tabel) ===
-    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-    
     if filter_config is not None and '_ignore_inactive_key' in filter_config:
         ignore_inactive_key = filter_config['_ignore_inactive_key']
-        st.markdown('<div style="font-size: 0.85em;">', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 0.85em; margin-top: 10px; margin-bottom: 5px;">', unsafe_allow_html=True)
         ignore_inactive_new = st.checkbox(
             "Skjul inaktive mails fra tabel og grafer", 
             value=st.session_state[ignore_inactive_key], 
@@ -738,8 +736,6 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
             st.session_state[mail_state_key] = list(new_available_mails)
             st.session_state[mail_reset_key] += 1
             st.rerun()
-    
-    st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
     # === TABEL (OVER GRAFERNE) - Vis rå data uden aggregering ===
     # Sørg for at alle 4 kolonner eksisterer
