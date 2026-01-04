@@ -823,6 +823,9 @@ def render_nye_subscribers_tab(events_df):
             'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0', 'Total': '#4A3F55'
         }
         
+        # Master sources der skal have Source sub-tabs
+        masters_with_source_tabs = ['On Site', 'Game', 'Lead Ad']
+        
         for i, master in enumerate(master_sources):
             with source_tabs[i + 1]:
                 st.markdown(f"<div style='height: 10px;'></div>", unsafe_allow_html=True)
@@ -830,208 +833,259 @@ def render_nye_subscribers_tab(events_df):
                 # Filtrer til denne Master Source
                 master_df = display_events[display_events['Master Source'] == master].copy()
                 
-                # Aggreger per måned og land (sum over alle Sources under denne Master Source)
-                agg_master = master_df.groupby('Month')[country_cols].sum().reset_index()
-                agg_master = agg_master.sort_values('Month')
-                
-                # Beregn Total kolonne
-                agg_master['Total'] = agg_master[country_cols].sum(axis=1)
-                
-                # --- SLIDER ---
-                ms_available_months = sorted(agg_master['Month'].unique().tolist())
-                ms_current_month = ms_available_months[-1] if ms_available_months else None
-                
-                if len(ms_available_months) > 1:
-                    ms_month_range = st.select_slider(
-                        "Periode",
-                        options=ms_available_months,
-                        value=(ms_current_month, ms_current_month),
-                        format_func=format_month_short_kilder,
-                        key=f"kilder_{master}_period",
-                        label_visibility="collapsed"
-                    )
-                    ms_start_month, ms_end_month = ms_month_range
+                # Tjek om denne Master Source skal have Source sub-tabs
+                if master in masters_with_source_tabs:
+                    # Hent unikke Sources under denne Master Source
+                    sources_list = sorted(master_df['Source'].unique().tolist())
+                    
+                    # Opret sub-tabs: Oversigt + hver Source
+                    source_tab_names = ["Oversigt"] + sources_list
+                    source_sub_tabs = st.tabs(source_tab_names)
+                    
+                    # --- OVERSIGT TAB (aggregeret for hele Master Source) ---
+                    with source_sub_tabs[0]:
+                        render_source_content(master_df, country_cols, country_colors, f"kilder_{master}_oversigt", is_overview=True)
+                    
+                    # --- INDIVIDUELLE SOURCE TABS ---
+                    for src_idx, source_name in enumerate(sources_list):
+                        with source_sub_tabs[src_idx + 1]:
+                            source_df = master_df[master_df['Source'] == source_name].copy()
+                            render_source_content(source_df, country_cols, country_colors, f"kilder_{master}_{source_name}", is_overview=False)
                 else:
-                    ms_start_month = ms_available_months[0] if ms_available_months else None
-                    ms_end_month = ms_start_month
-                
-                # Filtrer data til valgt periode
-                ms_period_df = agg_master[(agg_master['Month'] >= ms_start_month) & (agg_master['Month'] <= ms_end_month)]
-                
-                # Find valgte måneder
-                ms_selected_months = sorted(ms_period_df['Month'].unique().tolist())
-                ms_num_months = len(ms_selected_months)
-                
-                # Beregn måned progress
-                import calendar
-                today = datetime.date.today()
-                yesterday = today - datetime.timedelta(days=1)
-                days_with_data = yesterday.day
-                total_days_in_month = calendar.monthrange(today.year, today.month)[1]
-                ms_month_progress = days_with_data / total_days_in_month
-                
-                # Tjek om nuværende måned er valgt
-                ms_current_month_dt = pd.Timestamp(today.year, today.month, 1)
-                ms_current_month_selected = any(
-                    m.year == ms_current_month_dt.year and m.month == ms_current_month_dt.month 
-                    for m in ms_selected_months
-                )
-                
-                # Find sammenligningsperiode: N måneder FØR den ældste valgte måned
-                if ms_selected_months and ms_num_months > 0:
-                    ms_oldest_selected = ms_selected_months[0]
-                    ms_oldest_idx = ms_available_months.index(ms_oldest_selected) if ms_oldest_selected in ms_available_months else -1
-                    
-                    ms_prev_months = []
-                    for idx in range(ms_num_months):
-                        prev_idx = ms_oldest_idx - 1 - idx
-                        if prev_idx >= 0:
-                            ms_prev_months.append(ms_available_months[prev_idx])
-                    
-                    ms_oldest_prev_month = min(ms_prev_months) if ms_prev_months else None
-                else:
-                    ms_prev_months = []
-                    ms_oldest_prev_month = None
-                
-                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-                
-                # --- SCORECARDS PER LAND ---
-                # Række 1: DK, SE, NO, FI, FR, UK
-                row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
-                cols_row1 = st.columns(6)
-                for j, country in enumerate(row1_countries):
-                    if country in agg_master.columns:
-                        current = ms_period_df[country].sum()
-                        
-                        # Beregn sammenligning
-                        prev = 0
-                        if ms_prev_months:
-                            for pm in ms_prev_months:
-                                pm_row = agg_master[agg_master['Month'] == pm]
-                                if not pm_row.empty:
-                                    pm_val = pm_row.iloc[0][country]
-                                    if pm == ms_oldest_prev_month and ms_current_month_selected:
-                                        prev += pm_val * ms_month_progress
-                                    else:
-                                        prev += pm_val
-                        
-                        if prev > 0:
-                            growth = current - prev
-                            pct = ((current - prev) / prev * 100)
-                            growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
-                            cols_row1[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
-                        else:
-                            cols_row1[j].metric(f"{country}", format_number(current))
-                    else:
-                        cols_row1[j].metric(f"{country}", "—")
-                
-                # Række 2: DE, AT, NL, BE, CH + Total
-                row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
-                cols_row2 = st.columns(6)
-                for j, country in enumerate(row2_countries):
-                    if country in agg_master.columns:
-                        current = ms_period_df[country].sum()
-                        
-                        # Beregn sammenligning
-                        prev = 0
-                        if ms_prev_months:
-                            for pm in ms_prev_months:
-                                pm_row = agg_master[agg_master['Month'] == pm]
-                                if not pm_row.empty:
-                                    pm_val = pm_row.iloc[0][country]
-                                    if pm == ms_oldest_prev_month and ms_current_month_selected:
-                                        prev += pm_val * ms_month_progress
-                                    else:
-                                        prev += pm_val
-                        
-                        if prev > 0:
-                            growth = current - prev
-                            pct = ((current - prev) / prev * 100)
-                            growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
-                            cols_row2[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
-                        else:
-                            cols_row2[j].metric(f"{country}", format_number(current))
-                    else:
-                        cols_row2[j].metric(f"{country}", "—")
-                
-                # Total kort i position 6
-                if 'Total' in agg_master.columns:
-                    ms_current_total = ms_period_df['Total'].sum()
-                    
-                    # Beregn sammenligning for Total
-                    ms_prev_total = 0
-                    if ms_prev_months:
-                        for pm in ms_prev_months:
-                            pm_row = agg_master[agg_master['Month'] == pm]
-                            if not pm_row.empty:
-                                pm_val = pm_row.iloc[0]['Total']
-                                if pm == ms_oldest_prev_month and ms_current_month_selected:
-                                    ms_prev_total += pm_val * ms_month_progress
-                                else:
-                                    ms_prev_total += pm_val
-                    
-                    if ms_prev_total > 0:
-                        ms_total_growth = ms_current_total - ms_prev_total
-                        ms_total_pct = ((ms_current_total - ms_prev_total) / ms_prev_total * 100)
-                        ms_total_growth_str = f"+{ms_total_growth:,.0f}" if ms_total_growth >= 0 else f"{ms_total_growth:,.0f}"
-                        cols_row2[5].metric("Total", format_number(ms_current_total), delta=f"{ms_total_pct:+.1f}% ({ms_total_growth_str})")
-                    else:
-                        cols_row2[5].metric("Total", format_number(ms_current_total))
-                
-                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-                
-                # --- GRAF: Udvikling per land ---
-                fig = go.Figure()
-                for country in country_cols:
-                    if country in agg_master.columns:
-                        fig.add_trace(
-                            go.Scatter(
-                                x=agg_master['Month'],
-                                y=agg_master[country],
-                                name=country,
-                                mode='lines+markers',
-                                line=dict(color=country_colors.get(country, '#9B7EBD'), width=2),
-                                marker=dict(size=6)
-                            )
-                        )
-                
-                fig.update_layout(
-                    title="",
-                    showlegend=True,
-                    height=500,
-                    margin=dict(l=50, r=50, t=60, b=50),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-                    plot_bgcolor='rgba(250,245,255,0.5)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    hovermode='x unified'
-                )
-                fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
-                fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
-                
-                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-                
-                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-                
-                # --- TABEL: Sources under denne Master Source ---
-                master_df['Month_str'] = master_df['Month'].dt.strftime('%Y-%m')
-                cols_to_show = ['Month_str', 'Source'] + [c for c in country_cols if c in master_df.columns]
-                
-                # Beregn højde baseret på antal rækker
-                table_height = min(len(master_df) * 38 + 60, 1200)
-                
-                st.dataframe(
-                    master_df[cols_to_show].sort_values('Month_str', ascending=False),
-                    use_container_width=True,
-                    hide_index=True,
-                    height=table_height,
-                    column_config={
-                        "Month_str": st.column_config.TextColumn("Måned", width="small"),
-                        "Source": st.column_config.TextColumn("Source", width="medium"),
-                        **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in master_df.columns}
-                    }
-                )
+                    # For Sleeknote og Other: vis direkte uden sub-tabs
+                    render_source_content(master_df, country_cols, country_colors, f"kilder_{master}", is_overview=True)
     else:
         st.info("Ingen subscriber events data.")
+
+
+def render_source_content(df, country_cols, country_colors, key_prefix, is_overview=True):
+    """Render indhold for en source/master source med slider, scorecards, graf og tabel"""
+    if df.empty:
+        st.info("Ingen data.")
+        return
+    
+    # Aggreger per måned og land
+    agg_df = df.groupby('Month')[country_cols].sum().reset_index()
+    agg_df = agg_df.sort_values('Month')
+    
+    # Beregn Total kolonne
+    agg_df['Total'] = agg_df[country_cols].sum(axis=1)
+    
+    # --- SLIDER ---
+    available_months = sorted(agg_df['Month'].unique().tolist())
+    current_month_val = available_months[-1] if available_months else None
+    
+    def format_month_short_src(m):
+        return m.strftime('%b %y') if hasattr(m, 'strftime') else str(m)
+    
+    if len(available_months) > 1:
+        month_range = st.select_slider(
+            "Periode",
+            options=available_months,
+            value=(current_month_val, current_month_val),
+            format_func=format_month_short_src,
+            key=f"{key_prefix}_period",
+            label_visibility="collapsed"
+        )
+        start_month, end_month = month_range
+    else:
+        start_month = available_months[0] if available_months else None
+        end_month = start_month
+    
+    # Filtrer data til valgt periode
+    period_df = agg_df[(agg_df['Month'] >= start_month) & (agg_df['Month'] <= end_month)]
+    
+    # Find valgte måneder
+    selected_months = sorted(period_df['Month'].unique().tolist())
+    num_months = len(selected_months)
+    
+    # Beregn måned progress
+    import calendar
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    days_with_data = yesterday.day
+    total_days_in_month = calendar.monthrange(today.year, today.month)[1]
+    month_progress = days_with_data / total_days_in_month
+    
+    # Tjek om nuværende måned er valgt
+    current_month_dt = pd.Timestamp(today.year, today.month, 1)
+    current_month_selected = any(
+        m.year == current_month_dt.year and m.month == current_month_dt.month 
+        for m in selected_months
+    )
+    
+    # Find sammenligningsperiode: N måneder FØR den ældste valgte måned
+    if selected_months and num_months > 0:
+        oldest_selected = selected_months[0]
+        oldest_idx = available_months.index(oldest_selected) if oldest_selected in available_months else -1
+        
+        prev_months = []
+        for idx in range(num_months):
+            prev_idx = oldest_idx - 1 - idx
+            if prev_idx >= 0:
+                prev_months.append(available_months[prev_idx])
+        
+        oldest_prev_month = min(prev_months) if prev_months else None
+    else:
+        prev_months = []
+        oldest_prev_month = None
+    
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    
+    # --- SCORECARDS PER LAND ---
+    # Række 1: DK, SE, NO, FI, FR, UK
+    row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
+    cols_row1 = st.columns(6)
+    for j, country in enumerate(row1_countries):
+        if country in agg_df.columns:
+            current = period_df[country].sum()
+            
+            # Beregn sammenligning
+            prev = 0
+            if prev_months:
+                for pm in prev_months:
+                    pm_row = agg_df[agg_df['Month'] == pm]
+                    if not pm_row.empty:
+                        pm_val = pm_row.iloc[0][country]
+                        if pm == oldest_prev_month and current_month_selected:
+                            prev += pm_val * month_progress
+                        else:
+                            prev += pm_val
+            
+            if prev > 0:
+                growth = current - prev
+                pct = ((current - prev) / prev * 100)
+                growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                cols_row1[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
+            else:
+                cols_row1[j].metric(f"{country}", format_number(current))
+        else:
+            cols_row1[j].metric(f"{country}", "—")
+    
+    # Række 2: DE, AT, NL, BE, CH + Total
+    row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
+    cols_row2 = st.columns(6)
+    for j, country in enumerate(row2_countries):
+        if country in agg_df.columns:
+            current = period_df[country].sum()
+            
+            # Beregn sammenligning
+            prev = 0
+            if prev_months:
+                for pm in prev_months:
+                    pm_row = agg_df[agg_df['Month'] == pm]
+                    if not pm_row.empty:
+                        pm_val = pm_row.iloc[0][country]
+                        if pm == oldest_prev_month and current_month_selected:
+                            prev += pm_val * month_progress
+                        else:
+                            prev += pm_val
+            
+            if prev > 0:
+                growth = current - prev
+                pct = ((current - prev) / prev * 100)
+                growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                cols_row2[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
+            else:
+                cols_row2[j].metric(f"{country}", format_number(current))
+        else:
+            cols_row2[j].metric(f"{country}", "—")
+    
+    # Total kort i position 6
+    if 'Total' in agg_df.columns:
+        current_total = period_df['Total'].sum()
+        
+        # Beregn sammenligning for Total
+        prev_total = 0
+        if prev_months:
+            for pm in prev_months:
+                pm_row = agg_df[agg_df['Month'] == pm]
+                if not pm_row.empty:
+                    pm_val = pm_row.iloc[0]['Total']
+                    if pm == oldest_prev_month and current_month_selected:
+                        prev_total += pm_val * month_progress
+                    else:
+                        prev_total += pm_val
+        
+        if prev_total > 0:
+            total_growth = current_total - prev_total
+            total_pct = ((current_total - prev_total) / prev_total * 100)
+            total_growth_str = f"+{total_growth:,.0f}" if total_growth >= 0 else f"{total_growth:,.0f}"
+            cols_row2[5].metric("Total", format_number(current_total), delta=f"{total_pct:+.1f}% ({total_growth_str})")
+        else:
+            cols_row2[5].metric("Total", format_number(current_total))
+    
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    
+    # --- GRAF: Udvikling per land ---
+    fig = go.Figure()
+    graph_cols = country_cols + ['Total']
+    for country in graph_cols:
+        if country in agg_df.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=agg_df['Month'],
+                    y=agg_df[country],
+                    name=country,
+                    mode='lines+markers',
+                    line=dict(color=country_colors.get(country, '#9B7EBD'), width=2),
+                    marker=dict(size=6)
+                )
+            )
+    
+    fig.update_layout(
+        title="",
+        showlegend=True,
+        height=500,
+        margin=dict(l=50, r=50, t=60, b=50),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        plot_bgcolor='rgba(250,245,255,0.5)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        hovermode='x unified'
+    )
+    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
+    fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+    
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    
+    # --- TABEL ---
+    if is_overview:
+        # For oversigt: vis alle rækker med Source kolonne
+        df['Month_str'] = df['Month'].dt.strftime('%Y-%m')
+        cols_to_show = ['Month_str', 'Source'] + [c for c in country_cols if c in df.columns]
+        
+        table_height = min(len(df) * 38 + 60, 1200)
+        
+        st.dataframe(
+            df[cols_to_show].sort_values('Month_str', ascending=False),
+            use_container_width=True,
+            hide_index=True,
+            height=table_height,
+            column_config={
+                "Month_str": st.column_config.TextColumn("Måned", width="small"),
+                "Source": st.column_config.TextColumn("Source", width="medium"),
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in df.columns}
+            }
+        )
+    else:
+        # For individuel source: vis aggregeret per måned
+        agg_df['Month_str'] = agg_df['Month'].dt.strftime('%Y-%m')
+        cols_to_show = ['Month_str'] + [c for c in country_cols if c in agg_df.columns] + ['Total']
+        
+        table_height = min(len(agg_df) * 38 + 60, 800)
+        
+        st.dataframe(
+            agg_df[cols_to_show].sort_values('Month_str', ascending=False),
+            use_container_width=True,
+            hide_index=True,
+            height=table_height,
+            column_config={
+                "Month_str": st.column_config.TextColumn("Måned", width="small"),
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols + ['Total'] if col in agg_df.columns}
+            }
+        )
 
 
 def render_subscribers_tab():
