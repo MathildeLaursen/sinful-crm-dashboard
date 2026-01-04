@@ -778,11 +778,11 @@ def render_nye_subscribers_tab(events_df):
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # --- MASTER SOURCE TABS ---
-        # Farver per land
+        # Farver per land (Total får en mørk farve der skiller sig ud)
         country_colors = {
             'DK': '#9B7EBD', 'SE': '#E8B4CB', 'NO': '#A8E6CF', 'FI': '#FFD3B6',
             'FR': '#D4BFFF', 'UK': '#F0B4D4', 'DE': '#B4E0F0', 'AT': '#E0D4B4',
-            'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0'
+            'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0', 'Total': '#4A3F55'
         }
         
         for i, master in enumerate(master_sources):
