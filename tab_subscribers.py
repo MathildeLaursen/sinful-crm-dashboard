@@ -319,7 +319,7 @@ def render_full_subscribers_tab(full_df):
                 )
         
         fig.update_layout(
-            title="", showlegend=True, height=400,
+            title="", showlegend=True, height=600,
             margin=dict(l=50, r=50, t=60, b=50),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
             plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
@@ -385,7 +385,7 @@ def render_light_subscribers_tab(light_df):
                 )
         
         fig.update_layout(
-            title="", showlegend=True, height=400,
+            title="", showlegend=True, height=600,
             margin=dict(l=50, r=50, t=60, b=50),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
             plot_bgcolor='rgba(250,245,255,0.5)', paper_bgcolor='rgba(0,0,0,0)',
