@@ -19,6 +19,7 @@ from tab_newsletters import render_newsletters_tab
 from tab_subscribers import render_subscribers_tab
 from tab_flows import render_flows_tab
 from tab_games import render_games_tab
+from tab_repeat import render_repeat_tab
 
 # --- CSS TEMA ---
 css_path = os.path.join(os.path.dirname(__file__), 'style.css')
@@ -159,7 +160,7 @@ if not check_password():
 st.title("CRM Dashboard")
 
 # Tabs
-tab_newsletters, tab_flows, tab_games, tab_subscribers = st.tabs(["Newsletters", "Flows", "Games", "Subscribers"])
+tab_newsletters, tab_flows, tab_games, tab_repeat, tab_subscribers = st.tabs(["Newsletters", "Flows", "Games", "Repeat", "Subscribers"])
 
 with tab_newsletters:
     render_newsletters_tab()
@@ -169,6 +170,9 @@ with tab_flows:
 
 with tab_games:
     render_games_tab()
+
+with tab_repeat:
+    render_repeat_tab()
 
 with tab_subscribers:
     render_subscribers_tab()
