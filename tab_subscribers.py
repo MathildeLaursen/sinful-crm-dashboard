@@ -6,7 +6,9 @@ import pandas as pd
 import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from shared import get_gspread_client, show_metric, format_number, style_graph, COUNTRY_ORDER, get_colors_for_categories
+from shared import (get_gspread_client, show_metric, format_number, style_graph, 
+                    COUNTRY_ORDER, COUNTRY_ROW1, COUNTRY_ROW2, get_colors_for_categories,
+                    format_month_short, get_month_progress)
 
 
 @st.cache_data(ttl=300, show_spinner=False)  # Cache i 5 minutter
@@ -49,13 +51,6 @@ def load_subscribers_data():
         return pd.DataFrame(), pd.DataFrame()
 
 
-def format_month_short(month_dt):
-    """Formater måned til kort dansk format (Jan 25, Feb 25, osv.)"""
-    month_names = {
-        1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Maj', 6: 'Jun',
-        7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Okt', 11: 'Nov', 12: 'Dec'
-    }
-    return f"{month_names[month_dt.month]} {str(month_dt.year)[2:]}"
 
 
 def render_overview_tab(full_df, light_df):
@@ -322,7 +317,7 @@ def render_full_subscribers_tab(full_df):
         
         # --- SCORECARDS PER LAND (med % og absolut ændring) ---
         # Række 1: DK, SE, NO, FI, FR, UK
-        row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
+        row1_countries = COUNTRY_ROW1
         cols_row1 = st.columns(6)
         for i, country in enumerate(row1_countries):
             if country in full_df.columns and not current_row.empty:
@@ -340,7 +335,7 @@ def render_full_subscribers_tab(full_df):
                 cols_row1[i].metric(f"{country}", "—")
         
         # Række 2: DE, AT, NL, BE, CH + Total
-        row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
+        row2_countries = COUNTRY_ROW2
         cols_row2 = st.columns(6)
         for i, country in enumerate(row2_countries):
             if country in full_df.columns and not current_row.empty:
@@ -457,7 +452,7 @@ def render_light_subscribers_tab(light_df):
         
         # --- SCORECARDS PER LAND (med % og absolut ændring) ---
         # Række 1: DK, SE, NO, FI, FR, UK
-        row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
+        row1_countries = COUNTRY_ROW1
         cols_row1 = st.columns(6)
         for i, country in enumerate(row1_countries):
             if country in light_df.columns and not current_row.empty:
@@ -475,7 +470,7 @@ def render_light_subscribers_tab(light_df):
                 cols_row1[i].metric(f"{country}", "—")
         
         # Række 2: DE, AT, NL, BE, CH + Total
-        row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
+        row2_countries = COUNTRY_ROW2
         cols_row2 = st.columns(6)
         for i, country in enumerate(row2_countries):
             if country in light_df.columns and not current_row.empty:

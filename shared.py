@@ -131,6 +131,126 @@ def style_graph(fig, height=400, show_legend=True, legend_position='right',
 # Standard lande rækkefølge for dropdowns
 COUNTRY_ORDER = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH']
 
+# Lande opdelt i rækker for scorecards (6 + 5)
+COUNTRY_ROW1 = COUNTRY_ORDER[:6]  # DK, SE, NO, FI, FR, UK
+COUNTRY_ROW2 = COUNTRY_ORDER[6:]  # DE, AT, NL, BE, CH
+
+
+# ===========================================
+# DATO OG MÅNED UTILITIES
+# ===========================================
+
+# Danske månedsnavne
+MONTH_NAMES = {
+    1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Maj', 6: 'Jun',
+    7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Okt', 11: 'Nov', 12: 'Dec'
+}
+
+
+def format_month_short(month_input):
+    """
+    Formater måned til kort dansk format (Jan 25, Feb 25, osv.)
+    
+    Args:
+        month_input: Kan være:
+            - datetime/Timestamp objekt
+            - String i format 'YYYY-MM' eller 'YYYY-M'
+    
+    Returns:
+        String i format 'Jan 25'
+    """
+    if hasattr(month_input, 'month') and hasattr(month_input, 'year'):
+        # datetime/Timestamp objekt
+        month = month_input.month
+        year = month_input.year
+    elif isinstance(month_input, str) and '-' in month_input:
+        # String format 'YYYY-MM'
+        parts = month_input.split('-')
+        year = int(parts[0])
+        month = int(parts[1])
+    else:
+        return str(month_input)
+    
+    return f"{MONTH_NAMES[month]} {str(year)[2:]}"
+
+
+def get_month_progress():
+    """
+    Beregn hvor langt vi er i nuværende måned (0.0 - 1.0).
+    Bruger data til og med i går.
+    
+    Returns:
+        float: Andel af måneden der er gået (f.eks. 0.5 for midt i måneden)
+    """
+    import datetime
+    import calendar
+    
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    days_with_data = yesterday.day
+    total_days_in_month = calendar.monthrange(today.year, today.month)[1]
+    return days_with_data / total_days_in_month
+
+
+def get_current_month_str():
+    """
+    Hent nuværende måned som string i format 'YYYY-M'.
+    
+    Returns:
+        String f.eks. '2025-1'
+    """
+    import datetime
+    today = datetime.date.today()
+    return f"{today.year}-{today.month}"
+
+
+def get_previous_month_str(from_month=None):
+    """
+    Hent forrige måned som string i format 'YYYY-M'.
+    
+    Args:
+        from_month: Optional string 'YYYY-M' at beregne fra. Hvis None, bruges nuværende måned.
+    
+    Returns:
+        String f.eks. '2024-12'
+    """
+    import datetime
+    
+    if from_month:
+        parts = from_month.split('-')
+        year = int(parts[0])
+        month = int(parts[1])
+    else:
+        today = datetime.date.today()
+        year = today.year
+        month = today.month
+    
+    if month == 1:
+        return f"{year - 1}-12"
+    else:
+        return f"{year}-{month - 1}"
+
+
+def is_current_month(month_input):
+    """
+    Tjek om en måned er den nuværende måned.
+    
+    Args:
+        month_input: datetime/Timestamp objekt eller string 'YYYY-M'
+    
+    Returns:
+        bool
+    """
+    import datetime
+    today = datetime.date.today()
+    
+    if hasattr(month_input, 'month') and hasattr(month_input, 'year'):
+        return month_input.year == today.year and month_input.month == today.month
+    elif isinstance(month_input, str) and '-' in month_input:
+        parts = month_input.split('-')
+        return int(parts[0]) == today.year and int(parts[1]) == today.month
+    return False
+
 
 # ===========================================
 # DYNAMISK FARVEPALETTE

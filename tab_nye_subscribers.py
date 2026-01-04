@@ -3,10 +3,11 @@ Nye Subscribers Tab - CRM Dashboard
 """
 import streamlit as st
 import pandas as pd
-import datetime
-import calendar
 import plotly.graph_objects as go
-from shared import get_gspread_client, format_number, style_graph, COUNTRY_ORDER, get_colors_for_categories, get_color_for_category
+from shared import (get_gspread_client, format_number, style_graph, 
+                    COUNTRY_ORDER, COUNTRY_ROW1, COUNTRY_ROW2, 
+                    get_colors_for_categories, get_color_for_category,
+                    format_month_short, get_month_progress, is_current_month)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -101,9 +102,6 @@ def render_nye_subscribers_content(events_df):
             available_months = sorted(display_events['Month'].unique())
             current_month = available_months[-1] if available_months else None
             
-            def format_month_short_kilder(m):
-                return m.strftime('%b %y') if hasattr(m, 'strftime') else str(m)
-            
             # Filter row: Land + Slider
             col_land, col_slider = st.columns([1, 5])
             
@@ -155,7 +153,7 @@ def render_nye_subscribers_content(events_df):
                         "Periode",
                         options=available_months,
                         value=(current_month, current_month),
-                        format_func=format_month_short_kilder,
+                        format_func=format_month_short,
                         key="kilder_oversigt_period",
                         label_visibility="collapsed"
                     )
@@ -183,18 +181,10 @@ def render_nye_subscribers_content(events_df):
                 num_months = len(selected_months)
                 
                 # Beregn måned progress
-                today = datetime.date.today()
-                yesterday = today - datetime.timedelta(days=1)
-                days_with_data = yesterday.day
-                total_days_in_month = calendar.monthrange(today.year, today.month)[1]
-                month_progress = days_with_data / total_days_in_month
+                month_progress = get_month_progress()
                 
                 # Tjek om nuværende måned er valgt
-                current_month_dt = pd.Timestamp(today.year, today.month, 1)
-                current_month_selected = any(
-                    m.year == current_month_dt.year and m.month == current_month_dt.month 
-                    for m in selected_months
-                )
+                current_month_selected = any(is_current_month(m) for m in selected_months)
                 
                 # Find sammenligningsperiode
                 if selected_months and num_months > 0:
@@ -335,15 +325,12 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
     available_months = sorted(agg_df['Month'].unique().tolist())
     current_month_val = available_months[-1] if available_months else None
     
-    def format_month_short_src(m):
-        return m.strftime('%b %y') if hasattr(m, 'strftime') else str(m)
-    
     if len(available_months) > 1:
         month_range = st.select_slider(
             "Periode",
             options=available_months,
             value=(current_month_val, current_month_val),
-            format_func=format_month_short_src,
+            format_func=format_month_short,
             key=f"{key_prefix}_period",
             label_visibility="collapsed"
         )
@@ -360,18 +347,10 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
     num_months = len(selected_months)
     
     # Beregn måned progress
-    today = datetime.date.today()
-    yesterday = today - datetime.timedelta(days=1)
-    days_with_data = yesterday.day
-    total_days_in_month = calendar.monthrange(today.year, today.month)[1]
-    month_progress = days_with_data / total_days_in_month
+    month_progress = get_month_progress()
     
     # Tjek om nuværende måned er valgt
-    current_month_dt = pd.Timestamp(today.year, today.month, 1)
-    current_month_selected = any(
-        m.year == current_month_dt.year and m.month == current_month_dt.month 
-        for m in selected_months
-    )
+    current_month_selected = any(is_current_month(m) for m in selected_months)
     
     # Find sammenligningsperiode
     if selected_months and num_months > 0:
@@ -392,7 +371,7 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
     
     # --- SCORECARDS PER LAND ---
-    row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
+    row1_countries = COUNTRY_ROW1
     cols_row1 = st.columns(6)
     for j, country in enumerate(row1_countries):
         if country in agg_df.columns:
@@ -420,7 +399,7 @@ def render_source_content(df, country_cols, country_colors, key_prefix, is_overv
             cols_row1[j].metric(f"{country}", "—")
     
     # Række 2: DE, AT, NL, BE, CH + Total
-    row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
+    row2_countries = COUNTRY_ROW2
     cols_row2 = st.columns(6)
     for j, country in enumerate(row2_countries):
         if country in agg_df.columns:
