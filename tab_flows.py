@@ -252,7 +252,7 @@ def format_month_short(year_month):
     return f"{month_names[month]} {year}"
 
 
-def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None, all_months_df=None):
+def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None, all_months_df=None, ignore_inactive=True, active_flows=None):
     """Render oversigt (alle flows aggregeret)"""
     current_df = flow_df[
         (flow_df['Country'].isin(sel_countries)) &
@@ -404,6 +404,10 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None, all
         (chart_source_df['Flow_Trigger'].isin(sel_flows))
     ].copy()
     
+    # Filtrer grafen baseret på ignore_inactive
+    if ignore_inactive and active_flows is not None:
+        chart_source_df = chart_source_df[chart_source_df['Flow_Trigger'].isin(active_flows)]
+    
     # Aggreger per flow og måned
     chart_df = chart_source_df.groupby(['Year_Month', 'Flow_Trigger'], as_index=False).agg({
         'Received_Email': 'sum',
@@ -509,6 +513,11 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None, all
         'Unsubscribed': 'sum',
         'Bounced': 'sum',
     })
+    
+    # Filtrer tabellen baseret på ignore_inactive
+    if ignore_inactive and active_flows is not None:
+        # Vis kun aktive flows i tabellen
+        table_df = table_df[table_df['Flow_Trigger'].isin(active_flows)]
     
     # Genberegn rater efter aggregering
     table_df['Open_Rate'] = table_df.apply(lambda x: (x['Unique_Opens'] / x['Received_Email'] * 100) if x['Received_Email'] > 0 else 0, axis=1)
@@ -1518,7 +1527,8 @@ def render_overview_tab_content(df, available_months):
 
     # Render indhold (send også alle måneder til grafen)
     all_months_flow_df = aggregate_to_flow_level(df)
-    render_overview_content(flow_df, sel_countries, sel_flows, full_flow_df, all_months_flow_df)
+    ignore_inactive = st.session_state.fl_ignore_inactive_overview
+    render_overview_content(flow_df, sel_countries, sel_flows, full_flow_df, all_months_flow_df, ignore_inactive, active_flows)
 
     if st.button('Opdater Data', key="fl_refresh_overview"):
         st.rerun()
