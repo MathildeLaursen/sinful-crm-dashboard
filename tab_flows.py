@@ -1656,6 +1656,9 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     if ab_state_key not in st.session_state:
         st.session_state[ab_state_key] = list(available_ab)
 
+    # === UNDEROVERSKRIFT ===
+    st.markdown(f'<p style="color: #9B7EBD; font-size: 1.1em; font-weight: 500; margin-bottom: 0.5em;">{flow_trigger}</p>', unsafe_allow_html=True)
+    
     # === LAYOUT ===
     # Linje 1: Land + Slider
     col_land, col_slider = st.columns([1, 5])
