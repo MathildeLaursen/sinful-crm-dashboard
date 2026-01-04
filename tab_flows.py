@@ -1323,9 +1323,9 @@ def render_overview_tab_content(df, available_months):
             for country in all_countries:
                 cb_col, only_col = st.columns([4, 1])
                 with cb_col:
-                checked = country in st.session_state.fl_selected_countries
-                if st.checkbox(country, value=checked, key=f"fl_cb_land_{country}_{reset_land}"):
-                    new_selected.append(country)
+                    checked = country in st.session_state.fl_selected_countries
+                    if st.checkbox(country, value=checked, key=f"fl_cb_land_{country}_{reset_land}"):
+                        new_selected.append(country)
                 with only_col:
                     if st.button("Kun", key=f"fl_only_land_ov_{country}_{reset_land}", type="secondary"):
                         only_clicked_land = country
@@ -1364,7 +1364,7 @@ def render_overview_tab_content(df, available_months):
                 with cb_col:
                     # Vis kun kort flow-navn i checkboxen
                     short_name = get_short_flow_name(flow)
-                checked = flow in st.session_state.fl_selected_flows
+                    checked = flow in st.session_state.fl_selected_flows
                     if st.checkbox(short_name, value=checked, key=f"fl_cb_flow_{flow}_{reset_flow}"):
                         new_selected_flows.append(flow)
                 with only_col:
