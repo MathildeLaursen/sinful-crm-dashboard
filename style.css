@@ -410,6 +410,10 @@ label[data-baseweb="checkbox"] svg path {
     padding: 1rem !important;
     border: 1px solid rgba(155, 126, 189, 0.2) !important;
     box-shadow: 0 2px 8px rgba(155, 126, 189, 0.1) !important;
+    min-height: 110px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
 }
 
 [data-testid="stMetricLabel"] {
