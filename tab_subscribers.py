@@ -213,13 +213,14 @@ def render_overview_tab(full_df, light_df):
         light_growth = 0
 
     total_subscribers = current_full + current_light
+    prev_total = (prev_full or 0) + (prev_light or 0) if (prev_full is not None or prev_light is not None) else None
     total_growth = full_growth + light_growth
 
     show_metric(col1, "Full Subscribers", current_full, prev_full)
     show_metric(col2, "Light Subscribers", current_light, prev_light)
-    show_metric(col3, "Total Subscribers", total_subscribers)
+    show_metric(col3, "Total Subscribers", total_subscribers, prev_total)
     
-    # Nye subscribers denne måned
+    # Nye subscribers - vis med +/- prefix
     col4.metric("Nye Full", f"+{format_number(full_growth)}" if full_growth >= 0 else format_number(full_growth))
     col5.metric("Nye Light", f"+{format_number(light_growth)}" if light_growth >= 0 else format_number(light_growth))
     col6.metric("Nye Total", f"+{format_number(total_growth)}" if total_growth >= 0 else format_number(total_growth))
