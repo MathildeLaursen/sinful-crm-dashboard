@@ -203,8 +203,8 @@ def render_newsletters_tab():
         "Dette kvartal", "I år", "Sidste måned", "Sidste kvartal",
     ]
 
-    # Layout
-    col_preset, col_dato, col_land, col_kamp, col_email, col_ab = st.columns([1.0, 1.4, 1, 1, 1, 1])
+    # Layout - same widths as scorecards below
+    col_preset, col_dato, col_land, col_kamp, col_email, col_ab = st.columns(6)
 
     with col_preset:
         preset_index = preset_options.index(st.session_state.nl_date_preset) if st.session_state.nl_date_preset in preset_options else 1
