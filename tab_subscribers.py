@@ -58,21 +58,9 @@ def load_subscribers_data():
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
-def render_subscribers_tab():
-    """Render Subscribers tab indhold"""
+def render_overview_tab(full_df, light_df):
+    """Render Oversigt sub-tab med scorecards og graf"""
     
-    # Load data
-    try:
-        with st.spinner('Henter subscriber data...'):
-            full_df, light_df, events_df = load_subscribers_data()
-        
-        if full_df.empty and light_df.empty:
-            st.error("Kunne ikke hente subscriber data.")
-            return
-    except Exception as e:
-        st.error(f"Fejl: {e}")
-        return
-
     # Sorter efter dato
     if not full_df.empty:
         full_df = full_df.sort_values('Month', ascending=False)
@@ -154,96 +142,135 @@ def render_subscribers_tab():
             hovermode='x unified'
         )
         
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m')
-        fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',')
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
+        fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
-    # --- TABS FOR DETALJERET DATA ---
-    detail_tab1, detail_tab2, detail_tab3 = st.tabs(["Full Subscribers", "Light Subscribers", "Nye Subscribers per Kilde"])
-    
+def render_full_subscribers_tab(full_df):
+    """Render Full Subscribers sub-tab med tabel"""
     country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
     
-    with detail_tab1:
-        if not full_df.empty:
-            display_full = full_df.copy()
-            display_full['Month'] = display_full['Month'].dt.strftime('%Y-%m')
-            cols_to_show = ['Month'] + [c for c in country_cols if c in display_full.columns]
-            
-            st.dataframe(
-                display_full[cols_to_show],
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Month": st.column_config.TextColumn("Maned", width="small"),
-                    **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_full.columns}
-                }
-            )
-        else:
-            st.info("Ingen Full Subscribers data.")
+    if not full_df.empty:
+        full_df = full_df.sort_values('Month', ascending=False)
+        display_full = full_df.copy()
+        display_full['Month'] = display_full['Month'].dt.strftime('%Y-%m')
+        cols_to_show = ['Month'] + [c for c in country_cols if c in display_full.columns]
+        
+        st.dataframe(
+            display_full[cols_to_show],
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Month": st.column_config.TextColumn("Måned", width="small"),
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_full.columns}
+            }
+        )
+    else:
+        st.info("Ingen Full Subscribers data.")
+
+
+def render_light_subscribers_tab(light_df):
+    """Render Light Subscribers sub-tab med tabel"""
+    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
     
-    with detail_tab2:
-        if not light_df.empty:
-            display_light = light_df.copy()
-            display_light['Month'] = display_light['Month'].dt.strftime('%Y-%m')
-            cols_to_show = ['Month'] + [c for c in country_cols if c in display_light.columns]
-            
-            st.dataframe(
-                display_light[cols_to_show],
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Month": st.column_config.TextColumn("Maned", width="small"),
-                    **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_light.columns}
-                }
-            )
-        else:
-            st.info("Ingen Light Subscribers data.")
+    if not light_df.empty:
+        light_df = light_df.sort_values('Month', ascending=False)
+        display_light = light_df.copy()
+        display_light['Month'] = display_light['Month'].dt.strftime('%Y-%m')
+        cols_to_show = ['Month'] + [c for c in country_cols if c in display_light.columns]
+        
+        st.dataframe(
+            display_light[cols_to_show],
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Month": st.column_config.TextColumn("Måned", width="small"),
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in display_light.columns}
+            }
+        )
+    else:
+        st.info("Ingen Light Subscribers data.")
+
+
+def render_nye_subscribers_tab(events_df):
+    """Render Nye Subscribers per Kilde sub-tab med tabel og filtre"""
+    country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
     
-    with detail_tab3:
-        if not events_df.empty:
-            display_events = events_df.copy()
-            display_events['Month'] = display_events['Month'].dt.strftime('%Y-%m')
-            
-            # Filter muligheder
-            col_filter1, col_filter2 = st.columns(2)
-            
-            with col_filter1:
-                master_sources = ['Alle'] + sorted(display_events['Master Source'].unique().tolist())
-                selected_master = st.selectbox("Master Source", master_sources, key="sub_master_source")
-            
-            with col_filter2:
-                if selected_master != 'Alle':
-                    sources = ['Alle'] + sorted(display_events[display_events['Master Source'] == selected_master]['Source'].unique().tolist())
-                else:
-                    sources = ['Alle'] + sorted(display_events['Source'].unique().tolist())
-                selected_source = st.selectbox("Source", sources, key="sub_source")
-            
-            # Filtrer data
-            filtered_events = display_events.copy()
+    if not events_df.empty:
+        display_events = events_df.copy()
+        display_events['Month'] = display_events['Month'].dt.strftime('%Y-%m')
+        
+        # Filter muligheder
+        col_filter1, col_filter2 = st.columns(2)
+        
+        with col_filter1:
+            master_sources = ['Alle'] + sorted(display_events['Master Source'].unique().tolist())
+            selected_master = st.selectbox("Master Source", master_sources, key="sub_master_source")
+        
+        with col_filter2:
             if selected_master != 'Alle':
-                filtered_events = filtered_events[filtered_events['Master Source'] == selected_master]
-            if selected_source != 'Alle':
-                filtered_events = filtered_events[filtered_events['Source'] == selected_source]
-            
-            cols_to_show = ['Month', 'Master Source', 'Source'] + [c for c in country_cols if c in filtered_events.columns]
-            
-            st.dataframe(
-                filtered_events[cols_to_show].sort_values('Month', ascending=False),
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Month": st.column_config.TextColumn("Maned", width="small"),
-                    "Master Source": st.column_config.TextColumn("Master Source", width="medium"),
-                    "Source": st.column_config.TextColumn("Source", width="medium"),
-                    **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in filtered_events.columns}
-                }
-            )
-        else:
-            st.info("Ingen subscriber events data.")
+                sources = ['Alle'] + sorted(display_events[display_events['Master Source'] == selected_master]['Source'].unique().tolist())
+            else:
+                sources = ['Alle'] + sorted(display_events['Source'].unique().tolist())
+            selected_source = st.selectbox("Source", sources, key="sub_source")
+        
+        # Filtrer data
+        filtered_events = display_events.copy()
+        if selected_master != 'Alle':
+            filtered_events = filtered_events[filtered_events['Master Source'] == selected_master]
+        if selected_source != 'Alle':
+            filtered_events = filtered_events[filtered_events['Source'] == selected_source]
+        
+        cols_to_show = ['Month', 'Master Source', 'Source'] + [c for c in country_cols if c in filtered_events.columns]
+        
+        st.dataframe(
+            filtered_events[cols_to_show].sort_values('Month', ascending=False),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Month": st.column_config.TextColumn("Måned", width="small"),
+                "Master Source": st.column_config.TextColumn("Master Source", width="medium"),
+                "Source": st.column_config.TextColumn("Source", width="medium"),
+                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in filtered_events.columns}
+            }
+        )
+    else:
+        st.info("Ingen subscriber events data.")
+
+
+def render_subscribers_tab():
+    """Render Subscribers tab indhold"""
+    
+    # Load data
+    try:
+        with st.spinner('Henter subscriber data...'):
+            full_df, light_df, events_df = load_subscribers_data()
+        
+        if full_df.empty and light_df.empty:
+            st.error("Kunne ikke hente subscriber data.")
+            return
+    except Exception as e:
+        st.error(f"Fejl: {e}")
+        return
+
+    # --- SUB-TABS ---
+    sub_tab_oversigt, sub_tab_full, sub_tab_light, sub_tab_kilder = st.tabs([
+        "Oversigt", "Full Subscribers", "Light Subscribers", "Nye Subscribers per Kilde"
+    ])
+    
+    with sub_tab_oversigt:
+        render_overview_tab(full_df.copy(), light_df.copy())
+    
+    with sub_tab_full:
+        render_full_subscribers_tab(full_df.copy())
+    
+    with sub_tab_light:
+        render_light_subscribers_tab(light_df.copy())
+    
+    with sub_tab_kilder:
+        render_nye_subscribers_tab(events_df.copy())
 
     if st.button('Opdater Data', key="sub_refresh"):
         st.rerun()
-
