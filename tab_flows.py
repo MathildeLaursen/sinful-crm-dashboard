@@ -1648,8 +1648,8 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         else:
             sel_months = sorted_months
     
-    # === LINJE 2: Group + Mail + Message + A/B ===
-    col_group, col_mail, col_message, col_ab = st.columns([1, 1, 1, 1])
+    # === LINJE 2: Group + Mail + Message + A/B (samme bredde som scorecards) ===
+    col_group, col_mail, col_message, col_ab, col_empty2 = st.columns([1, 1, 1, 1, 2])
     
     # === Session state for Ignorer checkboxes ===
     ignore_group_key = f'fl_ignore_group_{flow_trigger}'
@@ -1828,8 +1828,8 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
                 st.session_state[ab_reset_key] += 1
                 st.rerun()
     
-    # === LINJE 3: Ignorer checkboxes ===
-    col_ig_group, col_ig_mail, col_ig_message, col_ig_ab = st.columns([1, 1, 1, 1])
+    # === LINJE 3: Ignorer checkboxes (samme bredde som scorecards) ===
+    col_ig_group, col_ig_mail, col_ig_message, col_ig_ab, col_ig_empty = st.columns([1, 1, 1, 1, 2])
     
     with col_ig_group:
         ignore_group = st.checkbox(
