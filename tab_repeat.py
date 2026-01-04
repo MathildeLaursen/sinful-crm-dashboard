@@ -2189,7 +2189,7 @@ def render_group_mail_tab(df, repeat_name, group_name, available_months):
     if ignore_ab_key not in st.session_state:
         st.session_state[ignore_ab_key] = False
     if ignore_inactive_key not in st.session_state:
-        st.session_state[ignore_inactive_key] = False
+        st.session_state[ignore_inactive_key] = True
 
     st.markdown(f'<p style="color: #9B7EBD; font-size: 1.1em; font-weight: 500; margin-bottom: 0.5em;">{repeat_name} - {group_name}</p>', unsafe_allow_html=True)
 
