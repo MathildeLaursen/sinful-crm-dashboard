@@ -511,6 +511,6 @@ label[data-baseweb="checkbox"] svg path {
 /* Target "Skjul inaktive" checkbox containere i flows */
 /* Brug negativ margin for at kompensere for stVerticalBlock gap (16px) */
 [class*="st-key-fl_ignore_inactive_cb_"] {
-    margin-bottom: -13px !important;
+    margin-bottom: -14.5px !important;
 }
 
