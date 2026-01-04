@@ -176,8 +176,8 @@ def render_overview_tab(full_df, light_df):
         st.warning("Vælg mindst ét land.")
         return
 
-    # --- KPI CARDS (3 kort med % og absolut ændring) ---
-    col1, col2, col3 = st.columns(3)
+    # --- KPI CARDS (3 kort med % og absolut ændring, samme bredde som før) ---
+    col1, col2, col3, _, _, _ = st.columns(6)
     
     # Hent data for seneste valgte måned (end_month) og summér over valgte lande
     if not full_df.empty:
@@ -364,7 +364,7 @@ def render_full_subscribers_tab(full_df):
             else:
                 cols_row1[i].metric(f"{country}", "—")
         
-        # Række 2: DE, AT, NL, BE, CH
+        # Række 2: DE, AT, NL, BE, CH + Total
         row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
         cols_row2 = st.columns(6)
         for i, country in enumerate(row2_countries):
@@ -381,6 +381,18 @@ def render_full_subscribers_tab(full_df):
                     cols_row2[i].metric(f"{country}", format_number(current))
             else:
                 cols_row2[i].metric(f"{country}", "—")
+        
+        # Total kort i position 6
+        if 'Total' in full_df.columns and not current_row.empty:
+            current_total = current_row.iloc[0]['Total']
+            if prev_row is not None and not prev_row.empty:
+                prev_total = prev_row.iloc[0]['Total']
+                total_growth = current_total - prev_total
+                total_pct = ((current_total - prev_total) / prev_total * 100) if prev_total > 0 else 0
+                total_growth_str = f"+{total_growth:,.0f}" if total_growth >= 0 else f"{total_growth:,.0f}"
+                cols_row2[5].metric("Total", format_number(current_total), delta=f"{total_pct:+.1f}% ({total_growth_str})")
+            else:
+                cols_row2[5].metric("Total", format_number(current_total))
         
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
@@ -498,7 +510,7 @@ def render_light_subscribers_tab(light_df):
             else:
                 cols_row1[i].metric(f"{country}", "—")
         
-        # Række 2: DE, AT, NL, BE, CH
+        # Række 2: DE, AT, NL, BE, CH + Total
         row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
         cols_row2 = st.columns(6)
         for i, country in enumerate(row2_countries):
@@ -515,6 +527,18 @@ def render_light_subscribers_tab(light_df):
                     cols_row2[i].metric(f"{country}", format_number(current))
             else:
                 cols_row2[i].metric(f"{country}", "—")
+        
+        # Total kort i position 6
+        if 'Total' in light_df.columns and not current_row.empty:
+            current_total = current_row.iloc[0]['Total']
+            if prev_row is not None and not prev_row.empty:
+                prev_total = prev_row.iloc[0]['Total']
+                total_growth = current_total - prev_total
+                total_pct = ((current_total - prev_total) / prev_total * 100) if prev_total > 0 else 0
+                total_growth_str = f"+{total_growth:,.0f}" if total_growth >= 0 else f"{total_growth:,.0f}"
+                cols_row2[5].metric("Total", format_number(current_total), delta=f"{total_pct:+.1f}% ({total_growth_str})")
+            else:
+                cols_row2[5].metric("Total", format_number(current_total))
         
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
