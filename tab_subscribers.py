@@ -597,51 +597,95 @@ def render_light_subscribers_tab(light_df):
 
 
 def render_nye_subscribers_tab(events_df):
-    """Render Nye Subscribers per Kilde sub-tab med tabel og filtre"""
+    """Render Nye Subscribers per Kilde sub-tab med underfaner per Master Source"""
     country_cols = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK', 'DE', 'AT', 'NL', 'BE', 'CH', 'Total']
+    
+    # Farver for Master Sources
+    master_colors = {
+        'Paid': '#9B7EBD',
+        'Organic': '#A8E6CF',
+        'Referral': '#E8B4CB',
+        'Direct': '#FFD3B6',
+        'Social': '#D4BFFF',
+        'Email': '#87CEEB',
+        'Other': '#F0E68C'
+    }
     
     if not events_df.empty:
         display_events = events_df.copy()
-        display_events['Month'] = display_events['Month'].dt.strftime('%Y-%m')
+        display_events['Month'] = pd.to_datetime(display_events['Month'])
         
-        # Filter muligheder
-        col_filter1, col_filter2 = st.columns(2)
+        # Hent unikke Master Sources
+        master_sources = sorted(display_events['Master Source'].unique().tolist())
         
-        with col_filter1:
-            master_sources = ['Alle'] + sorted(display_events['Master Source'].unique().tolist())
-            selected_master = st.selectbox("Master Source", master_sources, key="sub_master_source")
+        # Opret sub-tabs: Oversigt + en per Master Source
+        tab_names = ["Oversigt"] + master_sources
+        source_tabs = st.tabs(tab_names)
         
-        with col_filter2:
-            if selected_master != 'Alle':
-                sources = ['Alle'] + sorted(display_events[display_events['Master Source'] == selected_master]['Source'].unique().tolist())
-            else:
-                sources = ['Alle'] + sorted(display_events['Source'].unique().tolist())
-            selected_source = st.selectbox("Source", sources, key="sub_source")
+        # --- OVERSIGT TAB ---
+        with source_tabs[0]:
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+            
+            # Aggregér data per måned og Master Source (sum Total)
+            agg_df = display_events.groupby(['Month', 'Master Source'])['Total'].sum().reset_index()
+            agg_df = agg_df.sort_values('Month')
+            
+            # Graf med tidslinje per Master Source
+            fig = go.Figure()
+            for master in master_sources:
+                master_data = agg_df[agg_df['Master Source'] == master]
+                fig.add_trace(
+                    go.Scatter(
+                        x=master_data['Month'],
+                        y=master_data['Total'],
+                        name=master,
+                        mode='lines+markers',
+                        line=dict(color=master_colors.get(master, '#9B7EBD'), width=2),
+                        marker=dict(size=6)
+                    )
+                )
+            
+            fig.update_layout(
+                title="Nye subscribers per Master Source",
+                showlegend=True,
+                height=500,
+                margin=dict(l=50, r=50, t=60, b=50),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                plot_bgcolor='rgba(250,245,255,0.5)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                hovermode='x unified'
+            )
+            fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
+            fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+            
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
-        # Filtrer data
-        filtered_events = display_events.copy()
-        if selected_master != 'Alle':
-            filtered_events = filtered_events[filtered_events['Master Source'] == selected_master]
-        if selected_source != 'Alle':
-            filtered_events = filtered_events[filtered_events['Source'] == selected_source]
-        
-        cols_to_show = ['Month', 'Master Source', 'Source'] + [c for c in country_cols if c in filtered_events.columns]
-        
-        # Beregn højde baseret på antal rækker (38px per række + 60px header, max 1200px)
-        table_height = min(len(filtered_events) * 38 + 60, 1200)
-        
-        st.dataframe(
-            filtered_events[cols_to_show].sort_values('Month', ascending=False),
-            use_container_width=True,
-            hide_index=True,
-            height=table_height,
-            column_config={
-                "Month": st.column_config.TextColumn("Måned", width="small"),
-                "Master Source": st.column_config.TextColumn("Master Source", width="medium"),
-                "Source": st.column_config.TextColumn("Source", width="medium"),
-                **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in filtered_events.columns}
-            }
-        )
+        # --- MASTER SOURCE TABS ---
+        for i, master in enumerate(master_sources):
+            with source_tabs[i + 1]:
+                st.markdown(f"<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                
+                # Filtrer til denne Master Source
+                master_df = display_events[display_events['Master Source'] == master].copy()
+                master_df['Month_str'] = master_df['Month'].dt.strftime('%Y-%m')
+                
+                # Vis tabel med Sources under denne Master Source
+                cols_to_show = ['Month_str', 'Source'] + [c for c in country_cols if c in master_df.columns]
+                
+                # Beregn højde baseret på antal rækker
+                table_height = min(len(master_df) * 38 + 60, 1200)
+                
+                st.dataframe(
+                    master_df[cols_to_show].sort_values('Month_str', ascending=False),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=table_height,
+                    column_config={
+                        "Month_str": st.column_config.TextColumn("Måned", width="small"),
+                        "Source": st.column_config.TextColumn("Source", width="medium"),
+                        **{col: st.column_config.NumberColumn(col, format="localized", width="small") for col in country_cols if col in master_df.columns}
+                    }
+                )
     else:
         st.info("Ingen subscriber events data.")
 
