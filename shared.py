@@ -56,3 +56,58 @@ def show_metric(col, label, current_val, prev_val=None, is_percent=False):
     else:
         col.metric(label, val_fmt)
 
+
+# ===========================================
+# PLOTLY GRAF STYLING - Unicorn tema
+# ===========================================
+
+# Farvekonstanter til grafer
+GRAPH_COLORS = {
+    'grid_x': 'rgba(212,191,255,0.2)',
+    'grid_y': 'rgba(212,191,255,0.3)',
+    'plot_bg': 'rgba(250,245,255,0.5)',
+    'paper_bg': 'rgba(0,0,0,0)',
+    'purple': '#9B7EBD',
+    'pink': '#E8B4CB',
+    'lavender': '#D4BFFF',
+    'mint': '#A8E6CF',
+    'peach': '#FFD3B6',
+}
+
+
+def style_graph(fig, height=400, show_legend=True):
+    """
+    Anvend standard Unicorn styling på en Plotly figur.
+    
+    Args:
+        fig: Plotly figure objekt
+        height: Graf højde i pixels
+        show_legend: Vis legend (default True)
+    
+    Returns:
+        fig: Den stylede figur
+    """
+    fig.update_layout(
+        title="",
+        showlegend=show_legend,
+        height=height,
+        margin=dict(l=50, r=50, t=30, b=50),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        plot_bgcolor=GRAPH_COLORS['plot_bg'],
+        paper_bgcolor=GRAPH_COLORS['paper_bg'],
+        hovermode='x unified'
+    )
+    
+    fig.update_xaxes(
+        gridcolor=GRAPH_COLORS['grid_x'],
+        automargin=True,
+        ticklabelstandoff=10
+    )
+    
+    fig.update_yaxes(
+        gridcolor=GRAPH_COLORS['grid_y'],
+        automargin=True,
+        ticklabelstandoff=10
+    )
+    
+    return fig
