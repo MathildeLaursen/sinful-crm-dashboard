@@ -404,6 +404,27 @@ label[data-baseweb="checkbox"] svg path {
    METRIC CARDS
    =========================================== */
 
+/* Sørg for at kolonner med metrics har samme højde */
+[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) {
+    align-items: stretch !important;
+}
+
+[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) > [data-testid="stColumn"] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) > [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) .stElementContainer {
+    flex: 1 !important;
+    display: flex !important;
+}
+
 [data-testid="stMetric"] {
     background: rgba(255, 255, 255, 0.7) !important;
     border-radius: 12px !important;
@@ -411,6 +432,7 @@ label[data-baseweb="checkbox"] svg path {
     border: 1px solid rgba(155, 126, 189, 0.2) !important;
     box-shadow: 0 2px 8px rgba(155, 126, 189, 0.1) !important;
     min-height: 110px !important;
+    flex: 1 !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
