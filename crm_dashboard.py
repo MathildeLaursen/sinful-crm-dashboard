@@ -17,6 +17,7 @@ import time
 import os
 from tab_newsletters import render_newsletters_tab
 from tab_subscribers import render_subscribers_tab
+from tab_nye_subscribers import render_nye_subscribers_tab
 from tab_flows import render_flows_tab
 from tab_games import render_games_tab
 from tab_repeat import render_repeat_tab
@@ -161,7 +162,9 @@ if not check_password():
 st.title("CRM Dashboard")
 
 # Tabs
-tab_newsletters, tab_flows, tab_games, tab_repeat, tab_light, tab_subscribers = st.tabs(["Newsletters", "Flows", "Games", "Repeat", "Light", "Subscribers"])
+tab_newsletters, tab_flows, tab_games, tab_repeat, tab_light, tab_subscribers, tab_nye_subs = st.tabs([
+    "Newsletters", "Flows", "Games", "Repeat", "Light", "Subscribers", "Nye Subscribers"
+])
 
 with tab_newsletters:
     render_newsletters_tab()
@@ -180,4 +183,7 @@ with tab_light:
 
 with tab_subscribers:
     render_subscribers_tab()
+
+with tab_nye_subs:
+    render_nye_subscribers_tab()
 
