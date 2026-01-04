@@ -630,7 +630,7 @@ def render_light_subscribers_tab(light_df):
         )
     else:
         st.info("Ingen Light Subscribers data.")
-
+    
 
 def render_nye_subscribers_tab(events_df):
     """Render Nye Subscribers per Kilde sub-tab med underfaner per Master Source"""
@@ -885,8 +885,9 @@ def render_nye_subscribers_tab(events_df):
         # Master sources der skal have Source sub-tabs
         masters_with_source_tabs = ['On Site', 'Game', 'Lead Ad']
         
-        # Sources der skal ekskluderes fra Game
+        # Sources der skal ekskluderes
         excluded_game_sources = ['LF_Birthday24', 'LF_Paaske_2021', 'LF_Paaske_2022']
+        excluded_onsite_sources = ['Black_Friday_SignUp', 'Sinful_Live_Newsletter_SignUp']
         
         for i, master in enumerate(master_sources):
             with source_tabs[i + 1]:
@@ -895,9 +896,11 @@ def render_nye_subscribers_tab(events_df):
                 # Filtrer til denne Master Source
                 master_df = display_events[display_events['Master Source'] == master].copy()
                 
-                # Ekskluder specifikke sources fra Game
+                # Ekskluder specifikke sources
                 if master == 'Game':
                     master_df = master_df[~master_df['Source'].isin(excluded_game_sources)]
+                elif master == 'On Site':
+                    master_df = master_df[~master_df['Source'].isin(excluded_onsite_sources)]
                 
                 # Tjek om denne Master Source skal have Source sub-tabs
                 if master in masters_with_source_tabs:
