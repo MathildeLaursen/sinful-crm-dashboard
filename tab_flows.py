@@ -1242,12 +1242,23 @@ def render_overview_tab_content(df, available_months):
             select_all_land = st.checkbox("Vælg alle", value=all_land_selected, key=f"fl_sel_all_land_{reset_land}")
             
             new_selected = []
+            only_clicked_land = None
             for country in all_countries:
-                checked = country in st.session_state.fl_selected_countries
-                if st.checkbox(country, value=checked, key=f"fl_cb_land_{country}_{reset_land}"):
-                    new_selected.append(country)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    checked = country in st.session_state.fl_selected_countries
+                    if st.checkbox(country, value=checked, key=f"fl_cb_land_{country}_{reset_land}"):
+                        new_selected.append(country)
+                with only_col:
+                    if st.button("Kun", key=f"fl_only_land_ov_{country}_{reset_land}", type="secondary"):
+                        only_clicked_land = country
             
-            if select_all_land and not all_land_selected:
+            # Handle Kun button click first
+            if only_clicked_land:
+                st.session_state.fl_selected_countries = [only_clicked_land]
+                st.session_state.fl_cb_reset_land += 1
+                st.rerun()
+            elif select_all_land and not all_land_selected:
                 st.session_state.fl_selected_countries = list(all_countries)
                 st.session_state.fl_cb_reset_land += 1
                 st.rerun()
@@ -1270,14 +1281,25 @@ def render_overview_tab_content(df, available_months):
             select_all_flow = st.checkbox("Vælg alle", value=all_flow_selected, key=f"fl_sel_all_flow_{reset_flow}")
             
             new_selected_flows = []
+            only_clicked_flow = None
             for flow in all_flows:
-                # Vis kun kort flow-navn i checkboxen
-                short_name = get_short_flow_name(flow)
-                checked = flow in st.session_state.fl_selected_flows
-                if st.checkbox(short_name, value=checked, key=f"fl_cb_flow_{flow}_{reset_flow}"):
-                    new_selected_flows.append(flow)
+                cb_col, only_col = st.columns([4, 1])
+                with cb_col:
+                    # Vis kun kort flow-navn i checkboxen
+                    short_name = get_short_flow_name(flow)
+                    checked = flow in st.session_state.fl_selected_flows
+                    if st.checkbox(short_name, value=checked, key=f"fl_cb_flow_{flow}_{reset_flow}"):
+                        new_selected_flows.append(flow)
+                with only_col:
+                    if st.button("Kun", key=f"fl_only_flow_{flow}_{reset_flow}", type="secondary"):
+                        only_clicked_flow = flow
             
-            if select_all_flow and not all_flow_selected:
+            # Handle Kun button click first
+            if only_clicked_flow:
+                st.session_state.fl_selected_flows = [only_clicked_flow]
+                st.session_state.fl_cb_reset_flow += 1
+                st.rerun()
+            elif select_all_flow and not all_flow_selected:
                 st.session_state.fl_selected_flows = list(all_flows)
                 st.session_state.fl_cb_reset_flow += 1
                 st.rerun()
