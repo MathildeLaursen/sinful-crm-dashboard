@@ -665,6 +665,10 @@ def render_nye_subscribers_tab(events_df):
             # Filtrer data til valgt periode
             period_df = agg_df[(agg_df['Month'] >= start_month) & (agg_df['Month'] <= end_month)]
             
+            # Find valgte måneder
+            selected_months = sorted(period_df['Month'].unique().tolist())
+            num_months = len(selected_months)
+            
             # Beregn måned progress (hvor langt vi er i nuværende måned)
             import calendar
             today = datetime.date.today()
@@ -677,8 +681,26 @@ def render_nye_subscribers_tab(events_df):
             current_month_dt = pd.Timestamp(today.year, today.month, 1)
             current_month_selected = any(
                 m.year == current_month_dt.year and m.month == current_month_dt.month 
-                for m in [start_month, end_month] if m is not None
+                for m in selected_months
             )
+            
+            # Find sammenligningsperiode: N måneder FØR den ældste valgte måned
+            if selected_months and num_months > 0:
+                oldest_selected = selected_months[0]
+                oldest_idx = available_months.index(oldest_selected) if oldest_selected in available_months else -1
+                
+                # Find N måneder før oldest_selected
+                prev_months = []
+                for i in range(num_months):
+                    prev_idx = oldest_idx - 1 - i
+                    if prev_idx >= 0:
+                        prev_months.append(available_months[prev_idx])
+                
+                # Den ældste sammenligningsmåned (skal skaleres hvis current month er valgt)
+                oldest_prev_month = min(prev_months) if prev_months else None
+            else:
+                prev_months = []
+                oldest_prev_month = None
             
             # --- SCORECARDS ---
             num_sources = len(master_sources)
@@ -687,27 +709,23 @@ def render_nye_subscribers_tab(events_df):
             for i, master in enumerate(master_sources):
                 master_total = period_df[period_df['Master Source'] == master]['Total'].sum()
                 
-                # Find forrige periode til sammenligning
-                if start_month and len(available_months) > 1:
-                    start_idx = available_months.index(start_month)
-                    if start_idx > 0:
-                        prev_month = available_months[start_idx - 1]
-                        prev_total_raw = agg_df[(agg_df['Month'] == prev_month) & (agg_df['Master Source'] == master)]['Total'].sum()
+                # Beregn sammenligning med forrige periode (N måneder)
+                prev_total = 0
+                if prev_months:
+                    for pm in prev_months:
+                        pm_total = agg_df[(agg_df['Month'] == pm) & (agg_df['Master Source'] == master)]['Total'].sum()
                         
-                        # Skaler forrige måned hvis nuværende måned er valgt
-                        if current_month_selected:
-                            prev_total = prev_total_raw * month_progress
+                        # Skaler kun den ældste sammenligningsmåned hvis nuværende måned er valgt
+                        if pm == oldest_prev_month and current_month_selected:
+                            prev_total += pm_total * month_progress
                         else:
-                            prev_total = prev_total_raw
-                        
-                        if prev_total > 0:
-                            pct = ((master_total - prev_total) / prev_total * 100)
-                            growth_str = f"+{int(master_total - prev_total):,}" if master_total >= prev_total else f"{int(master_total - prev_total):,}"
-                            cols[i].metric(master, format_number(master_total), delta=f"{pct:+.1f}% ({growth_str})")
-                        else:
-                            cols[i].metric(master, format_number(master_total))
-                    else:
-                        cols[i].metric(master, format_number(master_total))
+                            prev_total += pm_total
+                
+                if prev_total > 0:
+                    pct = ((master_total - prev_total) / prev_total * 100)
+                    growth = int(master_total - prev_total)
+                    growth_str = f"+{growth:,}" if growth >= 0 else f"{growth:,}"
+                    cols[i].metric(master, format_number(master_total), delta=f"{pct:+.1f}% ({growth_str})")
                 else:
                     cols[i].metric(master, format_number(master_total))
             
