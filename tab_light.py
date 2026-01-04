@@ -448,13 +448,16 @@ def render_overview_content(light_df, sel_countries, sel_lights, full_df=None, a
         gridcolor='rgba(212,191,255,0.3)',
         tickvals=tick_vals,
         ticktext=tick_text,
-        tickfont=dict(size=10)
+        tickfont=dict(size=10),
+        automargin=True,
+        ticklabelstandoff=10
     )
     fig.update_xaxes(
         gridcolor='rgba(212,191,255,0.2)', 
         tickfont=dict(size=11),
         categoryorder='array',
-        categoryarray=months_sorted
+        categoryarray=months_sorted,
+        automargin=True
     )
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
@@ -681,6 +684,8 @@ def render_overview_content(light_df, sel_countries, sel_lights, full_df=None, a
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=False
             )
             fig.update_yaxes(
@@ -690,10 +695,12 @@ def render_overview_content(light_df, sel_countries, sel_lights, full_df=None, a
                 showgrid=False,
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=True
             )
         
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10), automargin=True)
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
@@ -868,9 +875,10 @@ def render_group_overview_content(df, light_name, sel_countries, sel_groups, ful
     
     fig.update_yaxes(
         title_text="Antal sendt", title_font=dict(size=12, color='#7B5EA5'),
-        gridcolor='rgba(212,191,255,0.3)', tickvals=tick_vals, ticktext=tick_text
+        gridcolor='rgba(212,191,255,0.3)', tickvals=tick_vals, ticktext=tick_text,
+        automargin=True, ticklabelstandoff=10
     )
-    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', categoryorder='array', categoryarray=months_sorted)
+    fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', categoryorder='array', categoryarray=months_sorted, automargin=True)
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
@@ -1093,6 +1101,8 @@ def render_group_overview_content(df, light_name, sel_countries, sel_groups, ful
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=False
             )
             fig.update_yaxes(
@@ -1102,10 +1112,12 @@ def render_group_overview_content(df, light_name, sel_countries, sel_groups, ful
                 showgrid=False,
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=True
             )
         
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10), automargin=True)
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
@@ -1645,6 +1657,8 @@ def render_group_mail_content(df, light_name, group_name, sel_countries, filter_
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=False
             )
             fig.update_yaxes(
@@ -1654,10 +1668,12 @@ def render_group_mail_content(df, light_name, group_name, sel_countries, filter_
                 showgrid=False,
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=True
             )
         
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10), automargin=True)
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
@@ -1909,19 +1925,19 @@ def render_light_tab_content(df, light_name, available_months):
     else:
         # Light 2+: Render med group sub-tabs
         all_groups = get_unique_groups_for_light(df, light_name)
-        
-        if not all_groups:
+    
+    if not all_groups:
             st.warning(f"Ingen groups fundet for {light_name}.")
-            return
-        
-        group_tab_labels = ["Oversigt"] + all_groups
-        group_tabs = st.tabs(group_tab_labels)
-        
-        with group_tabs[0]:
+        return
+    
+    group_tab_labels = ["Oversigt"] + all_groups
+    group_tabs = st.tabs(group_tab_labels)
+    
+    with group_tabs[0]:
             render_light_group_overview_tab(df, light_name, available_months, all_groups)
-        
-        for i, group_name in enumerate(all_groups):
-            with group_tabs[i + 1]:
+    
+    for i, group_name in enumerate(all_groups):
+        with group_tabs[i + 1]:
                 render_group_mail_tab(df, light_name, group_name, available_months)
 
 
@@ -2970,6 +2986,8 @@ def render_light_flow_content(df, light_name, sel_countries, filter_config, full
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=False
             )
             fig.update_yaxes(
@@ -2979,10 +2997,12 @@ def render_light_flow_content(df, light_name, sel_countries, filter_config, full
                 showgrid=False,
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=True
             )
         
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10), automargin=True)
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 

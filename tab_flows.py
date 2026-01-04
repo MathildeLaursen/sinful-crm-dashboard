@@ -492,13 +492,16 @@ def render_overview_content(flow_df, sel_countries, sel_flows, full_df=None, all
         gridcolor='rgba(212,191,255,0.3)',
         tickvals=tick_vals,
         ticktext=tick_text,
-        tickfont=dict(size=10)
+        tickfont=dict(size=10),
+        automargin=True,
+        ticklabelstandoff=10
     )
     fig.update_xaxes(
         gridcolor='rgba(212,191,255,0.2)', 
         tickfont=dict(size=11),
         categoryorder='array',
-        categoryarray=months_sorted
+        categoryarray=months_sorted,
+        automargin=True
     )
     
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
@@ -1255,6 +1258,8 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
                 gridcolor='rgba(212,191,255,0.3)',
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=False
             )
             # Hoejre y-akse (Clicks) - starter altid ved 0
@@ -1265,11 +1270,13 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
                 showgrid=False,
                 tickformat=',d',
                 rangemode='tozero',
+                automargin=True,
+                ticklabelstandoff=5,
                 row=i+1, col=1, secondary_y=True
             )
         
         # Opdater x-akser (kun vis labels paa nederste)
-        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10))
+        fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', type='category', tickfont=dict(size=10), automargin=True)
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
