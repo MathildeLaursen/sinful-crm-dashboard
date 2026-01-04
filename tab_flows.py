@@ -555,15 +555,41 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
         return
     
     # Anvend filtre fra filter_config (alle filtre anvendes ALTID - vi aggregerer kun bagefter hvis ignore er True)
+    # "Ingen" i filter_config betyder tomme/blanke værdier
+    BLANK_LABEL = "Ingen"
     if filter_config is not None:
         if filter_config.get('mails'):
-            flow_data = flow_data[flow_data['Mail'].isin(filter_config['mails'])]
+            selected_mails = filter_config['mails']
+            include_blank = BLANK_LABEL in selected_mails
+            non_blank_mails = [m for m in selected_mails if m != BLANK_LABEL]
+            if include_blank:
+                flow_data = flow_data[flow_data['Mail'].isin(non_blank_mails) | (flow_data['Mail'].str.strip() == '') | flow_data['Mail'].isna()]
+            else:
+                flow_data = flow_data[flow_data['Mail'].isin(non_blank_mails)]
         if filter_config.get('groups'):
-            flow_data = flow_data[flow_data['Group'].isin(filter_config['groups'])]
+            selected_groups = filter_config['groups']
+            include_blank = BLANK_LABEL in selected_groups
+            non_blank_groups = [g for g in selected_groups if g != BLANK_LABEL]
+            if include_blank:
+                flow_data = flow_data[flow_data['Group'].isin(non_blank_groups) | (flow_data['Group'].str.strip() == '') | flow_data['Group'].isna()]
+            else:
+                flow_data = flow_data[flow_data['Group'].isin(non_blank_groups)]
         if filter_config.get('messages'):
-            flow_data = flow_data[flow_data['Message'].isin(filter_config['messages'])]
+            selected_messages = filter_config['messages']
+            include_blank = BLANK_LABEL in selected_messages
+            non_blank_messages = [m for m in selected_messages if m != BLANK_LABEL]
+            if include_blank:
+                flow_data = flow_data[flow_data['Message'].isin(non_blank_messages) | (flow_data['Message'].str.strip() == '') | flow_data['Message'].isna()]
+            else:
+                flow_data = flow_data[flow_data['Message'].isin(non_blank_messages)]
         if filter_config.get('ab'):
-            flow_data = flow_data[flow_data['AB'].isin(filter_config['ab'])]
+            selected_ab = filter_config['ab']
+            include_blank = BLANK_LABEL in selected_ab
+            non_blank_ab = [a for a in selected_ab if a != BLANK_LABEL]
+            if include_blank:
+                flow_data = flow_data[flow_data['AB'].isin(non_blank_ab) | (flow_data['AB'].str.strip() == '') | flow_data['AB'].isna()]
+            else:
+                flow_data = flow_data[flow_data['AB'].isin(non_blank_ab)]
     
     if flow_data.empty:
         st.warning(f"Ingen data for {flow_trigger} med de valgte filtre.")
@@ -1491,14 +1517,34 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
         return
 
     # === FILTER OPTIONS ===
-    # Hent unikke værdier for alle filter-dimensioner
+    # Hent unikke værdier for alle filter-dimensioner (inkluder "Ingen" for tomme værdier)
+    BLANK_LABEL = "Ingen"
+    
+    # Check om der findes blanke værdier
+    has_blank_group = any(pd.isna(g) or str(g).strip() == '' for g in flow_data_all['Group'].unique())
+    has_blank_mail = any(pd.isna(m) or str(m).strip() == '' for m in flow_data_all['Mail'].unique())
+    has_blank_message = any(pd.isna(m) or str(m).strip() == '' for m in flow_data_all['Message'].unique())
+    has_blank_ab = any(pd.isna(a) or str(a).strip() == '' for a in flow_data_all['AB'].unique())
+    
     all_groups = sorted([g for g in flow_data_all['Group'].unique() if pd.notna(g) and str(g).strip() != ''])
     all_mails_raw = sorted([m for m in flow_data_all['Mail'].unique() if pd.notna(m) and str(m).strip() != ''])
     all_messages = sorted([m for m in flow_data_all['Message'].unique() if pd.notna(m) and str(m).strip() != ''])
     all_ab = sorted([a for a in flow_data_all['AB'].unique() if pd.notna(a) and str(a).strip() != ''])
     
-    # Sorter mails efter nummer
+    # Tilføj "(Blank)" hvis der findes blanke værdier
+    if has_blank_group:
+        all_groups = [BLANK_LABEL] + all_groups
+    if has_blank_mail:
+        all_mails_raw = [BLANK_LABEL] + all_mails_raw
+    if has_blank_message:
+        all_messages = [BLANK_LABEL] + all_messages
+    if has_blank_ab:
+        all_ab = [BLANK_LABEL] + all_ab
+    
+    # Sorter mails efter nummer (hold "Ingen" først)
     def mail_sort_key(mail):
+        if mail == BLANK_LABEL:
+            return -1  # "Ingen" kommer først
         match = re.search(r'Mail\s*(\d+)', str(mail))
         return int(match.group(1)) if match else 999
     all_mails_raw = sorted(all_mails_raw, key=mail_sort_key)
@@ -1519,6 +1565,16 @@ def render_single_flow_tab_content(df, flow_trigger, available_months):
     active_groups = set(recent_data['Group'].unique())
     active_messages = set(recent_data['Message'].unique())
     active_ab = set(recent_data['AB'].unique())
+    
+    # Tilføj BLANK_LABEL til active sets hvis der findes blanke værdier i recent data
+    if has_blank_group and any(pd.isna(g) or str(g).strip() == '' for g in recent_data['Group'].unique()):
+        active_groups.add(BLANK_LABEL)
+    if has_blank_mail and any(pd.isna(m) or str(m).strip() == '' for m in recent_data['Mail'].unique()):
+        active_mails.add(BLANK_LABEL)
+    if has_blank_message and any(pd.isna(m) or str(m).strip() == '' for m in recent_data['Message'].unique()):
+        active_messages.add(BLANK_LABEL)
+    if has_blank_ab and any(pd.isna(a) or str(a).strip() == '' for a in recent_data['AB'].unique()):
+        active_ab.add(BLANK_LABEL)
     
     # === SESSION STATE KEYS ===
     ignore_inactive_key = f'fl_ignore_inactive_{flow_trigger}'
