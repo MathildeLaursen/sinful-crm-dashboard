@@ -551,7 +551,9 @@ def render_newsletters_tab():
                 title="",
                 gridcolor='rgba(212,191,255,0.2)',
                 categoryorder='array',
-                categoryarray=chart_df['Email_Short'].tolist()[::-1]
+                categoryarray=chart_df['Email_Short'].tolist()[::-1],
+                automargin=True,
+                ticklabelstandoff=10
             )
         )
         
