@@ -717,7 +717,7 @@ def render_single_flow_content(raw_df, flow_trigger, sel_countries, filter_confi
     # === SKJUL INAKTIVE CHECKBOX (mellem scorecards og tabel) ===
     if filter_config is not None and '_ignore_inactive_key' in filter_config:
         ignore_inactive_key = filter_config['_ignore_inactive_key']
-        st.markdown('<div style="font-size: 0.85em; margin-top: 10px; margin-bottom: 5px;">', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 0.85em; margin-top: 10px; margin-bottom: 1px;">', unsafe_allow_html=True)
         ignore_inactive_new = st.checkbox(
             "Skjul inaktive mails fra tabel og grafer", 
             value=st.session_state[ignore_inactive_key], 
