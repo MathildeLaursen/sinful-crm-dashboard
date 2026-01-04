@@ -817,15 +817,43 @@ def render_nye_subscribers_tab(events_df):
                     ms_start_month = ms_available_months[0] if ms_available_months else None
                     ms_end_month = ms_start_month
                 
-                # Find data for valgt periode
-                if ms_end_month:
-                    ms_current_row = agg_master[agg_master['Month'] == ms_end_month]
-                    ms_end_idx = ms_available_months.index(ms_end_month)
-                    ms_prev_month = ms_available_months[ms_end_idx - 1] if ms_end_idx > 0 else None
-                    ms_prev_row = agg_master[agg_master['Month'] == ms_prev_month] if ms_prev_month else None
+                # Filtrer data til valgt periode
+                ms_period_df = agg_master[(agg_master['Month'] >= ms_start_month) & (agg_master['Month'] <= ms_end_month)]
+                
+                # Find valgte måneder
+                ms_selected_months = sorted(ms_period_df['Month'].unique().tolist())
+                ms_num_months = len(ms_selected_months)
+                
+                # Beregn måned progress
+                import calendar
+                today = datetime.date.today()
+                yesterday = today - datetime.timedelta(days=1)
+                days_with_data = yesterday.day
+                total_days_in_month = calendar.monthrange(today.year, today.month)[1]
+                ms_month_progress = days_with_data / total_days_in_month
+                
+                # Tjek om nuværende måned er valgt
+                ms_current_month_dt = pd.Timestamp(today.year, today.month, 1)
+                ms_current_month_selected = any(
+                    m.year == ms_current_month_dt.year and m.month == ms_current_month_dt.month 
+                    for m in ms_selected_months
+                )
+                
+                # Find sammenligningsperiode: N måneder FØR den ældste valgte måned
+                if ms_selected_months and ms_num_months > 0:
+                    ms_oldest_selected = ms_selected_months[0]
+                    ms_oldest_idx = ms_available_months.index(ms_oldest_selected) if ms_oldest_selected in ms_available_months else -1
+                    
+                    ms_prev_months = []
+                    for idx in range(ms_num_months):
+                        prev_idx = ms_oldest_idx - 1 - idx
+                        if prev_idx >= 0:
+                            ms_prev_months.append(ms_available_months[prev_idx])
+                    
+                    ms_oldest_prev_month = min(ms_prev_months) if ms_prev_months else None
                 else:
-                    ms_current_row = pd.DataFrame()
-                    ms_prev_row = None
+                    ms_prev_months = []
+                    ms_oldest_prev_month = None
                 
                 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
                 
@@ -834,12 +862,24 @@ def render_nye_subscribers_tab(events_df):
                 row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
                 cols_row1 = st.columns(6)
                 for j, country in enumerate(row1_countries):
-                    if country in agg_master.columns and not ms_current_row.empty:
-                        current = ms_current_row.iloc[0][country]
-                        if ms_prev_row is not None and not ms_prev_row.empty:
-                            prev = ms_prev_row.iloc[0][country]
+                    if country in agg_master.columns:
+                        current = ms_period_df[country].sum()
+                        
+                        # Beregn sammenligning
+                        prev = 0
+                        if ms_prev_months:
+                            for pm in ms_prev_months:
+                                pm_row = agg_master[agg_master['Month'] == pm]
+                                if not pm_row.empty:
+                                    pm_val = pm_row.iloc[0][country]
+                                    if pm == ms_oldest_prev_month and ms_current_month_selected:
+                                        prev += pm_val * ms_month_progress
+                                    else:
+                                        prev += pm_val
+                        
+                        if prev > 0:
                             growth = current - prev
-                            pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                            pct = ((current - prev) / prev * 100)
                             growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
                             cols_row1[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
                         else:
@@ -851,12 +891,24 @@ def render_nye_subscribers_tab(events_df):
                 row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
                 cols_row2 = st.columns(6)
                 for j, country in enumerate(row2_countries):
-                    if country in agg_master.columns and not ms_current_row.empty:
-                        current = ms_current_row.iloc[0][country]
-                        if ms_prev_row is not None and not ms_prev_row.empty:
-                            prev = ms_prev_row.iloc[0][country]
+                    if country in agg_master.columns:
+                        current = ms_period_df[country].sum()
+                        
+                        # Beregn sammenligning
+                        prev = 0
+                        if ms_prev_months:
+                            for pm in ms_prev_months:
+                                pm_row = agg_master[agg_master['Month'] == pm]
+                                if not pm_row.empty:
+                                    pm_val = pm_row.iloc[0][country]
+                                    if pm == ms_oldest_prev_month and ms_current_month_selected:
+                                        prev += pm_val * ms_month_progress
+                                    else:
+                                        prev += pm_val
+                        
+                        if prev > 0:
                             growth = current - prev
-                            pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                            pct = ((current - prev) / prev * 100)
                             growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
                             cols_row2[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
                         else:
@@ -865,12 +917,24 @@ def render_nye_subscribers_tab(events_df):
                         cols_row2[j].metric(f"{country}", "—")
                 
                 # Total kort i position 6
-                if 'Total' in agg_master.columns and not ms_current_row.empty:
-                    ms_current_total = ms_current_row.iloc[0]['Total']
-                    if ms_prev_row is not None and not ms_prev_row.empty:
-                        ms_prev_total = ms_prev_row.iloc[0]['Total']
+                if 'Total' in agg_master.columns:
+                    ms_current_total = ms_period_df['Total'].sum()
+                    
+                    # Beregn sammenligning for Total
+                    ms_prev_total = 0
+                    if ms_prev_months:
+                        for pm in ms_prev_months:
+                            pm_row = agg_master[agg_master['Month'] == pm]
+                            if not pm_row.empty:
+                                pm_val = pm_row.iloc[0]['Total']
+                                if pm == ms_oldest_prev_month and ms_current_month_selected:
+                                    ms_prev_total += pm_val * ms_month_progress
+                                else:
+                                    ms_prev_total += pm_val
+                    
+                    if ms_prev_total > 0:
                         ms_total_growth = ms_current_total - ms_prev_total
-                        ms_total_pct = ((ms_current_total - ms_prev_total) / ms_prev_total * 100) if ms_prev_total > 0 else 0
+                        ms_total_pct = ((ms_current_total - ms_prev_total) / ms_prev_total * 100)
                         ms_total_growth_str = f"+{ms_total_growth:,.0f}" if ms_total_growth >= 0 else f"{ms_total_growth:,.0f}"
                         cols_row2[5].metric("Total", format_number(ms_current_total), delta=f"{ms_total_pct:+.1f}% ({ms_total_growth_str})")
                     else:
