@@ -338,8 +338,8 @@ def render_full_subscribers_tab(full_df):
         display_full['Month'] = display_full['Month'].dt.strftime('%Y-%m')
         cols_to_show = ['Month'] + [c for c in country_cols + ['Total'] if c in display_full.columns]
         
-        # Beregn højde baseret på antal rækker
-        table_height = min(len(display_full) * 35 + 50, 800)
+        # Beregn højde baseret på antal rækker (38px per række + 60px header)
+        table_height = len(display_full) * 38 + 60
         
         st.dataframe(
             display_full[cols_to_show],
@@ -404,8 +404,8 @@ def render_light_subscribers_tab(light_df):
         display_light['Month'] = display_light['Month'].dt.strftime('%Y-%m')
         cols_to_show = ['Month'] + [c for c in country_cols + ['Total'] if c in display_light.columns]
         
-        # Beregn højde baseret på antal rækker
-        table_height = min(len(display_light) * 35 + 50, 800)
+        # Beregn højde baseret på antal rækker (38px per række + 60px header)
+        table_height = len(display_light) * 38 + 60
         
         st.dataframe(
             display_light[cols_to_show],
@@ -452,8 +452,8 @@ def render_nye_subscribers_tab(events_df):
         
         cols_to_show = ['Month', 'Master Source', 'Source'] + [c for c in country_cols if c in filtered_events.columns]
         
-        # Beregn højde baseret på antal rækker
-        table_height = min(len(filtered_events) * 35 + 50, 800)
+        # Beregn højde baseret på antal rækker (38px per række + 60px header, max 1200px)
+        table_height = min(len(filtered_events) * 38 + 60, 1200)
         
         st.dataframe(
             filtered_events[cols_to_show].sort_values('Month', ascending=False),
