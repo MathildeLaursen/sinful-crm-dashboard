@@ -620,8 +620,13 @@ def render_nye_subscribers_tab(events_df):
         display_events = events_df.copy()
         display_events['Month'] = pd.to_datetime(display_events['Month'])
         
-        # Hent unikke Master Sources
-        master_sources = sorted(display_events['Master Source'].unique().tolist())
+        # Fjern LightPermission fra data
+        display_events = display_events[display_events['Master Source'] != 'LightPermission']
+        
+        # Definér rækkefølge for Master Sources
+        master_source_order = ['On Site', 'Game', 'Lead Ad', 'Sleeknote', 'Other']
+        available_sources = display_events['Master Source'].unique().tolist()
+        master_sources = [ms for ms in master_source_order if ms in available_sources]
         
         # Opret sub-tabs: Oversigt + en per Master Source
         tab_names = ["Oversigt"] + master_sources
