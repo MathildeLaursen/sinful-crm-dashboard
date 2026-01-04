@@ -885,6 +885,9 @@ def render_nye_subscribers_tab(events_df):
         # Master sources der skal have Source sub-tabs
         masters_with_source_tabs = ['On Site', 'Game', 'Lead Ad']
         
+        # Sources der skal ekskluderes fra Game
+        excluded_game_sources = ['LF_Birthday24', 'LF_Paaske_2021', 'LF_Paaske_2022']
+        
         for i, master in enumerate(master_sources):
             with source_tabs[i + 1]:
                 st.markdown(f"<div style='height: 10px;'></div>", unsafe_allow_html=True)
@@ -892,13 +895,23 @@ def render_nye_subscribers_tab(events_df):
                 # Filtrer til denne Master Source
                 master_df = display_events[display_events['Master Source'] == master].copy()
                 
+                # Ekskluder specifikke sources fra Game
+                if master == 'Game':
+                    master_df = master_df[~master_df['Source'].isin(excluded_game_sources)]
+                
                 # Tjek om denne Master Source skal have Source sub-tabs
                 if master in masters_with_source_tabs:
                     # Hent unikke Sources under denne Master Source
                     sources_list = sorted(master_df['Source'].unique().tolist())
                     
-                    # Opret sub-tabs: Oversigt + hver Source
-                    source_tab_names = ["Oversigt"] + sources_list
+                    # Fjern "LF_" prefix fra display navne
+                    def clean_source_name(name):
+                        return name.replace('LF_', '') if name.startswith('LF_') else name
+                    
+                    source_display_names = [clean_source_name(s) for s in sources_list]
+                    
+                    # Opret sub-tabs: Oversigt + hver Source (med rensede navne)
+                    source_tab_names = ["Oversigt"] + source_display_names
                     source_sub_tabs = st.tabs(source_tab_names)
                     
                     # --- OVERSIGT TAB (aggregeret for hele Master Source) ---
