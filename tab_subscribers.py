@@ -762,15 +762,140 @@ def render_nye_subscribers_tab(events_df):
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # --- MASTER SOURCE TABS ---
+        # Farver per land
+        country_colors = {
+            'DK': '#9B7EBD', 'SE': '#E8B4CB', 'NO': '#A8E6CF', 'FI': '#FFD3B6',
+            'FR': '#D4BFFF', 'UK': '#F0B4D4', 'DE': '#B4E0F0', 'AT': '#E0D4B4',
+            'NL': '#F0D4B4', 'BE': '#D4F0B4', 'CH': '#B4D4F0'
+        }
+        
         for i, master in enumerate(master_sources):
             with source_tabs[i + 1]:
                 st.markdown(f"<div style='height: 10px;'></div>", unsafe_allow_html=True)
                 
                 # Filtrer til denne Master Source
                 master_df = display_events[display_events['Master Source'] == master].copy()
-                master_df['Month_str'] = master_df['Month'].dt.strftime('%Y-%m')
                 
-                # Vis tabel med Sources under denne Master Source
+                # Aggreger per måned og land (sum over alle Sources under denne Master Source)
+                agg_master = master_df.groupby('Month')[country_cols].sum().reset_index()
+                agg_master = agg_master.sort_values('Month')
+                
+                # Beregn Total kolonne
+                agg_master['Total'] = agg_master[country_cols].sum(axis=1)
+                
+                # --- SLIDER ---
+                ms_available_months = sorted(agg_master['Month'].unique().tolist())
+                ms_current_month = ms_available_months[-1] if ms_available_months else None
+                
+                if len(ms_available_months) > 1:
+                    ms_month_range = st.select_slider(
+                        "Periode",
+                        options=ms_available_months,
+                        value=(ms_current_month, ms_current_month),
+                        format_func=format_month_short_kilder,
+                        key=f"kilder_{master}_period",
+                        label_visibility="collapsed"
+                    )
+                    ms_start_month, ms_end_month = ms_month_range
+                else:
+                    ms_start_month = ms_available_months[0] if ms_available_months else None
+                    ms_end_month = ms_start_month
+                
+                # Find data for valgt periode
+                if ms_end_month:
+                    ms_current_row = agg_master[agg_master['Month'] == ms_end_month]
+                    ms_end_idx = ms_available_months.index(ms_end_month)
+                    ms_prev_month = ms_available_months[ms_end_idx - 1] if ms_end_idx > 0 else None
+                    ms_prev_row = agg_master[agg_master['Month'] == ms_prev_month] if ms_prev_month else None
+                else:
+                    ms_current_row = pd.DataFrame()
+                    ms_prev_row = None
+                
+                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                
+                # --- SCORECARDS PER LAND ---
+                # Række 1: DK, SE, NO, FI, FR, UK
+                row1_countries = ['DK', 'SE', 'NO', 'FI', 'FR', 'UK']
+                cols_row1 = st.columns(6)
+                for j, country in enumerate(row1_countries):
+                    if country in agg_master.columns and not ms_current_row.empty:
+                        current = ms_current_row.iloc[0][country]
+                        if ms_prev_row is not None and not ms_prev_row.empty:
+                            prev = ms_prev_row.iloc[0][country]
+                            growth = current - prev
+                            pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                            growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                            cols_row1[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
+                        else:
+                            cols_row1[j].metric(f"{country}", format_number(current))
+                    else:
+                        cols_row1[j].metric(f"{country}", "—")
+                
+                # Række 2: DE, AT, NL, BE, CH + Total
+                row2_countries = ['DE', 'AT', 'NL', 'BE', 'CH']
+                cols_row2 = st.columns(6)
+                for j, country in enumerate(row2_countries):
+                    if country in agg_master.columns and not ms_current_row.empty:
+                        current = ms_current_row.iloc[0][country]
+                        if ms_prev_row is not None and not ms_prev_row.empty:
+                            prev = ms_prev_row.iloc[0][country]
+                            growth = current - prev
+                            pct = ((current - prev) / prev * 100) if prev > 0 else 0
+                            growth_str = f"+{growth:,.0f}" if growth >= 0 else f"{growth:,.0f}"
+                            cols_row2[j].metric(f"{country}", format_number(current), delta=f"{pct:+.1f}% ({growth_str})")
+                        else:
+                            cols_row2[j].metric(f"{country}", format_number(current))
+                    else:
+                        cols_row2[j].metric(f"{country}", "—")
+                
+                # Total kort i position 6
+                if 'Total' in agg_master.columns and not ms_current_row.empty:
+                    ms_current_total = ms_current_row.iloc[0]['Total']
+                    if ms_prev_row is not None and not ms_prev_row.empty:
+                        ms_prev_total = ms_prev_row.iloc[0]['Total']
+                        ms_total_growth = ms_current_total - ms_prev_total
+                        ms_total_pct = ((ms_current_total - ms_prev_total) / ms_prev_total * 100) if ms_prev_total > 0 else 0
+                        ms_total_growth_str = f"+{ms_total_growth:,.0f}" if ms_total_growth >= 0 else f"{ms_total_growth:,.0f}"
+                        cols_row2[5].metric("Total", format_number(ms_current_total), delta=f"{ms_total_pct:+.1f}% ({ms_total_growth_str})")
+                    else:
+                        cols_row2[5].metric("Total", format_number(ms_current_total))
+                
+                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+                
+                # --- GRAF: Udvikling per land ---
+                fig = go.Figure()
+                for country in country_cols:
+                    if country in agg_master.columns:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=agg_master['Month'],
+                                y=agg_master[country],
+                                name=country,
+                                mode='lines+markers',
+                                line=dict(color=country_colors.get(country, '#9B7EBD'), width=2),
+                                marker=dict(size=6)
+                            )
+                        )
+                
+                fig.update_layout(
+                    title="",
+                    showlegend=True,
+                    height=500,
+                    margin=dict(l=50, r=50, t=60, b=50),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                    plot_bgcolor='rgba(250,245,255,0.5)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    hovermode='x unified'
+                )
+                fig.update_xaxes(gridcolor='rgba(212,191,255,0.2)', tickformat='%Y-%m', automargin=True, ticklabelstandoff=10)
+                fig.update_yaxes(gridcolor='rgba(212,191,255,0.3)', tickformat=',', automargin=True, ticklabelstandoff=10)
+                
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                
+                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+                
+                # --- TABEL: Sources under denne Master Source ---
+                master_df['Month_str'] = master_df['Month'].dt.strftime('%Y-%m')
                 cols_to_show = ['Month_str', 'Source'] + [c for c in country_cols if c in master_df.columns]
                 
                 # Beregn højde baseret på antal rækker
